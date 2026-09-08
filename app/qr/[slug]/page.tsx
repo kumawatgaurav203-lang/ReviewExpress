@@ -37,7 +37,7 @@ export default async function QRStandeePage({ params }: PageProps) {
   const business = await getBusinessBySlug(params.slug);
   
   // URL pointing to the customer NFC/QR flow on the local network
-  const customerFlowUrl = `http://10.212.203.114:3000/r/${business.slug}`;
+  const customerFlowUrl = `http://172.24.243.114:3000/r/${business.slug}`;
   
   // Generate high-res base64 Data URL for the QR code
   const qrDataUrl = await QRCode.toDataURL(customerFlowUrl, {

@@ -5,7 +5,7 @@ export const DEMO_BUSINESSES: Record<string, Business> = {
     id: 'b1111111-1111-4111-8111-111111111111',
     name: 'Photify Studios',
     slug: 'photify-studios',
-    google_review_link: 'https://www.google.com/search?q=Photify+Studios+Jaipur#lrd=0x396db550a36bf10b:0xa53d8027eddfb486,3,,,',
+    google_review_link: 'https://g.page/r/CYa03-OngD2IEAE/review',
     tags: [
       'Stunning Portrait Edits',
       'Professional Lighting',

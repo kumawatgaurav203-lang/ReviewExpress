@@ -72,7 +72,7 @@ VALUES
     (
         'Photify Studios',
         'photify-studios',
-        'https://www.google.com/search?q=Photify+Studios+Jaipur#lrd=0x396db550a36bf10b:0xa53d8027eddfb486,3,,,',
+        'https://g.page/r/CYa03-OngD2IEAE/review',
         ARRAY['Stunning Portrait Edits', 'Professional Lighting', 'Creative Poses', 'Punctual & Friendly Staff', 'Quick Album Delivery', 'High Resolution Photos'],
         true
     ),
