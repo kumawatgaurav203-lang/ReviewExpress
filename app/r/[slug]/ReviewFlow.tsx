@@ -70,8 +70,8 @@ export default function ReviewFlow({ business, initialSource }: ReviewFlowProps)
   const [turnstileSiteKey, setTurnstileSiteKey] = useState<string>(() => {
     if (typeof window !== "undefined") {
       const hostname = window.location.hostname;
-      // If accessed via onrender.com, local IP, or localhost, use universal test key
-      if (hostname.includes("onrender.com") || /^\d+\.\d+\.\d+\.\d+$/.test(hostname) || hostname === "localhost") {
+      // If accessed via local IP or localhost, use universal test key
+      if (/^\d+\.\d+\.\d+\.\d+$/.test(hostname) || hostname === "localhost") {
         return "1x00000000000000000000AA";
       }
     }

@@ -245,7 +245,7 @@ export default function CreateAccountAdminPage() {
   const [turnstileSiteKey, setTurnstileSiteKey] = useState<string>(() => {
     if (typeof window !== "undefined") {
       const hostname = window.location.hostname;
-      if (hostname.includes("onrender.com") || /^\d+\.\d+\.\d+\.\d+$/.test(hostname) || hostname === "localhost") {
+      if (/^\d+\.\d+\.\d+\.\d+$/.test(hostname) || hostname === "localhost") {
         return "1x00000000000000000000AA";
       }
     }
