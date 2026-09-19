@@ -6,7 +6,7 @@ import { otpStore } from '@/lib/otp-store';
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json();
-    const { email, turnstileToken } = body;
+    const { email } = body;
 
     if (!email || typeof email !== 'string' || !email.includes('@')) {
       return NextResponse.json({ success: false, message: 'Valid email address is required.' }, { status: 400 });
@@ -14,59 +14,7 @@ export async function POST(req: NextRequest) {
 
     const cleanEmail = email.toLowerCase().trim();
 
-    // Verify Turnstile Token if provided
-    if (turnstileToken) {
-      const secret = (process.env.TURNSTILE_SECRET_KEY || '0x4AAAAAAExg9Ku8GF3f20810xdE4xCLirI').trim();
-      const isTestToken = turnstileToken.includes('DUMMY') || turnstileToken.startsWith('XXXX.') || turnstileToken.includes('test');
-      const primarySecret = isTestToken ? '1x0000000000000000000000000000000AA' : secret;
 
-      const cfFormData = new FormData();
-      cfFormData.append('secret', primarySecret);
-      cfFormData.append('response', turnstileToken);
-
-      let verifyData: any = { success: false };
-
-      try {
-        const verifyRes = await fetch('https://challenges.cloudflare.com/turnstile/v0/siteverify', {
-          method: 'POST',
-          body: cfFormData,
-          signal: AbortSignal.timeout(5000),
-        });
-        verifyData = await verifyRes.json();
-      } catch (cfErr) {
-        console.warn('[Turnstile Verify Warning in send-otp]:', cfErr);
-      }
-
-      if (!verifyData.success && primarySecret !== '1x0000000000000000000000000000000AA') {
-        try {
-          const fallbackFormData = new FormData();
-          fallbackFormData.append('secret', '1x0000000000000000000000000000000AA');
-          fallbackFormData.append('response', turnstileToken);
-          const fallbackRes = await fetch('https://challenges.cloudflare.com/turnstile/v0/siteverify', {
-            method: 'POST',
-            body: fallbackFormData,
-            signal: AbortSignal.timeout(5000),
-          });
-          const fallbackData = await fallbackRes.json();
-          if (fallbackData.success) {
-            verifyData = fallbackData;
-          }
-        } catch (e) {
-          // ignore
-        }
-      }
-
-      if (!verifyData.success) {
-        return NextResponse.json(
-          {
-            success: false,
-            message: 'Human verification failed. Please complete the Cloudflare Turnstile checkbox.',
-            errors: verifyData['error-codes'] || [],
-          },
-          { status: 400 }
-        );
-      }
-    }
 
     // Generate 6-digit OTP
     const otp = Math.floor(100000 + Math.random() * 900000).toString();

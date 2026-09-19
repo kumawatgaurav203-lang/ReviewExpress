@@ -33,7 +33,6 @@ import {
   RefreshCw,
 } from 'lucide-react';
 import QRCode from 'qrcode';
-import { Turnstile } from '@marsidev/react-turnstile';
 import { detectCategory } from '@/lib/tags-data';
 import SocialContactBar from '@/components/SocialContactBar';
 
@@ -241,16 +240,6 @@ export default function CreateAccountAdminPage() {
   const [showOtpField, setShowOtpField] = useState(false);
   const [otp, setOtp] = useState('');
   const [isSendingOtp, setIsSendingOtp] = useState(false);
-  const [turnstileToken, setTurnstileToken] = useState('');
-  const [turnstileSiteKey, setTurnstileSiteKey] = useState<string>(() => {
-    if (typeof window !== "undefined") {
-      const hostname = window.location.hostname;
-      if (/^\d+\.\d+\.\d+\.\d+$/.test(hostname) || hostname === "localhost") {
-        return "1x00000000000000000000AA";
-      }
-    }
-    return process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY || "0x4AAAAAAExg9IxCReGCFYX3";
-  });
 
   // Success State
   const [createdBusiness, setCreatedBusiness] = useState<{
@@ -420,18 +409,13 @@ export default function CreateAccountAdminPage() {
 
     // STEP 1: Send OTP if not shown
     if (!showOtpField) {
-      if (!turnstileToken) {
-        setErrorMsg('Please complete the Cloudflare Turnstile human verification ("Verify you are human") check.');
-        return;
-      }
-
       setIsSendingOtp(true);
       try {
         const res = await fetch('/api/send-otp', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           signal: AbortSignal.timeout(10000),
-          body: JSON.stringify({ email: email.trim(), turnstileToken }),
+          body: JSON.stringify({ email: email.trim() }),
         });
         const data = await res.json();
         setIsSendingOtp(false);
@@ -773,32 +757,6 @@ export default function CreateAccountAdminPage() {
                 </div>
               )}
 
-              {/* Cloudflare Turnstile Human Verification Checkbox */}
-              {!showOtpField && (
-                <div className="pt-2 flex flex-col items-center justify-center">
-                  <div className="bg-slate-950/80 p-2 rounded-2xl border border-slate-800 inline-block overflow-hidden min-h-[70px]">
-                    <Turnstile
-                      key={turnstileSiteKey}
-                      siteKey={turnstileSiteKey}
-                      onSuccess={(token) => {
-                        setTurnstileToken(token);
-                        setErrorMsg('');
-                      }}
-                      onError={() => {
-                        if (turnstileSiteKey !== "1x00000000000000000000AA") {
-                          setTurnstileSiteKey("1x00000000000000000000AA");
-                        } else {
-                          setTurnstileToken("DUMMY_TOKEN_BYPASS");
-                        }
-                      }}
-                    />
-                  </div>
-                  <span className="text-[11px] text-slate-400 mt-1 flex items-center gap-1">
-                    <ShieldCheck className="w-3.5 h-3.5 text-indigo-400" />
-                    <span>Protected by Cloudflare Turnstile</span>
-                  </span>
-                </div>
-              )}
 
               <button
                 type="submit"

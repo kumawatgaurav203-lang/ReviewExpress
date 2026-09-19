@@ -12,11 +12,8 @@ import {
   MessageSquare,
   RefreshCw,
   HeartHandshake,
-  ShieldCheck,
   Building2,
-  Lock,
 } from "lucide-react";
-import { Turnstile } from '@marsidev/react-turnstile';
 
 interface ReviewFlowProps {
   business: Business;
@@ -33,8 +30,6 @@ export default function ReviewFlow({ business, initialSource }: ReviewFlowProps)
     return 'qr';
   });
 
-  const [isVerified, setIsVerified] = useState<boolean>(false);
-  const [captchaError, setCaptchaError] = useState<string>("");
 
   const [visitLogId, setVisitLogId] = useState<string>("");
 
@@ -67,16 +62,7 @@ export default function ReviewFlow({ business, initialSource }: ReviewFlowProps)
       })
       .catch(() => {});
   }, [business?.id, source]);
-  const [turnstileSiteKey, setTurnstileSiteKey] = useState<string>(() => {
-    if (typeof window !== "undefined") {
-      const hostname = window.location.hostname;
-      // If accessed via local IP or localhost, use universal test key
-      if (/^\d+\.\d+\.\d+\.\d+$/.test(hostname) || hostname === "localhost") {
-        return "1x00000000000000000000AA";
-      }
-    }
-    return process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY || "0x4AAAAAAExg9IxCReGCFYX3";
-  });
+
 
   const [rating, setRating] = useState<number>(0);
   const [hoveredRating, setHoveredRating] = useState<number>(0);
@@ -132,28 +118,7 @@ export default function ReviewFlow({ business, initialSource }: ReviewFlowProps)
     }
   };
 
-  // Handle Turnstile Verification
-  const handleTurnstileVerify = async (token: string) => {
-    if (!token) return;
-    setCaptchaError("");
-    try {
-      const res = await fetch("/api/verify-turnstile", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        signal: AbortSignal.timeout(6000),
-        body: JSON.stringify({ token }),
-      });
-      const data = await res.json();
-      if (data.success) {
-        setIsVerified(true);
-      } else {
-        setCaptchaError("Verification failed. Please try again.");
-      }
-    } catch (err) {
-      console.error("Turnstile error:", err);
-      setCaptchaError("Network error during verification.");
-    }
-  };
+
 
   // Generate review via Gemini API route (Allows up to 5 regenerations)
   const handleGenerateReview = async () => {
@@ -343,48 +308,7 @@ export default function ReviewFlow({ business, initialSource }: ReviewFlowProps)
       </div>
 
       {/* Main Interactive Card */}
-      {!isVerified ? (
-        <div className="w-full bg-white rounded-3xl shadow-xl shadow-slate-200/70 border border-slate-100 p-6 sm:p-8 transition-all duration-300 text-center flex flex-col items-center">
-          <div className="inline-flex p-3 bg-blue-50 rounded-2xl text-blue-600 mb-4 border border-blue-100">
-            <ShieldCheck className="w-8 h-8" />
-          </div>
-          <h2 className="text-xl font-bold text-slate-800 mb-2">
-            Security Check
-          </h2>
-          <p className="text-sm text-slate-500 mb-6">
-            Please verify that you are human to access the review terminal for{" "}
-            {business.name}.
-          </p>
-
-          <div className="bg-slate-50 p-2 rounded-xl border border-slate-200 inline-block overflow-hidden min-h-[70px]">
-            <Turnstile
-              key={turnstileSiteKey}
-              siteKey={turnstileSiteKey}
-              onSuccess={handleTurnstileVerify}
-              onError={() => {
-                // If custom sitekey failed due to domain mismatch on mobile IP, fallback seamlessly
-                if (turnstileSiteKey !== "1x00000000000000000000AA") {
-                  setTurnstileSiteKey("1x00000000000000000000AA");
-                } else {
-                  setIsVerified(true);
-                }
-              }}
-            />
-          </div>
-
-          {captchaError && (
-            <p className="text-sm text-rose-500 mt-4 bg-rose-50 px-3 py-1.5 rounded-lg border border-rose-100 font-medium">
-              {captchaError}
-            </p>
-          )}
-
-          <div className="mt-6 flex items-center justify-center gap-1.5 text-xs text-slate-400">
-            <Lock className="w-3.5 h-3.5" />
-            <span>Protected by Cloudflare Turnstile</span>
-          </div>
-        </div>
-      ) : (
-        <div className="w-full bg-white rounded-3xl shadow-xl shadow-slate-200/70 border border-slate-100 p-6 transition-all duration-300 animate-fade-in">
+      <div className="w-full bg-white rounded-3xl shadow-xl shadow-slate-200/70 border border-slate-100 p-6 transition-all duration-300 animate-fade-in">
           {/* Rating Prompt Header */}
           <div className="text-center mb-5">
             <h2 className="text-lg font-bold text-slate-800">
@@ -778,7 +702,6 @@ export default function ReviewFlow({ business, initialSource }: ReviewFlowProps)
             </div>
           )}
         </div>
-      )}
 
       {/* Powered by Footer */}
       <div className="mt-8 text-center text-xs text-slate-400 flex flex-col items-center justify-center gap-1.5">
