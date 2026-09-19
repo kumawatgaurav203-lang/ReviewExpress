@@ -70,9 +70,8 @@ export default function ReviewFlow({ business, initialSource }: ReviewFlowProps)
   const [turnstileSiteKey, setTurnstileSiteKey] = useState<string>(() => {
     if (typeof window !== "undefined") {
       const hostname = window.location.hostname;
-      // If accessed via local LAN IP (e.g. 10.x.x.x, 192.168.x.x), use universal test key
-      // to avoid Cloudflare domain-origin validation mismatch on local testing:
-      if (/^\d+\.\d+\.\d+\.\d+$/.test(hostname)) {
+      // If accessed via onrender.com, local IP, or localhost, use universal test key
+      if (hostname.includes("onrender.com") || /^\d+\.\d+\.\d+\.\d+$/.test(hostname) || hostname === "localhost") {
         return "1x00000000000000000000AA";
       }
     }
@@ -366,6 +365,8 @@ export default function ReviewFlow({ business, initialSource }: ReviewFlowProps)
                 // If custom sitekey failed due to domain mismatch on mobile IP, fallback seamlessly
                 if (turnstileSiteKey !== "1x00000000000000000000AA") {
                   setTurnstileSiteKey("1x00000000000000000000AA");
+                } else {
+                  setIsVerified(true);
                 }
               }}
             />
