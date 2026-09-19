@@ -2,8 +2,13 @@ import type { Metadata, Viewport } from 'next';
 import './globals.css';
 
 export const metadata: Metadata = {
-  title: 'Rate & Review | AI Google Growth',
-  description: '1-Tap AI-powered Google Review booster for local businesses',
+  title: 'ReviewXpress — Smart Google Reviews Platform',
+  description: '1-Tap in-store customer feedback and 5-star Google review booster for local businesses.',
+  icons: {
+    icon: '/reviewxpress-icon.png',
+    shortcut: '/reviewxpress-icon.png',
+    apple: '/reviewxpress-icon.png',
+  },
 };
 
 export const viewport: Viewport = {
@@ -11,6 +16,7 @@ export const viewport: Viewport = {
   initialScale: 1,
   maximumScale: 1,
   userScalable: false,
+  themeColor: '#030712',
 };
 
 export default function RootLayout({
@@ -19,8 +25,8 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang="en" className="h-full bg-slate-50 antialiased">
-      <body className="h-full flex flex-col selection:bg-blue-500 selection:text-white font-sans">
+    <html lang="en" className="dark bg-slate-950 text-slate-100 antialiased">
+      <body className="min-h-screen bg-slate-950 text-slate-100 flex flex-col selection:bg-indigo-500 selection:text-white font-sans overflow-x-hidden">
         {children}
       </body>
     </html>

@@ -8,61 +8,62 @@ CREATE EXTENSION IF NOT EXISTS "pgcrypto";
 
 -- ------------------------------------------------------------------------------
 -- 1. Table: businesses
--- Stores registered local businesses and their Google Review links & custom tags
--- ------------------------------------------------------------------------------
 CREATE TABLE IF NOT EXISTS businesses (
-    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    created_at TIMESTAMPTZ DEFAULT timezone('utc'::text, now()) NOT NULL,
+    id TEXT PRIMARY KEY,
     name TEXT NOT NULL,
     slug TEXT UNIQUE NOT NULL,
     google_review_link TEXT NOT NULL,
     tags TEXT[] DEFAULT ARRAY['Fast Service', 'Polite Staff', 'Clean Ambience', 'Great Quality', 'Value for Money']::TEXT[],
-    is_active BOOLEAN DEFAULT true NOT NULL
+    is_active BOOLEAN DEFAULT true NOT NULL,
+    created_at TIMESTAMPTZ DEFAULT now() NOT NULL
 );
 
--- ------------------------------------------------------------------------------
--- 2. Table: review_logs
--- Tracks customer tap feedback, ratings, AI generated reviews, and intercepts
--- ------------------------------------------------------------------------------
+-- 2. Table: review_logs (Reviews, Taps & Complaints)
 CREATE TABLE IF NOT EXISTS review_logs (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    business_id UUID REFERENCES businesses(id) ON DELETE CASCADE NOT NULL,
-    created_at TIMESTAMPTZ DEFAULT timezone('utc'::text, now()) NOT NULL,
-    rating INT NOT NULL CHECK (rating >= 1 AND rating <= 5),
+    business_id TEXT NOT NULL,
+    rating INT NOT NULL,
     selected_tags TEXT[] DEFAULT '{}'::TEXT[],
     review_text TEXT,
     customer_phone TEXT,
     customer_feedback TEXT,
-    posted_to_google BOOLEAN DEFAULT false NOT NULL
+    posted_to_google BOOLEAN DEFAULT false NOT NULL,
+    source TEXT DEFAULT 'qr',
+    created_at TIMESTAMPTZ DEFAULT now() NOT NULL
 );
 
--- ------------------------------------------------------------------------------
--- 3. Indexes for fast date-range queries and business lookups
--- ------------------------------------------------------------------------------
+-- 3. Indexes for ultra-fast performance
 CREATE INDEX IF NOT EXISTS idx_businesses_slug ON businesses (slug);
 CREATE INDEX IF NOT EXISTS idx_review_logs_business_created ON review_logs (business_id, created_at DESC);
 CREATE INDEX IF NOT EXISTS idx_review_logs_rating ON review_logs (rating);
 
--- ------------------------------------------------------------------------------
--- 4. Enable Row Level Security (RLS)
--- ------------------------------------------------------------------------------
+-- 4. Enable Row Level Security (RLS) & Policies
 ALTER TABLE businesses ENABLE ROW LEVEL SECURITY;
 ALTER TABLE review_logs ENABLE ROW LEVEL SECURITY;
 
-CREATE POLICY "Allow public read access to active businesses"
-    ON businesses
-    FOR SELECT
-    USING (is_active = true);
+CREATE POLICY "Allow public read access to businesses"
+    ON businesses FOR SELECT USING (true);
 
-CREATE POLICY "Allow public insert to review_logs"
-    ON review_logs
-    FOR INSERT
-    WITH CHECK (true);
+CREATE POLICY "Allow public insert to businesses"
+    ON businesses FOR INSERT WITH CHECK (true);
+
+CREATE POLICY "Allow public update to businesses"
+    ON businesses FOR UPDATE USING (true);
+
+CREATE POLICY "Allow public delete to businesses"
+    ON businesses FOR DELETE USING (true);
 
 CREATE POLICY "Allow public read access to review_logs"
-    ON review_logs
-    FOR SELECT
-    USING (true);
+    ON review_logs FOR SELECT USING (true);
+
+CREATE POLICY "Allow public insert to review_logs"
+    ON review_logs FOR INSERT WITH CHECK (true);
+
+CREATE POLICY "Allow public update to review_logs"
+    ON review_logs FOR UPDATE USING (true);
+
+CREATE POLICY "Allow public delete to review_logs"
+    ON review_logs FOR DELETE USING (true);
 
 -- ------------------------------------------------------------------------------
 -- 5. Seed Real Local Businesses (Jaipur Rajasthan Locations)
@@ -72,7 +73,7 @@ VALUES
     (
         'Photify Studios',
         'photify-studios',
-        'https://g.page/r/CYa03-OngD2IEAE/review',
+        'https://g.page/r/CYa03-0ngD2lEAE/review',
         ARRAY['Stunning Portrait Edits', 'Professional Lighting', 'Creative Poses', 'Punctual & Friendly Staff', 'Quick Album Delivery', 'High Resolution Photos'],
         true
     ),

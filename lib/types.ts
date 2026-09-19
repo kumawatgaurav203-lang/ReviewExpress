@@ -3,6 +3,7 @@ export interface Business {
   created_at?: string;
   name: string;
   slug: string;
+  category?: string;
   google_review_link: string;
   tags: string[];
   is_active: boolean;
@@ -19,20 +20,26 @@ export interface ReviewLog {
   customer_phone?: string;
   customer_feedback?: string;
   posted_to_google: boolean;
+  is_scan?: boolean;
+  source?: 'qr' | 'nfc';
 }
 
 export interface GenerateReviewRequest {
   businessName: string;
   tags: string[];
   rating: number;
+  currentReview?: string;
+  regenerate?: boolean;
 }
 
 export interface GenerateReviewResponse {
   review: string;
   source?: 'gemini' | 'fallback';
+  cached?: boolean;
 }
 
 export interface SubmitFeedbackRequest {
+  logId?: string;
   businessId: string;
   rating: number;
   selectedTags?: string[];
@@ -40,6 +47,7 @@ export interface SubmitFeedbackRequest {
   customerPhone?: string;
   customerFeedback?: string;
   postedToGoogle: boolean;
+  source?: 'qr' | 'nfc';
 }
 
 export interface SubmitFeedbackResponse {

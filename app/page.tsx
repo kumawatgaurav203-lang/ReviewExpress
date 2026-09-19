@@ -1,3 +1,6 @@
+'use client';
+
+import React, { useState } from 'react';
 import Link from 'next/link';
 import {
   Sparkles,
@@ -6,46 +9,105 @@ import {
   ShieldCheck,
   Zap,
   ArrowRight,
-  Database,
-  Key,
   Flame,
   CheckCircle,
-  ExternalLink,
-  Camera,
-  Wrench,
-  ShoppingBag,
+  BarChart3,
+  ShieldAlert,
+  QrCode,
   TrendingUp,
-  MessageSquareWarning,
+  Clock,
+  ThumbsUp,
+  Award,
+  Search,
+  Lock,
+  Scale,
 } from 'lucide-react';
-import { DEMO_BUSINESSES } from '@/lib/demo-data';
+import TermsModal from '@/components/TermsModal';
+import SocialContactBar from '@/components/SocialContactBar';
 
 export default function HomePage() {
-  const demoList = Object.values(DEMO_BUSINESSES).slice(0, 3);
+  const [showTermsModal, setShowTermsModal] = useState(false);
+  const advantages = [
+    {
+      icon: Zap,
+      color: 'text-amber-400 bg-amber-400/10 border-amber-400/20',
+      title: '10x Faster Reviews via AI',
+      description:
+        'Customers hate writing long reviews. Our AI writes high-converting, 2-sentence natural reviews in 3 seconds based on 1-click tag selections.',
+    },
+    {
+      icon: ShieldAlert,
+      color: 'text-rose-400 bg-rose-400/10 border-rose-400/20',
+      title: 'Smart Negative Review Shield',
+      description:
+        '1 & 2-star ratings are intercepted privately. Unhappy customers get a direct feedback channel to management, keeping bad ratings off Google Maps.',
+    },
+    {
+      icon: Smartphone,
+      color: 'text-blue-400 bg-blue-400/10 border-blue-400/20',
+      title: 'Zero App Installation Needed',
+      description:
+        'Customers simply tap the NFC standee or scan the high-resolution QR code. Works natively in Safari and Chrome on both iPhone and Android.',
+    },
+    {
+      icon: Search,
+      color: 'text-emerald-400 bg-emerald-400/10 border-emerald-400/20',
+      title: 'Dominates Local Google Maps SEO',
+      description:
+        'Fresh, frequent, keyword-rich 5-star customer reviews trigger Google’s local ranking algorithm to rank your store at the very top of Google Maps search.',
+    },
+    {
+      icon: BarChart3,
+      color: 'text-indigo-400 bg-indigo-400/10 border-indigo-500/20',
+      title: 'Real-Time Owner Analytics CRM',
+      description:
+        'Track review count daily, weekly, monthly, and yearly. Review intercepted 1-2 star customer feedback privately to resolve issues immediately.',
+    },
+    {
+      icon: ShieldCheck,
+      color: 'text-teal-400 bg-teal-400/10 border-teal-400/20',
+      title: '100% Google Guidelines Compliant',
+      description:
+        'Fully compliant with Google Business Profile terms. No bot automation, no fake reviews—every review is organically generated and customer-approved.',
+    },
+  ];
 
   return (
-    <div className="min-h-screen bg-slate-900 text-white flex flex-col selection:bg-indigo-500 selection:text-white">
+    <div className="min-h-screen bg-slate-950 text-white flex flex-col selection:bg-indigo-500 selection:text-white">
       {/* Top Navbar */}
-      <header className="border-b border-slate-800 bg-slate-900/80 backdrop-blur-md sticky top-0 z-50">
-        <div className="max-w-6xl mx-auto px-4 sm:px-6 h-16 flex items-center justify-between">
-          <div className="flex items-center gap-2.5">
-            <div className="w-9 h-9 rounded-xl bg-gradient-to-tr from-blue-500 via-indigo-500 to-violet-500 flex items-center justify-center font-black text-white shadow-md shadow-indigo-500/20">
-              <Sparkles className="w-5 h-5" />
-            </div>
-            <div>
-              <span className="font-bold text-base tracking-tight text-white">TapReview AI</span>
-              <span className="ml-2 text-[10px] font-semibold uppercase px-2 py-0.5 rounded-full bg-indigo-500/20 text-indigo-300 border border-indigo-500/30">
-                NFC Growth SaaS
-              </span>
-            </div>
+      <header className="border-b border-slate-800/80 bg-slate-900/60 backdrop-blur-md sticky top-0 z-50">
+        <div className="max-w-6xl mx-auto px-3 sm:px-6 h-14 sm:h-16 flex items-center justify-between gap-2">
+          {/* Brand Logo & Tag */}
+          <div className="flex items-center gap-2.5 shrink-0">
+            <img
+              src="/reviewxpress-icon.png"
+              alt="ReviewXpress"
+              className="w-7 h-7 sm:w-8 sm:h-8 object-contain"
+            />
+            <span className="font-extrabold text-base sm:text-lg tracking-tight text-white">
+              Review<span className="text-indigo-400">Xpress</span>
+            </span>
           </div>
 
-          <div className="flex items-center gap-3">
+          {/* Action Buttons */}
+          <div className="flex items-center gap-1.5 sm:gap-2.5 shrink-0">
+
+            {/* Owner Login Link */}
             <Link
-              href="/r/photify-studios"
-              className="text-xs font-bold px-4 py-2 rounded-xl bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white shadow-md shadow-blue-500/20 transition-all flex items-center gap-1.5"
+              href="/dashboard/login"
+              className="text-[11px] sm:text-xs font-bold px-2.5 sm:px-3.5 py-1.5 sm:py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 shadow-sm transition-all flex items-center gap-1 shrink-0"
             >
-              <Smartphone className="w-3.5 h-3.5" />
-              <span>Test NFC Tap</span>
+              <Lock className="w-3.5 h-3.5 text-indigo-400" />
+              <span><span className="hidden sm:inline">Owner </span>Login</span>
+            </Link>
+
+            {/* Client Live Demo Link */}
+            <Link
+              href="/r/demo"
+              className="text-[11px] sm:text-xs font-bold px-3 sm:px-4 py-1.5 sm:py-2 rounded-xl bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white shadow-md shadow-indigo-500/20 flex items-center gap-1.5 transition-all active:scale-95 shrink-0"
+            >
+              <Sparkles className="w-3.5 h-3.5 text-amber-300" />
+              <span><span className="hidden sm:inline">Client </span>Live Demo</span>
             </Link>
           </div>
         </div>
@@ -54,170 +116,116 @@ export default function HomePage() {
       {/* Hero Section */}
       <main className="flex-1 max-w-6xl w-full mx-auto px-4 sm:px-6 py-12 sm:py-16 space-y-16">
         <div className="text-center max-w-3xl mx-auto space-y-6">
-          <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-slate-800/90 border border-slate-700 text-xs font-medium text-slate-300 shadow-inner">
-            <Flame className="w-4 h-4 text-amber-400" />
-            <span>AI-Powered NFC Google Review Acceleration</span>
+          <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-slate-900 border border-slate-800 text-xs font-medium text-slate-300 shadow-inner">
+            <Sparkles className="w-4 h-4 text-amber-400" />
+            <span>Smart In-Store Google Reviews Platform</span>
           </div>
 
-          <h1 className="text-4xl sm:text-6xl font-extrabold tracking-tight text-white leading-tight">
-            Turn Physical NFC Taps into{' '}
-            <span className="bg-gradient-to-r from-blue-400 via-indigo-300 to-violet-400 bg-clip-text text-transparent">
+          <h1 className="text-4xl sm:text-6xl font-black tracking-tight leading-tight">
+            Turn In-Store Foot Traffic into{' '}
+            <span className="bg-gradient-to-r from-amber-300 via-orange-400 to-amber-500 bg-clip-text text-transparent">
               5-Star Google Reviews
             </span>
           </h1>
 
-          <p className="text-base sm:text-lg text-slate-400 leading-relaxed max-w-2xl mx-auto">
-            Customers tap the NFC card at billing. Gemini AI writes a personalized 2-sentence review in 3 seconds. Happy customers post to Google; unhappy customers are privately intercepted.
+          <p className="text-slate-300 text-base sm:text-lg leading-relaxed max-w-2xl mx-auto">
+            Customers tap NFC standee or scan QR. Positive feedback (3-5⭐) gets instant 2-sentence AI reviews & direct Google Maps review box. Negative feedback (1-2⭐) is shielded privately for store owners!
           </p>
 
-          <div className="pt-4 flex flex-col sm:flex-row items-center justify-center gap-3">
+          <div className="flex justify-center pt-2">
             <Link
-              href="/r/photify-studios"
-              className="w-full sm:w-auto px-6 py-3.5 rounded-2xl bg-gradient-to-r from-blue-600 via-indigo-600 to-violet-600 hover:opacity-95 text-white font-bold text-sm shadow-xl shadow-indigo-600/25 transition-all flex items-center justify-center gap-2"
+              href="/dashboard/login"
+              className="px-7 py-4 rounded-2xl bg-gradient-to-r from-blue-600 via-indigo-600 to-violet-600 hover:from-blue-700 hover:to-violet-700 font-bold text-sm shadow-xl shadow-indigo-600/25 flex items-center gap-2.5 transition-all hover:scale-105"
             >
-              <Smartphone className="w-4 h-4" />
-              <span>Experience Customer NFC Tap</span>
-              <ArrowRight className="w-4 h-4 ml-1" />
+              <BarChart3 className="w-4 h-4" />
+              <span>Open Owner Analytics Panel</span>
+              <ArrowRight className="w-4 h-4" />
             </Link>
           </div>
         </div>
 
-        {/* Live Demo Businesses Grid */}
-        <div className="space-y-4">
-          <div className="flex items-center justify-between">
-            <h2 className="text-xl font-bold text-slate-100 flex items-center gap-2">
-              <Zap className="w-5 h-5 text-amber-400" />
-              <span>Interactive NFC Demos</span>
+        {/* ----------------------------------------------------------------- */}
+        {/* SAAS ADVANTAGES & FEATURES SECTION                                 */}
+        {/* ----------------------------------------------------------------- */}
+        <section className="space-y-8 pt-4">
+          <div className="text-center max-w-2xl mx-auto space-y-2">
+            <h2 className="text-2xl sm:text-3xl font-black text-white tracking-tight">
+              Why Store Owners Choose ReviewXpress
             </h2>
-            <span className="text-xs text-slate-400">Click any card to simulate customer scan</span>
+            <p className="text-xs sm:text-sm text-slate-400">
+              The complete in-store reputation system that skyrockets Google ratings and shields against bad reviews.
+            </p>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
-            {demoList.map((biz) => {
-              const icon =
-                biz.slug === 'photify-studios' ? (
-                  <Camera className="w-5 h-5" />
-                ) : biz.slug === 'jeep-center' ? (
-                  <Wrench className="w-5 h-5" />
-                ) : (
-                  <ShoppingBag className="w-5 h-5" />
-                );
-
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
+            {advantages.map((item, idx) => {
+              const Icon = item.icon;
               return (
                 <div
-                  key={biz.slug}
-                  className="group relative bg-slate-800/60 hover:bg-slate-800 rounded-3xl p-6 border border-slate-700/80 hover:border-indigo-500/50 transition-all duration-200 flex flex-col justify-between shadow-lg shadow-black/20 hover:shadow-indigo-500/10"
+                  key={idx}
+                  className="bg-slate-900/80 border border-slate-800 rounded-3xl p-6 space-y-3 hover:border-slate-700/80 transition-all hover:shadow-xl hover:shadow-indigo-950/20"
                 >
-                  <div>
-                    <div className="flex items-start justify-between mb-4">
-                      <div className="w-12 h-12 rounded-2xl bg-gradient-to-tr from-blue-600 to-violet-600 text-white flex items-center justify-center font-bold text-lg shadow-md">
-                        {icon}
-                      </div>
-                      <span className="text-[11px] font-semibold px-2.5 py-1 rounded-full bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 flex items-center gap-1">
-                        <Star className="w-3 h-3 fill-emerald-400" />
-                        <span>Ready</span>
-                      </span>
-                    </div>
-
-                    <h3 className="text-lg font-bold text-white group-hover:text-indigo-300 transition-colors">
-                      {biz.name}
-                    </h3>
-                    <p className="text-xs text-slate-400 mt-1">/r/{biz.slug}</p>
-
-                    <div className="mt-4 flex flex-wrap gap-1.5">
-                      {biz.tags.slice(0, 3).map((t) => (
-                        <span
-                          key={t}
-                          className="text-[11px] px-2.5 py-1 rounded-lg bg-slate-700/50 text-slate-300 border border-slate-600/50"
-                        >
-                          {t}
-                        </span>
-                      ))}
-                    </div>
+                  <div className={`w-12 h-12 rounded-2xl flex items-center justify-center border ${item.color}`}>
+                    <Icon className="w-6 h-6" />
                   </div>
-
-                  <div className="mt-6 pt-4 border-t border-slate-700/60 flex items-center justify-between text-xs font-semibold text-indigo-400">
-                    <Link href={`/r/${biz.slug}`} className="flex items-center gap-1 hover:text-indigo-300">
-                      <span>NFC Flow</span>
-                      <ArrowRight className="w-3.5 h-3.5" />
-                    </Link>
-                    <div className="flex items-center gap-2">
-                      <Link
-                        href={`/qr/${biz.slug}`}
-                        className="text-amber-400 hover:text-amber-300 flex items-center gap-1 text-[11px] bg-amber-400/10 border border-amber-400/20 px-2 py-0.5 rounded-lg"
-                      >
-                        <Smartphone className="w-3 h-3" />
-                        <span>Scan QR</span>
-                      </Link>
-                      <a
-                        href={biz.google_review_link}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="text-slate-400 hover:text-slate-200 flex items-center gap-1 text-[11px]"
-                      >
-                        <span>Maps</span>
-                        <ExternalLink className="w-3 h-3" />
-                      </a>
-                    </div>
-                  </div>
+                  <h3 className="text-base font-bold text-white tracking-tight">{item.title}</h3>
+                  <p className="text-xs text-slate-300 leading-relaxed">{item.description}</p>
                 </div>
               );
             })}
           </div>
-        </div>
+        </section>
 
-        {/* Feature Highlights */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 pt-6">
-          <div className="bg-slate-800/40 border border-slate-700/70 rounded-3xl p-6 space-y-4">
-            <div className="w-10 h-10 rounded-xl bg-emerald-500/20 text-emerald-400 flex items-center justify-center">
-              <Star className="w-5 h-5 fill-emerald-400" />
-            </div>
-            <h3 className="text-lg font-bold text-white">
-              3-5 Stars: 1-Tap AI Review Generation
-            </h3>
-            <p className="text-sm text-slate-400 leading-relaxed">
-              When delighted customers tap 4 or 5 stars and select tags, Gemini AI crafts an authentic 2-sentence Indian review. Customers copy with 1 click and get redirected straight to Google Maps.
+        {/* ----------------------------------------------------------------- */}
+        {/* LIVE CLIENT DEMO BANNER WITH SCANNER LINK                         */}
+        {/* ----------------------------------------------------------------- */}
+        <div className="bg-gradient-to-r from-blue-950/60 via-indigo-950/60 to-purple-950/60 border border-indigo-500/30 rounded-3xl p-6 sm:p-8 flex flex-col sm:flex-row items-center justify-between gap-6 shadow-2xl">
+          <div className="space-y-2 text-center sm:text-left">
+            <span className="text-xs font-bold text-amber-400 flex items-center justify-center sm:justify-start gap-1.5">
+              <Sparkles className="w-4 h-4" />
+              <span>Ready for Client Showcase</span>
+            </span>
+            <h3 className="text-xl sm:text-2xl font-black text-white">Experience the Live Client Demo</h3>
+            <p className="text-xs text-slate-300 max-w-lg">
+              Scan the QR code with your phone camera to test the live review flow on your mobile, or test directly in your browser!
             </p>
-            <ul className="text-xs text-slate-300 space-y-2 pt-2">
-              <li className="flex items-center gap-2">
-                <CheckCircle className="w-4 h-4 text-emerald-400" />
-                <span>Zero typing fatigue for customers</span>
-              </li>
-              <li className="flex items-center gap-2">
-                <CheckCircle className="w-4 h-4 text-emerald-400" />
-                <span>Boosts local SEO keyword density naturally</span>
-              </li>
-            </ul>
           </div>
 
-          <div className="bg-slate-800/40 border border-slate-700/70 rounded-3xl p-6 space-y-4">
-            <div className="w-10 h-10 rounded-xl bg-rose-500/20 text-rose-400 flex items-center justify-center">
-              <MessageSquareWarning className="w-5 h-5" />
-            </div>
-            <h3 className="text-lg font-bold text-white">
-              1-2 Stars: Smart Interception Shield
-            </h3>
-            <p className="text-sm text-slate-400 leading-relaxed">
-              Dissatisfied customers are never shown the public Google Maps link. Instead, they are presented with an apologetic private feedback form where management can capture their phone number and resolve grievances internally.
-            </p>
-            <ul className="text-xs text-slate-300 space-y-2 pt-2">
-              <li className="flex items-center gap-2">
-                <ShieldCheck className="w-4 h-4 text-rose-400" />
-                <span>Protects overall Google star rating</span>
-              </li>
-              <li className="flex items-center gap-2">
-                <ShieldCheck className="w-4 h-4 text-rose-400" />
-                <span>Instant escalation to business owners</span>
-              </li>
-            </ul>
+          <div className="flex items-center gap-3 shrink-0">
+            <Link
+              href="/demo"
+              className="px-6 py-3.5 rounded-xl bg-gradient-to-r from-blue-600 via-indigo-600 to-violet-600 hover:from-blue-700 hover:to-violet-700 text-white text-xs font-bold shadow-lg shadow-indigo-600/30 flex items-center gap-2 transition-all hover:scale-105 shrink-0"
+            >
+              <QrCode className="w-4 h-4 text-amber-300" />
+              <span>Try Live Interactive Demo</span>
+              <ArrowRight className="w-3.5 h-3.5" />
+            </Link>
           </div>
         </div>
       </main>
 
       {/* Footer */}
-      <footer className="border-t border-slate-800 py-6 text-center text-xs text-slate-500">
-        <p>Built with Next.js 14 App Router • TypeScript • Tailwind CSS • Supabase • Google Gemini</p>
+      <footer className="border-t border-slate-800/80 py-6 px-4 max-w-6xl mx-auto w-full flex flex-col sm:flex-row items-center justify-between gap-3 text-xs text-slate-500">
+        <div className="flex items-center gap-2">
+          <img src="/reviewxpress-icon.png" alt="ReviewXpress" className="w-4 h-4 object-contain" />
+          <span className="font-medium text-slate-400">ReviewXpress — Smart Google Reviews Platform</span>
+        </div>
+        <div className="flex items-center gap-3 text-[11px]">
+          <button
+            type="button"
+            onClick={() => setShowTermsModal(true)}
+            className="hover:text-indigo-400 transition-colors cursor-pointer flex items-center gap-1"
+          >
+            <Scale className="w-3 h-3 text-indigo-400" />
+            Terms & Conditions
+          </button>
+          <span className="text-slate-700">•</span>
+          <SocialContactBar showLabels={false} />
+        </div>
       </footer>
+
+      {/* Terms & Conditions Modal */}
+      <TermsModal isOpen={showTermsModal} onClose={() => setShowTermsModal(false)} />
     </div>
   );
 }
