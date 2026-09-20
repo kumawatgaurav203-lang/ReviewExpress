@@ -89,9 +89,11 @@ export default function OwnerLoginPage() {
       }
 
       const sessionData = {
+        token: data.token,
         email: data.user.email,
         businessName: data.user.businessName,
         businessSlug: data.user.businessSlug,
+        authorizedBusinessIds: data.user.authorizedBusinessIds || [],
         isLoggedIn: true,
         loginTime: new Date().toISOString(),
       };

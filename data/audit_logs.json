@@ -1,0 +1,350 @@
+[
+  {
+    "user_id": "acc-1789884320576",
+    "business_id": "1aa78474-cdf5-448e-95af-8e0a83b2b9e0",
+    "action": "ACCESS_DENIED_CROSS_TENANT",
+    "details": {
+      "requestedBusinessId": "1aa78474-cdf5-448e-95af-8e0a83b2b9e0",
+      "userEmail": "owner-b@jaipurgems.com",
+      "reason": "Access Denied: You do not have permission to view or manage store '1aa78474-cdf5-448e-95af-8e0a83b2b9e0'."
+    },
+    "ip_address": "::1",
+    "user_agent": "node",
+    "created_at": "2026-09-20T06:05:22.514Z"
+  },
+  {
+    "user_id": "acc-1789884320576",
+    "action": "LOGIN_SUCCESS",
+    "details": {
+      "email": "owner-b@jaipurgems.com",
+      "role": "owner"
+    },
+    "ip_address": "::1",
+    "user_agent": "node",
+    "created_at": "2026-09-20T06:05:22.093Z"
+  },
+  {
+    "user_id": "acc-1789884319203",
+    "business_id": "jaipur-gems-jewels",
+    "action": "ACCESS_DENIED_CROSS_TENANT",
+    "details": {
+      "requestedBusinessId": "jaipur-gems-jewels",
+      "userEmail": "owner-a@royalspice.com",
+      "reason": "Access Denied: You do not have permission to view or manage store 'jaipur-gems-jewels'."
+    },
+    "ip_address": "::1",
+    "user_agent": "node",
+    "created_at": "2026-09-20T06:05:21.839Z"
+  },
+  {
+    "user_id": "acc-1789884319203",
+    "business_id": "9c3821de-2ed4-43c4-9f14-7285242c2982",
+    "action": "ACCESS_DENIED_CROSS_TENANT",
+    "details": {
+      "requestedBusinessId": "9c3821de-2ed4-43c4-9f14-7285242c2982",
+      "userEmail": "owner-a@royalspice.com",
+      "reason": "Access Denied: You do not have permission to view or manage store '9c3821de-2ed4-43c4-9f14-7285242c2982'."
+    },
+    "ip_address": "::1",
+    "user_agent": "node",
+    "created_at": "2026-09-20T06:05:21.599Z"
+  },
+  {
+    "user_id": "acc-1789884319203",
+    "action": "LOGIN_SUCCESS",
+    "details": {
+      "email": "owner-a@royalspice.com",
+      "role": "owner"
+    },
+    "ip_address": "::1",
+    "user_agent": "node",
+    "created_at": "2026-09-20T06:05:21.167Z"
+  },
+  {
+    "user_id": "0d83e285-0480-4f46-a83a-1eb3a390a379",
+    "business_id": "9c3821de-2ed4-43c4-9f14-7285242c2982",
+    "action": "CREATE_BUSINESS",
+    "details": {
+      "businessName": "Jaipur Gems & Jewels",
+      "slug": "jaipur-gems-jewels-3",
+      "ownerEmail": "owner-b@jaipurgems.com"
+    },
+    "ip_address": "::1",
+    "user_agent": "node",
+    "created_at": "2026-09-20T06:05:20.892Z"
+  },
+  {
+    "user_id": "7524c83a-9b60-4eca-bef0-84a1ab3a1758",
+    "business_id": "1aa78474-cdf5-448e-95af-8e0a83b2b9e0",
+    "action": "CREATE_BUSINESS",
+    "details": {
+      "businessName": "Royal Spice Cafe",
+      "slug": "royal-spice-cafe-3",
+      "ownerEmail": "owner-a@royalspice.com"
+    },
+    "ip_address": "::1",
+    "user_agent": "node",
+    "created_at": "2026-09-20T06:05:20.143Z"
+  },
+  {
+    "user_id": "acc-1789884306172",
+    "business_id": "64ba0c03-38e3-40ee-b98d-79bc48539f50",
+    "action": "ACCESS_DENIED_CROSS_TENANT",
+    "details": {
+      "requestedBusinessId": "64ba0c03-38e3-40ee-b98d-79bc48539f50",
+      "userEmail": "owner-b@jaipurgems.com",
+      "reason": "Access Denied: You do not have permission to view or manage store '64ba0c03-38e3-40ee-b98d-79bc48539f50'."
+    },
+    "ip_address": "::1",
+    "user_agent": "node",
+    "created_at": "2026-09-20T06:05:08.035Z"
+  },
+  {
+    "user_id": "acc-1789884306172",
+    "action": "LOGIN_SUCCESS",
+    "details": {
+      "email": "owner-b@jaipurgems.com",
+      "role": "owner"
+    },
+    "ip_address": "::1",
+    "user_agent": "node",
+    "created_at": "2026-09-20T06:05:07.629Z"
+  },
+  {
+    "user_id": "acc-1789884305421",
+    "business_id": "jaipur-gems-jewels",
+    "action": "ACCESS_DENIED_CROSS_TENANT",
+    "details": {
+      "requestedBusinessId": "jaipur-gems-jewels",
+      "userEmail": "owner-a@royalspice.com",
+      "reason": "Access Denied: You do not have permission to view or manage store 'jaipur-gems-jewels'."
+    },
+    "ip_address": "::1",
+    "user_agent": "node",
+    "created_at": "2026-09-20T06:05:07.402Z"
+  },
+  {
+    "user_id": "acc-1789884305421",
+    "business_id": "da95d42d-76e7-4e30-8734-b61a4d6c1bfc",
+    "action": "ACCESS_DENIED_CROSS_TENANT",
+    "details": {
+      "requestedBusinessId": "da95d42d-76e7-4e30-8734-b61a4d6c1bfc",
+      "userEmail": "owner-a@royalspice.com",
+      "reason": "Access Denied: You do not have permission to view or manage store 'da95d42d-76e7-4e30-8734-b61a4d6c1bfc'."
+    },
+    "ip_address": "::1",
+    "user_agent": "node",
+    "created_at": "2026-09-20T06:05:07.161Z"
+  },
+  {
+    "user_id": "acc-1789884305421",
+    "action": "LOGIN_SUCCESS",
+    "details": {
+      "email": "owner-a@royalspice.com",
+      "role": "owner"
+    },
+    "ip_address": "::1",
+    "user_agent": "node",
+    "created_at": "2026-09-20T06:05:06.718Z"
+  },
+  {
+    "user_id": "95793b71-39f5-4edb-9dc7-1cfed0efbc29",
+    "business_id": "da95d42d-76e7-4e30-8734-b61a4d6c1bfc",
+    "action": "CREATE_BUSINESS",
+    "details": {
+      "businessName": "Jaipur Gems & Jewels",
+      "slug": "jaipur-gems-jewels-2",
+      "ownerEmail": "owner-b@jaipurgems.com"
+    },
+    "ip_address": "::1",
+    "user_agent": "node",
+    "created_at": "2026-09-20T06:05:06.498Z"
+  },
+  {
+    "user_id": "c100885e-77c5-4d35-b73b-85393abdd23f",
+    "business_id": "64ba0c03-38e3-40ee-b98d-79bc48539f50",
+    "action": "CREATE_BUSINESS",
+    "details": {
+      "businessName": "Royal Spice Cafe",
+      "slug": "royal-spice-cafe-2",
+      "ownerEmail": "owner-a@royalspice.com"
+    },
+    "ip_address": "::1",
+    "user_agent": "node",
+    "created_at": "2026-09-20T06:05:05.843Z"
+  },
+  {
+    "user_id": "acc-1789884292636",
+    "business_id": "ca213b74-8f1b-4044-9c3c-08b1491add91",
+    "action": "ACCESS_DENIED_CROSS_TENANT",
+    "details": {
+      "requestedBusinessId": "ca213b74-8f1b-4044-9c3c-08b1491add91",
+      "userEmail": "owner-b@jaipurgems.com",
+      "reason": "Access Denied: You do not have permission to view or manage store 'ca213b74-8f1b-4044-9c3c-08b1491add91'."
+    },
+    "ip_address": "::1",
+    "user_agent": "node",
+    "created_at": "2026-09-20T06:04:54.634Z"
+  },
+  {
+    "user_id": "acc-1789884292636",
+    "action": "LOGIN_SUCCESS",
+    "details": {
+      "email": "owner-b@jaipurgems.com",
+      "role": "owner"
+    },
+    "ip_address": "::1",
+    "user_agent": "node",
+    "created_at": "2026-09-20T06:04:54.248Z"
+  },
+  {
+    "user_id": "acc-1789884291957",
+    "business_id": "jaipur-gems-jewels",
+    "action": "ACCESS_DENIED_CROSS_TENANT",
+    "details": {
+      "requestedBusinessId": "jaipur-gems-jewels",
+      "userEmail": "owner-a@royalspice.com",
+      "reason": "Access Denied: You do not have permission to view or manage store 'jaipur-gems-jewels'."
+    },
+    "ip_address": "::1",
+    "user_agent": "node",
+    "created_at": "2026-09-20T06:04:54.017Z"
+  },
+  {
+    "user_id": "acc-1789884291957",
+    "business_id": "1463b8ac-ac17-4627-a594-f024afe6d1e9",
+    "action": "ACCESS_DENIED_CROSS_TENANT",
+    "details": {
+      "requestedBusinessId": "1463b8ac-ac17-4627-a594-f024afe6d1e9",
+      "userEmail": "owner-a@royalspice.com",
+      "reason": "Access Denied: You do not have permission to view or manage store '1463b8ac-ac17-4627-a594-f024afe6d1e9'."
+    },
+    "ip_address": "::1",
+    "user_agent": "node",
+    "created_at": "2026-09-20T06:04:53.792Z"
+  },
+  {
+    "user_id": "acc-1789884291957",
+    "action": "LOGIN_SUCCESS",
+    "details": {
+      "email": "owner-a@royalspice.com",
+      "role": "owner"
+    },
+    "ip_address": "::1",
+    "user_agent": "node",
+    "created_at": "2026-09-20T06:04:53.433Z"
+  },
+  {
+    "user_id": "6c0b3a20-afb6-4304-a44e-74cb01f47745",
+    "business_id": "1463b8ac-ac17-4627-a594-f024afe6d1e9",
+    "action": "CREATE_BUSINESS",
+    "details": {
+      "businessName": "Jaipur Gems & Jewels",
+      "slug": "jaipur-gems-jewels-1",
+      "ownerEmail": "owner-b@jaipurgems.com"
+    },
+    "ip_address": "::1",
+    "user_agent": "node",
+    "created_at": "2026-09-20T06:04:53.174Z"
+  },
+  {
+    "user_id": "bc1efd07-ebc3-407b-bc58-87bcac2bdc74",
+    "business_id": "ca213b74-8f1b-4044-9c3c-08b1491add91",
+    "action": "CREATE_BUSINESS",
+    "details": {
+      "businessName": "Royal Spice Cafe",
+      "slug": "royal-spice-cafe-1",
+      "ownerEmail": "owner-a@royalspice.com"
+    },
+    "ip_address": "::1",
+    "user_agent": "node",
+    "created_at": "2026-09-20T06:04:52.400Z"
+  },
+  {
+    "user_id": "acc-1789884223252",
+    "business_id": "19cf7989-5f46-4f78-9d3e-4c2f515a8720",
+    "action": "ACCESS_DENIED_CROSS_TENANT",
+    "details": {
+      "requestedBusinessId": "19cf7989-5f46-4f78-9d3e-4c2f515a8720",
+      "userEmail": "owner-b@jaipurgems.com",
+      "reason": "Access Denied: You do not have permission to view or manage store '19cf7989-5f46-4f78-9d3e-4c2f515a8720'."
+    },
+    "ip_address": "::1",
+    "user_agent": "node",
+    "created_at": "2026-09-20T06:03:44.742Z"
+  },
+  {
+    "user_id": "acc-1789884223252",
+    "action": "LOGIN_SUCCESS",
+    "details": {
+      "email": "owner-b@jaipurgems.com",
+      "role": "owner"
+    },
+    "ip_address": "::1",
+    "user_agent": "node",
+    "created_at": "2026-09-20T06:03:44.460Z"
+  },
+  {
+    "user_id": "acc-1789884222036",
+    "business_id": "jaipur-gems-jewels",
+    "action": "ACCESS_DENIED_CROSS_TENANT",
+    "details": {
+      "requestedBusinessId": "jaipur-gems-jewels",
+      "userEmail": "owner-a@royalspice.com",
+      "reason": "Access Denied: You do not have permission to view or manage store 'jaipur-gems-jewels'."
+    },
+    "ip_address": "::1",
+    "user_agent": "node",
+    "created_at": "2026-09-20T06:03:44.252Z"
+  },
+  {
+    "user_id": "acc-1789884222036",
+    "business_id": "4d8569d5-660c-4339-ab5d-71d93bd7e062",
+    "action": "ACCESS_DENIED_CROSS_TENANT",
+    "details": {
+      "requestedBusinessId": "4d8569d5-660c-4339-ab5d-71d93bd7e062",
+      "userEmail": "owner-a@royalspice.com",
+      "reason": "Access Denied: You do not have permission to view or manage store '4d8569d5-660c-4339-ab5d-71d93bd7e062'."
+    },
+    "ip_address": "::1",
+    "user_agent": "node",
+    "created_at": "2026-09-20T06:03:44.039Z"
+  },
+  {
+    "user_id": "acc-1789884222036",
+    "action": "LOGIN_SUCCESS",
+    "details": {
+      "email": "owner-a@royalspice.com",
+      "role": "owner"
+    },
+    "ip_address": "::1",
+    "user_agent": "node",
+    "created_at": "2026-09-20T06:03:43.749Z"
+  },
+  {
+    "user_id": "69bd2e70-138a-482c-a9a0-baf411f3839f",
+    "business_id": "4d8569d5-660c-4339-ab5d-71d93bd7e062",
+    "action": "CREATE_BUSINESS",
+    "details": {
+      "businessName": "Jaipur Gems & Jewels",
+      "slug": "jaipur-gems-jewels",
+      "ownerEmail": "owner-b@jaipurgems.com"
+    },
+    "ip_address": "::1",
+    "user_agent": "node",
+    "created_at": "2026-09-20T06:03:43.553Z"
+  },
+  {
+    "user_id": "d9e070f6-f453-46f1-89fb-5fee0d36ee0a",
+    "business_id": "19cf7989-5f46-4f78-9d3e-4c2f515a8720",
+    "action": "CREATE_BUSINESS",
+    "details": {
+      "businessName": "Royal Spice Cafe",
+      "slug": "royal-spice-cafe",
+      "ownerEmail": "owner-a@royalspice.com"
+    },
+    "ip_address": "::1",
+    "user_agent": "node",
+    "created_at": "2026-09-20T06:03:43.048Z"
+  }
+]

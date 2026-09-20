@@ -1,0 +1,170 @@
+[
+  {
+    "id": "bm-1789884222037",
+    "business_id": "19cf7989-5f46-4f78-9d3e-4c2f515a8720",
+    "user_id": "acc-1789884222036",
+    "role": "owner",
+    "created_at": "2026-09-20T06:03:42.037Z"
+  },
+  {
+    "id": "bm-1789884222039",
+    "business_id": "royal-spice-cafe",
+    "user_id": "acc-1789884222036",
+    "role": "owner",
+    "created_at": "2026-09-20T06:03:42.039Z"
+  },
+  {
+    "id": "bm-1789884222040",
+    "business_id": "b-royal-spice-cafe",
+    "user_id": "acc-1789884222036",
+    "role": "owner",
+    "created_at": "2026-09-20T06:03:42.040Z"
+  },
+  {
+    "id": "bm-1789884223253",
+    "business_id": "4d8569d5-660c-4339-ab5d-71d93bd7e062",
+    "user_id": "acc-1789884223252",
+    "role": "owner",
+    "created_at": "2026-09-20T06:03:43.253Z"
+  },
+  {
+    "id": "bm-1789884223254",
+    "business_id": "jaipur-gems-jewels",
+    "user_id": "acc-1789884223252",
+    "role": "owner",
+    "created_at": "2026-09-20T06:03:43.254Z"
+  },
+  {
+    "id": "bm-1789884223254",
+    "business_id": "b-jaipur-gems-jewels",
+    "user_id": "acc-1789884223252",
+    "role": "owner",
+    "created_at": "2026-09-20T06:03:43.254Z"
+  },
+  {
+    "id": "bm-1789884291958",
+    "business_id": "ca213b74-8f1b-4044-9c3c-08b1491add91",
+    "user_id": "acc-1789884291957",
+    "role": "owner",
+    "created_at": "2026-09-20T06:04:51.958Z"
+  },
+  {
+    "id": "bm-1789884291959",
+    "business_id": "royal-spice-cafe-1",
+    "user_id": "acc-1789884291957",
+    "role": "owner",
+    "created_at": "2026-09-20T06:04:51.959Z"
+  },
+  {
+    "id": "bm-1789884291959",
+    "business_id": "b-royal-spice-cafe-1",
+    "user_id": "acc-1789884291957",
+    "role": "owner",
+    "created_at": "2026-09-20T06:04:51.959Z"
+  },
+  {
+    "id": "bm-1789884292637",
+    "business_id": "1463b8ac-ac17-4627-a594-f024afe6d1e9",
+    "user_id": "acc-1789884292636",
+    "role": "owner",
+    "created_at": "2026-09-20T06:04:52.637Z"
+  },
+  {
+    "id": "bm-1789884292638",
+    "business_id": "jaipur-gems-jewels-1",
+    "user_id": "acc-1789884292636",
+    "role": "owner",
+    "created_at": "2026-09-20T06:04:52.638Z"
+  },
+  {
+    "id": "bm-1789884292638",
+    "business_id": "b-jaipur-gems-jewels-1",
+    "user_id": "acc-1789884292636",
+    "role": "owner",
+    "created_at": "2026-09-20T06:04:52.638Z"
+  },
+  {
+    "id": "bm-1789884305422",
+    "business_id": "64ba0c03-38e3-40ee-b98d-79bc48539f50",
+    "user_id": "acc-1789884305421",
+    "role": "owner",
+    "created_at": "2026-09-20T06:05:05.422Z"
+  },
+  {
+    "id": "bm-1789884305423",
+    "business_id": "royal-spice-cafe-2",
+    "user_id": "acc-1789884305421",
+    "role": "owner",
+    "created_at": "2026-09-20T06:05:05.423Z"
+  },
+  {
+    "id": "bm-1789884305424",
+    "business_id": "b-royal-spice-cafe-2",
+    "user_id": "acc-1789884305421",
+    "role": "owner",
+    "created_at": "2026-09-20T06:05:05.424Z"
+  },
+  {
+    "id": "bm-1789884306173",
+    "business_id": "da95d42d-76e7-4e30-8734-b61a4d6c1bfc",
+    "user_id": "acc-1789884306172",
+    "role": "owner",
+    "created_at": "2026-09-20T06:05:06.173Z"
+  },
+  {
+    "id": "bm-1789884306174",
+    "business_id": "jaipur-gems-jewels-2",
+    "user_id": "acc-1789884306172",
+    "role": "owner",
+    "created_at": "2026-09-20T06:05:06.174Z"
+  },
+  {
+    "id": "bm-1789884306175",
+    "business_id": "b-jaipur-gems-jewels-2",
+    "user_id": "acc-1789884306172",
+    "role": "owner",
+    "created_at": "2026-09-20T06:05:06.175Z"
+  },
+  {
+    "id": "bm-1789884319204",
+    "business_id": "1aa78474-cdf5-448e-95af-8e0a83b2b9e0",
+    "user_id": "acc-1789884319203",
+    "role": "owner",
+    "created_at": "2026-09-20T06:05:19.204Z"
+  },
+  {
+    "id": "bm-1789884319205",
+    "business_id": "royal-spice-cafe-3",
+    "user_id": "acc-1789884319203",
+    "role": "owner",
+    "created_at": "2026-09-20T06:05:19.205Z"
+  },
+  {
+    "id": "bm-1789884319206",
+    "business_id": "b-royal-spice-cafe-3",
+    "user_id": "acc-1789884319203",
+    "role": "owner",
+    "created_at": "2026-09-20T06:05:19.206Z"
+  },
+  {
+    "id": "bm-1789884320577",
+    "business_id": "9c3821de-2ed4-43c4-9f14-7285242c2982",
+    "user_id": "acc-1789884320576",
+    "role": "owner",
+    "created_at": "2026-09-20T06:05:20.577Z"
+  },
+  {
+    "id": "bm-1789884320577",
+    "business_id": "jaipur-gems-jewels-3",
+    "user_id": "acc-1789884320576",
+    "role": "owner",
+    "created_at": "2026-09-20T06:05:20.577Z"
+  },
+  {
+    "id": "bm-1789884320578",
+    "business_id": "b-jaipur-gems-jewels-3",
+    "user_id": "acc-1789884320576",
+    "role": "owner",
+    "created_at": "2026-09-20T06:05:20.578Z"
+  }
+]

@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { supabase, isSupabaseConfigured } from '@/lib/supabase';
 import { SubmitFeedbackRequest, SubmitFeedbackResponse } from '@/lib/types';
 import { recordLiveReview, updateRuntimeLog, findRecentScanLog } from '@/lib/dashboard-data';
+import { resolveBusinessUuid } from '@/lib/auth-server';
 
 export async function POST(req: NextRequest) {
   try {
@@ -87,11 +88,12 @@ export async function POST(req: NextRequest) {
     // If Supabase is connected, persist to review_logs table
     if (isSupabaseConfigured()) {
       try {
+        const canonicalBusinessId = await resolveBusinessUuid(businessId);
         const { data, error } = await supabase
           .from('review_logs')
           .insert([
             {
-              business_id: businessId,
+              business_id: canonicalBusinessId,
               rating,
               selected_tags: selectedTags,
               review_text: reviewText,

@@ -118,7 +118,14 @@ export default function OwnerDashboardPage() {
   const router = useRouter();
 
   // Authentication & Fixed store state
-  const [ownerSession, setOwnerSession] = useState<{ email: string; businessName?: string; businessSlug?: string } | null>(null);
+  const [ownerSession, setOwnerSession] = useState<{
+    token?: string;
+    email: string;
+    businessName?: string;
+    businessSlug?: string;
+    authorizedBusinessIds?: string[];
+  } | null>(null);
+  const [accessDeniedError, setAccessDeniedError] = useState<string | null>(null);
   const [showTermsModal, setShowTermsModal] = useState(false);
   const currentSlug = ownerSession?.businessSlug || 'photify-studio';
   const [timePeriod, setTimePeriod] = useState<'day' | 'week' | 'month' | 'year' | 'all'>('month');
@@ -197,12 +204,22 @@ export default function OwnerDashboardPage() {
       const activeSlug = ownerSession?.businessSlug || 'photify-studio';
       const activeBiz = DEMO_BUSINESSES[activeSlug];
       const bizId = activeBiz?.id || ('b-' + activeSlug);
+      const headers: Record<string, string> = {};
+      if (ownerSession?.token) {
+        headers['Authorization'] = `Bearer ${ownerSession.token}`;
+      }
       const res = await fetch(
         `/api/dashboard?businessId=${bizId}&period=${timePeriod}&channel=${channelFilter}&t=${Date.now()}`,
-        { signal: AbortSignal.timeout(7000) }
+        { headers, signal: AbortSignal.timeout(7000) }
       );
       const data = await res.json();
+      if (res.status === 403 || (data && !data.success && data.message?.includes('Access Denied'))) {
+        setAccessDeniedError(data?.message || 'Access Denied: You are not authorized to view this shop.');
+        setIsLoading(false);
+        return;
+      }
       if (data?.success) {
+        setAccessDeniedError(null);
         setDashboardData(data);
       }
     } catch (err) {
@@ -322,6 +339,12 @@ export default function OwnerDashboardPage() {
 
       {/* Main Content Area */}
       <main className="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 py-6 sm:py-8 space-y-6 sm:space-y-8">
+        {accessDeniedError && (
+          <div className="w-full bg-rose-500/10 border border-rose-500/30 text-rose-300 p-4 rounded-2xl flex items-center gap-3">
+            <AlertTriangle className="w-5 h-5 text-rose-400 shrink-0" />
+            <div className="text-sm font-semibold">{accessDeniedError}</div>
+          </div>
+        )}
         {/* Header Title + Time Period Filter Bar */}
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 pb-2 border-b border-slate-800/60">
           <div>

@@ -31,7 +31,39 @@ async function getBusinessBySlug(slug: string): Promise<Business | null> {
     };
   }
 
-  // 2. Check registered owner accounts from persistent accounts.json
+  // 2. Query Supabase businesses table (primary source of truth)
+  if (isSupabaseConfigured()) {
+    try {
+      const { data, error } = await supabase
+        .from('businesses')
+        .select('id, name, slug, google_review_link, category, tags, is_active, status')
+        .eq('slug', cleanSlug)
+        .single();
+
+      if (!error && data) {
+        // Verify business is active
+        const isActive = data.is_active !== false && data.status !== 'inactive' && data.status !== 'suspended';
+        if (!isActive) {
+          return null; // Inactive business triggers 404
+        }
+
+        // Return strictly public sanitized business representation
+        return {
+          id: data.id,
+          name: data.name,
+          slug: data.slug,
+          category: data.category || 'general',
+          google_review_link: data.google_review_link,
+          tags: data.tags && data.tags.length > 0 ? data.tags : getShuffledCategoryTags(data.name, data.category),
+          is_active: true,
+        };
+      }
+    } catch (err) {
+      console.error('Error fetching business from Supabase in /r/[slug]:', err);
+    }
+  }
+
+  // 3. Fallback: Check registered owner accounts from persistent accounts.json
   try {
     const acc = getAccountBySlug(cleanSlug);
     if (acc) {
@@ -49,41 +81,21 @@ async function getBusinessBySlug(slug: string): Promise<Business | null> {
     console.error('Error fetching account by slug in /r/[slug]:', err);
   }
 
-  // 3. Supabase check
-  if (isSupabaseConfigured()) {
-    try {
-      const { data, error } = await supabase
-        .from('businesses')
-        .select('*')
-        .eq('slug', cleanSlug)
-        .eq('is_active', true)
-        .single();
-
-      if (!error && data) {
-        return {
-          id: data.id,
-          name: data.name,
-          slug: data.slug,
-          category: data.category,
-          google_review_link: data.google_review_link,
-          tags: data.tags || getShuffledCategoryTags(data.name),
-          is_active: data.is_active,
-        };
-      }
-    } catch (err) {
-      console.error('Error fetching business from Supabase in /r/[slug]:', err);
-    }
-  }
-
   // 4. In-memory demo dictionary
   if (DEMO_BUSINESSES[cleanSlug]) {
+    const b = DEMO_BUSINESSES[cleanSlug];
     return {
-      ...DEMO_BUSINESSES[cleanSlug],
-      tags: getShuffledCategoryTags(DEMO_BUSINESSES[cleanSlug].name),
+      id: b.id,
+      name: b.name,
+      slug: b.slug,
+      category: b.category,
+      google_review_link: b.google_review_link,
+      tags: getShuffledCategoryTags(b.name, b.category),
+      is_active: true,
     };
   }
 
-  // 5. If store not found anywhere, return null to trigger branded 404
+  // 5. Store not found or inactive -> trigger 404
   return null;
 }
 

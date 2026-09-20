@@ -1,5 +1,22 @@
 [
   {
+    "business_id": "1aa78474-cdf5-448e-95af-8e0a83b2b9e0",
+    "rating": 5,
+    "posted_to_google": true,
+    "is_scan": false,
+    "review_text": "Amazing food at Royal Spice Cafe!",
+    "source": "nfc",
+    "id": "5c84955d-39bb-4ded-8af1-e8252ce97854",
+    "is_resolved": false,
+    "created_at": "2026-09-20T06:05:23.062Z",
+    "selected_tags": [
+      "Fast Service",
+      "Polite Staff"
+    ],
+    "customer_phone": "",
+    "customer_feedback": ""
+  },
+  {
     "business_id": "b-photify-studio",
     "rating": 4,
     "selected_tags": [

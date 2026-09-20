@@ -3,6 +3,7 @@ import { getOwnerAccountByEmail, deleteOwnerAccount } from '@/lib/accounts-store
 import { deleteBusiness } from '@/lib/demo-data';
 import { deleteBusinessData } from '@/lib/dashboard-data';
 import { supabase, isSupabaseConfigured } from '@/lib/supabase';
+import { logAuditEvent } from '@/lib/auth-server';
 
 export async function POST(req: NextRequest) {
   try {
@@ -49,30 +50,41 @@ export async function POST(req: NextRequest) {
     // 2. Delete from in-memory businesses
     deleteBusiness(businessSlug);
 
-    // 3. Delete all feedback/complaints data
+    // 3. Delete all feedback/complaints data locally
     deleteBusinessData(businessId);
     deleteBusinessData(businessSlug);
 
     // 4. Delete from Supabase if configured
     if (isSupabaseConfigured()) {
       try {
-        const [delLogsRes1, delLogsRes2, delBizRes] = await Promise.all([
-          supabase.from('review_logs').delete().eq('business_id', businessId),
-          supabase.from('review_logs').delete().eq('business_id', businessSlug),
-          supabase.from('businesses').delete().eq('slug', businessSlug),
-        ]);
+        // Find business UUID
+        const { data: dbBiz } = await supabase
+          .from('businesses')
+          .select('id')
+          .eq('slug', businessSlug)
+          .single();
 
-        if (delLogsRes1.error || delLogsRes2.error || delBizRes.error) {
-          console.warn('Supabase store delete partial notice:', {
-            logs1: delLogsRes1.error,
-            logs2: delLogsRes2.error,
-            biz: delBizRes.error,
-          });
-        }
+        const targets = [businessId, businessSlug];
+        if (dbBiz?.id) targets.push(dbBiz.id);
+
+        await Promise.all([
+          supabase.from('review_logs').delete().in('business_id', targets),
+          supabase.from('businesses').delete().eq('slug', businessSlug),
+          supabase.from('users').delete().eq('email', cleanEmail),
+        ]);
       } catch (dbErr) {
         console.error('Supabase delete error in delete-store:', dbErr);
       }
     }
+
+    await logAuditEvent('DELETE_BUSINESS', {
+      details: {
+        storeName,
+        businessSlug,
+        ownerEmail: cleanEmail,
+      },
+      req,
+    });
 
     console.log(`[Store Deleted] Permanently deleted store: ${storeName} (${cleanEmail})`);
 

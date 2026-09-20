@@ -1,5 +1,25 @@
 [
   {
+    "id": "acc-1789884320576",
+    "email": "owner-b@jaipurgems.com",
+    "password": "Gems#002",
+    "businessName": "Jaipur Gems & Jewels",
+    "businessSlug": "jaipur-gems-jewels-3",
+    "category": "clothing",
+    "googleReviewLink": "https://g.page/r/jaipur-gems/review",
+    "createdAt": "2026-09-20T06:05:20.576Z"
+  },
+  {
+    "id": "acc-1789884319203",
+    "email": "owner-a@royalspice.com",
+    "password": "Spice@01",
+    "businessName": "Royal Spice Cafe",
+    "businessSlug": "royal-spice-cafe-3",
+    "category": "cafe",
+    "googleReviewLink": "https://g.page/r/royal-spice/review",
+    "createdAt": "2026-09-20T06:05:19.203Z"
+  },
+  {
     "id": "acc-1789809069368",
     "email": "botmate.in@gmail.com",
     "password": "Gaur@v27",
