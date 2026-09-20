@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { isSupabaseConfigured } from '@/lib/supabase';
+import { redisCache } from '@/lib/redis';
 
 export const dynamic = 'force-dynamic';
 
@@ -7,6 +8,7 @@ export async function GET() {
   try {
     const memory = process.memoryUsage ? process.memoryUsage() : null;
     const isDbReady = isSupabaseConfigured();
+    const cacheStatus = redisCache.getStatus();
 
     return NextResponse.json(
       {
@@ -16,6 +18,11 @@ export async function GET() {
         uptimeSeconds: Math.floor(process.uptime()),
         environment: process.env.NODE_ENV || 'production',
         database: isDbReady ? 'connected' : 'local-storage',
+        cache: {
+          status: cacheStatus.connected ? 'active' : 'idle',
+          provider: cacheStatus.provider,
+          inMemoryKeys: cacheStatus.inMemoryKeyCount,
+        },
         memoryMb: memory ? Math.round(memory.rss / (1024 * 1024)) : undefined,
       },
       {

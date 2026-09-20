@@ -9,6 +9,7 @@ import { generateUniqueSlug } from '@/lib/slug';
 import { addLocalMembership, logAuditEvent } from '@/lib/auth-server';
 import { verifyMasterAdminRequest } from '@/lib/admin-auth';
 import { checkRequestSize, sanitizeBusinessName, detectSQLInjection, isValidURL, isValidEmail } from '@/lib/api-guard';
+import { redisCache } from '@/lib/redis';
 
 export async function GET(req: NextRequest) {
   try {
@@ -306,6 +307,10 @@ export async function POST(req: NextRequest) {
       },
       req,
     });
+
+    // Invalidate Redis caches for fresh store lookup and dashboard
+    redisCache.del([`store:profile:${cleanSlug}`, `store:profile:b-${cleanSlug}`]).catch(() => {});
+    redisCache.delPattern('dashboard:all:*').catch(() => {});
 
     return NextResponse.json({
       success: true,

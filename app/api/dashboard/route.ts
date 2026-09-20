@@ -12,6 +12,7 @@ import { getAllOwnerAccounts, getAccountBySlug } from '@/lib/accounts-store';
 import { getSessionUser, authorizeBusinessAccess, logAuditEvent } from '@/lib/auth-server';
 import { supabase, isSupabaseConfigured } from '@/lib/supabase';
 import { sanitizeBusinessId, isValidBusinessId } from '@/lib/api-guard';
+import { redisCache } from '@/lib/redis';
 
 function resolveBusinessName(businessId: string): string {
   const b = Object.values(DEMO_BUSINESSES).find((biz) => biz.id === businessId);
@@ -100,7 +101,21 @@ export async function GET(req: NextRequest) {
     }
 
     // --------------------------------------------------------------------------
-    // 2. Fetch & Filter Logs for the Authorized Business
+    // 2. Redis Cache Layer: Check for warm cache (sub-millisecond response)
+    // --------------------------------------------------------------------------
+    const cacheKey = `dashboard:${businessId}:${period}:${channel}:${filter}`;
+    const cachedData = await redisCache.get<any>(cacheKey);
+    if (cachedData) {
+      return NextResponse.json(cachedData, {
+        headers: {
+          'X-Cache': 'HIT',
+          'Cache-Control': 'private, no-cache, no-store',
+        },
+      });
+    }
+
+    // --------------------------------------------------------------------------
+    // 3. Fetch & Filter Logs for the Authorized Business
     // --------------------------------------------------------------------------
     let allLogs = getAllLogs();
 
@@ -299,7 +314,7 @@ export async function GET(req: NextRequest) {
       googleReviewLink,
     };
 
-    return NextResponse.json({
+    const responsePayload = {
       success: true,
       period,
       filter,
@@ -312,6 +327,16 @@ export async function GET(req: NextRequest) {
       draftedUnpostedReviews,
       bouncedScansList,
       unpostedScansList,
+    };
+
+    // Cache in Redis for 45 seconds for sub-millisecond repeated queries
+    redisCache.set(cacheKey, responsePayload, 45).catch(() => {});
+
+    return NextResponse.json(responsePayload, {
+      headers: {
+        'X-Cache': 'MISS',
+        'Cache-Control': 'private, no-cache, no-store',
+      },
     });
   } catch (error: any) {
     console.error('Error fetching dashboard data:', error);
@@ -345,6 +370,12 @@ export async function PATCH(req: NextRequest) {
 
     const newStatus = toggleComplaintStatus(complaintId);
 
+    // Invalidate dashboard cache for this business
+    if (businessId) {
+      redisCache.delPattern(`dashboard:${businessId}:*`).catch(() => {});
+    }
+    redisCache.delPattern(`dashboard:all:*`).catch(() => {});
+
     return NextResponse.json({
       success: true,
       complaintId,
@@ -376,6 +407,8 @@ export async function DELETE(req: NextRequest) {
 
     if (clearAllResolved && businessId) {
       const deletedCount = clearResolvedComplaints(businessId);
+      redisCache.delPattern(`dashboard:${businessId}:*`).catch(() => {});
+      redisCache.delPattern(`dashboard:all:*`).catch(() => {});
       return NextResponse.json({
         success: true,
         deletedCount,
@@ -386,6 +419,10 @@ export async function DELETE(req: NextRequest) {
     if (complaintId) {
       const deleted = deleteComplaintLog(complaintId);
       if (deleted) {
+        if (businessId) {
+          redisCache.delPattern(`dashboard:${businessId}:*`).catch(() => {});
+        }
+        redisCache.delPattern(`dashboard:all:*`).catch(() => {});
         return NextResponse.json({
           success: true,
           complaintId,

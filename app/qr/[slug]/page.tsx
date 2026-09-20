@@ -11,6 +11,8 @@ import { getBaseUrl } from '@/lib/network';
 import { Star, QrCode } from 'lucide-react';
 import BackButton from '@/components/BackButton';
 
+import { redisCache } from '@/lib/redis';
+
 interface PageProps {
   params: {
     slug: string;
@@ -19,72 +21,75 @@ interface PageProps {
 
 async function getBusinessBySlug(slug: string): Promise<Business | null> {
   const cleanSlug = slug.toLowerCase().trim();
+  const cacheKey = `store:profile:${cleanSlug}`;
 
-  // 1. Official demo business
-  if (cleanSlug === 'demo') {
-    return {
-      id: 'b0000000-0000-4000-8000-000000000000',
-      name: 'ReviewXpress Client Demo',
-      slug: 'demo',
-      google_review_link: 'https://www.google.com/maps',
-      tags: getShuffledCategoryTags('ReviewXpress Client Demo'),
-      is_active: true,
-    };
-  }
-
-  // 2. Check registered owner accounts (accounts.json)
-  try {
-    const acc = getAccountBySlug(cleanSlug);
-    if (acc) {
+  return redisCache.remember(cacheKey, 600, async () => {
+    // 1. Official demo business
+    if (cleanSlug === 'demo') {
       return {
-        id: 'b-' + acc.businessSlug,
-        name: acc.businessName,
-        slug: acc.businessSlug,
-        category: acc.category,
-        google_review_link: acc.googleReviewLink,
-        tags: getShuffledCategoryTags(acc.businessName, acc.category),
+        id: 'b0000000-0000-4000-8000-000000000000',
+        name: 'ReviewXpress Client Demo',
+        slug: 'demo',
+        google_review_link: 'https://www.google.com/maps',
+        tags: getShuffledCategoryTags('ReviewXpress Client Demo'),
         is_active: true,
       };
     }
-  } catch (err) {
-    console.error('Error fetching account by slug in /qr/[slug]:', err);
-  }
 
-  // 3. Supabase check
-  if (isSupabaseConfigured()) {
+    // 2. Check registered owner accounts (accounts.json)
     try {
-      const { data, error } = await supabase
-        .from('businesses')
-        .select('*')
-        .eq('slug', cleanSlug)
-        .eq('is_active', true)
-        .single();
-
-      if (!error && data) {
+      const acc = getAccountBySlug(cleanSlug);
+      if (acc) {
         return {
-          id: data.id,
-          name: data.name,
-          slug: data.slug,
-          category: data.category,
-          google_review_link: data.google_review_link,
-          tags: data.tags || getShuffledCategoryTags(data.name),
-          is_active: data.is_active,
+          id: 'b-' + acc.businessSlug,
+          name: acc.businessName,
+          slug: acc.businessSlug,
+          category: acc.category,
+          google_review_link: acc.googleReviewLink,
+          tags: getShuffledCategoryTags(acc.businessName, acc.category),
+          is_active: true,
         };
       }
     } catch (err) {
-      console.error('Error fetching business from Supabase:', err);
+      console.error('Error fetching account by slug in /qr/[slug]:', err);
     }
-  }
 
-  // 4. In-memory demo dictionary
-  if (DEMO_BUSINESSES[cleanSlug]) {
-    return {
-      ...DEMO_BUSINESSES[cleanSlug],
-      tags: getShuffledCategoryTags(DEMO_BUSINESSES[cleanSlug].name),
-    };
-  }
+    // 3. Supabase check
+    if (isSupabaseConfigured()) {
+      try {
+        const { data, error } = await supabase
+          .from('businesses')
+          .select('*')
+          .eq('slug', cleanSlug)
+          .eq('is_active', true)
+          .single();
 
-  return null;
+        if (!error && data) {
+          return {
+            id: data.id,
+            name: data.name,
+            slug: data.slug,
+            category: data.category,
+            google_review_link: data.google_review_link,
+            tags: data.tags || getShuffledCategoryTags(data.name),
+            is_active: data.is_active,
+          };
+        }
+      } catch (err) {
+        console.error('Error fetching business from Supabase:', err);
+      }
+    }
+
+    // 4. In-memory demo dictionary
+    if (DEMO_BUSINESSES[cleanSlug]) {
+      return {
+        ...DEMO_BUSINESSES[cleanSlug],
+        tags: getShuffledCategoryTags(DEMO_BUSINESSES[cleanSlug].name),
+      };
+    }
+
+    return null;
+  });
 }
 
 export async function generateMetadata({ params }: PageProps): Promise<Metadata> {

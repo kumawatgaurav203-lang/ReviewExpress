@@ -5,6 +5,7 @@ import { deleteBusinessData } from '@/lib/dashboard-data';
 import { supabase, isSupabaseConfigured } from '@/lib/supabase';
 import { logAuditEvent } from '@/lib/auth-server';
 import { verifyMasterAdminRequest } from '@/lib/admin-auth';
+import { redisCache } from '@/lib/redis';
 
 export async function POST(req: NextRequest) {
   try {
@@ -85,6 +86,12 @@ export async function POST(req: NextRequest) {
         console.error('Supabase delete error in delete-store:', dbErr);
       }
     }
+
+    // 5. Invalidate Redis Caches
+    redisCache.del([`store:profile:${businessSlug}`, `store:profile:b-${businessSlug}`]).catch(() => {});
+    redisCache.delPattern(`dashboard:${businessSlug}:*`).catch(() => {});
+    redisCache.delPattern(`dashboard:${businessId}:*`).catch(() => {});
+    redisCache.delPattern('dashboard:all:*').catch(() => {});
 
     await logAuditEvent('DELETE_BUSINESS', {
       details: {

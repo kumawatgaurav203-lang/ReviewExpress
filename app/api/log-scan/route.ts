@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { recordLiveReview } from '@/lib/dashboard-data';
 import { checkRateLimit, RATE_LIMITS, checkRequestSize, sanitizeBusinessId, isValidBusinessId, getClientIP } from '@/lib/api-guard';
+import { redisCache } from '@/lib/redis';
 
 // In-memory cache to deduplicate rapid scans from same IP/client within 60s
 const recentScans = new Map<string, number>();
@@ -52,6 +53,10 @@ export async function POST(req: NextRequest) {
       review_text: channel === 'nfc' ? 'NFC Chip Tapped' : 'QR Standee Scanned',
       source: channel,
     });
+
+    // Invalidate dashboard metrics cache so owner sees real-time visit
+    redisCache.delPattern(`dashboard:${safeBusinessId}:*`).catch(() => {});
+    redisCache.delPattern('dashboard:all:*').catch(() => {});
 
 
     return NextResponse.json({

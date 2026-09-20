@@ -4,6 +4,7 @@ import { SubmitFeedbackRequest, SubmitFeedbackResponse } from '@/lib/types';
 import { recordLiveReview, updateRuntimeLog, findRecentScanLog } from '@/lib/dashboard-data';
 import { resolveBusinessUuid } from '@/lib/auth-server';
 import { checkRateLimit, RATE_LIMITS, checkRequestSize, sanitizeString, sanitizeBusinessId, isValidBusinessId } from '@/lib/api-guard';
+import { redisCache } from '@/lib/redis';
 
 export async function POST(req: NextRequest) {
   try {
@@ -147,6 +148,10 @@ export async function POST(req: NextRequest) {
           updateRuntimeLog(savedLogId, { id: data.id } as any);
         }
 
+        // Invalidate dashboard metrics and complaints cache
+        redisCache.delPattern(`dashboard:${safeBusinessId}:*`).catch(() => {});
+        redisCache.delPattern('dashboard:all:*').catch(() => {});
+
         return NextResponse.json<SubmitFeedbackResponse>({
           success: true,
           message: 'Feedback successfully logged',
@@ -156,6 +161,10 @@ export async function POST(req: NextRequest) {
         console.error('Database connection exception:', dbErr);
       }
     }
+
+    // Invalidate dashboard cache in demo / local mode
+    redisCache.delPattern(`dashboard:${safeBusinessId}:*`).catch(() => {});
+    redisCache.delPattern('dashboard:all:*').catch(() => {});
 
     // Supabase demo / unconfigured mode
     return NextResponse.json<SubmitFeedbackResponse>({
