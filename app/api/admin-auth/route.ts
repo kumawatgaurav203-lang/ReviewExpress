@@ -3,7 +3,8 @@ import { Resend } from 'resend';
 import nodemailer from 'nodemailer';
 import {
   MASTER_ADMIN_EMAIL,
-  MASTER_ADMIN_KEY,
+  getMasterAdminKey,
+  setMasterAdminKey,
   COOKIE_NAME,
   SESSION_MAX_AGE_SECONDS,
   checkRateLimit,
@@ -93,7 +94,7 @@ export async function POST(req: NextRequest) {
       }
 
       // STRICT VALIDATION OF FACTOR 1 (MASTER KEY)
-      if (masterKey.trim() !== MASTER_ADMIN_KEY) {
+      if (masterKey.trim() !== getMasterAdminKey()) {
         const attempt = recordFailedAttempt(ip);
         if (attempt.locked) {
           return NextResponse.json(
@@ -219,7 +220,7 @@ export async function POST(req: NextRequest) {
 
     // ACTION: VERIFY OTP (HANDSHAKE COMPLETION)
     if (action === 'verify-otp') {
-      if (!masterKey || masterKey.trim() !== MASTER_ADMIN_KEY) {
+      if (!masterKey || masterKey.trim() !== getMasterAdminKey()) {
         recordFailedAttempt(ip);
         return NextResponse.json(
           { success: false, message: 'Invalid Master Admin Key.' },
@@ -258,6 +259,69 @@ export async function POST(req: NextRequest) {
       });
 
       response.cookies.set(COOKIE_NAME, sessionToken, {
+        httpOnly: true,
+        secure: process.env.NODE_ENV === 'production',
+        sameSite: 'strict',
+        path: '/',
+        maxAge: SESSION_MAX_AGE_SECONDS,
+      });
+
+      return response;
+    }
+
+    // ACTION: CHANGE MASTER ADMIN KEY
+    if (action === 'change-key') {
+      const isAuth = verifyMasterAdminRequest(req);
+      if (!isAuth) {
+        return NextResponse.json(
+          {
+            success: false,
+            message: 'Access Denied: You must pass Two-Way Verification before updating the Master Key.',
+          },
+          { status: 401 }
+        );
+      }
+
+      const { currentKey, newKey, confirmKey } = body;
+
+      if (!currentKey || currentKey.trim() !== getMasterAdminKey()) {
+        return NextResponse.json(
+          { success: false, message: 'Current Master Admin Key is incorrect.' },
+          { status: 400 }
+        );
+      }
+
+      if (!newKey || typeof newKey !== 'string' || newKey.trim().length < 8) {
+        return NextResponse.json(
+          { success: false, message: 'New Master Key must be at least 8 characters long.' },
+          { status: 400 }
+        );
+      }
+
+      if (newKey.trim() !== confirmKey?.trim()) {
+        return NextResponse.json(
+          { success: false, message: 'New Master Key and Confirmation do not match.' },
+          { status: 400 }
+        );
+      }
+
+      const updated = setMasterAdminKey(newKey.trim());
+      if (!updated) {
+        return NextResponse.json(
+          { success: false, message: 'Failed to persist new Master Key.' },
+          { status: 500 }
+        );
+      }
+
+      // Re-issue session token signed with the updated key
+      const newToken = createMasterAdminToken();
+      const response = NextResponse.json({
+        success: true,
+        message: 'Master Admin Secret Key updated successfully! Your new key is now active.',
+        token: newToken,
+      });
+
+      response.cookies.set(COOKIE_NAME, newToken, {
         httpOnly: true,
         secure: process.env.NODE_ENV === 'production',
         sameSite: 'strict',

@@ -99,6 +99,18 @@ export default function CreateAccountAdminPage() {
   const [isSubmittingAuth, setIsSubmittingAuth] = useState(false);
   const [countdown, setCountdown] = useState(0);
 
+  // Change Master Key Modal State
+  const [isChangeKeyModalOpen, setIsChangeKeyModalOpen] = useState(false);
+  const [currentKeyInput, setCurrentKeyInput] = useState('');
+  const [newKeyInput, setNewKeyInput] = useState('');
+  const [confirmKeyInput, setConfirmKeyInput] = useState('');
+  const [showKeyField1, setShowKeyField1] = useState(false);
+  const [showKeyField2, setShowKeyField2] = useState(false);
+  const [showKeyField3, setShowKeyField3] = useState(false);
+  const [changeKeyError, setChangeKeyError] = useState('');
+  const [changeKeySuccess, setChangeKeySuccess] = useState('');
+  const [isUpdatingKey, setIsUpdatingKey] = useState(false);
+
   // UI state
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
@@ -426,6 +438,61 @@ export default function CreateAccountAdminPage() {
     setActiveStores([]);
   };
 
+  const handleChangeMasterKey = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setChangeKeyError('');
+    setChangeKeySuccess('');
+
+    if (!currentKeyInput.trim()) {
+      setChangeKeyError('Please enter your current Master Admin Key.');
+      return;
+    }
+
+    if (newKeyInput.length < 8) {
+      setChangeKeyError('New Master Key must be at least 8 characters long.');
+      return;
+    }
+
+    if (newKeyInput !== confirmKeyInput) {
+      setChangeKeyError('New Master Key and Confirmation do not match.');
+      return;
+    }
+
+    setIsUpdatingKey(true);
+    try {
+      const res = await fetch('/api/admin-auth', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          action: 'change-key',
+          currentKey: currentKeyInput.trim(),
+          newKey: newKeyInput.trim(),
+          confirmKey: confirmKeyInput.trim(),
+        }),
+      });
+
+      const data = await res.json();
+      if (!res.ok || !data.success) {
+        setChangeKeyError(data.message || 'Failed to update Master Key.');
+        setIsUpdatingKey(false);
+        return;
+      }
+
+      setChangeKeySuccess('Master Admin Secret Key updated successfully! Your new key is now active.');
+      setCurrentKeyInput('');
+      setNewKeyInput('');
+      setConfirmKeyInput('');
+      setTimeout(() => {
+        setIsChangeKeyModalOpen(false);
+        setChangeKeySuccess('');
+      }, 2500);
+    } catch {
+      setChangeKeyError('Network error while updating Master Key.');
+    } finally {
+      setIsUpdatingKey(false);
+    }
+  };
+
   // Fetch real registered stores on mount & poll every 60s (only when 2FA verified)
   useEffect(() => {
     if (!isMasterVerified) return;
@@ -673,15 +740,31 @@ export default function CreateAccountAdminPage() {
               Client Account Creation Portal
             </span>
             {isMasterVerified && (
-              <button
-                type="button"
-                onClick={handleLockPanel}
-                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-rose-500/10 hover:bg-rose-500/20 text-rose-300 hover:text-rose-200 border border-rose-500/25 text-xs font-bold transition-all shadow-sm cursor-pointer active:scale-95"
-                title="Lock Master Admin Panel Immediately"
-              >
-                <Lock className="w-3.5 h-3.5 text-rose-400" />
-                <span>Lock Panel</span>
-              </button>
+              <>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setIsChangeKeyModalOpen(true);
+                    setChangeKeyError('');
+                    setChangeKeySuccess('');
+                  }}
+                  className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 text-xs font-bold transition-all shadow-sm cursor-pointer active:scale-95"
+                  title="Change Master Admin Secret Key"
+                >
+                  <KeyRound className="w-3.5 h-3.5 text-indigo-400" />
+                  <span className="hidden sm:inline">Change Key</span>
+                  <span className="sm:hidden">Key</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={handleLockPanel}
+                  className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-rose-500/10 hover:bg-rose-500/20 text-rose-300 hover:text-rose-200 border border-rose-500/25 text-xs font-bold transition-all shadow-sm cursor-pointer active:scale-95"
+                  title="Lock Master Admin Panel Immediately"
+                >
+                  <Lock className="w-3.5 h-3.5 text-rose-400" />
+                  <span>Lock Panel</span>
+                </button>
+              </>
             )}
           </div>
         </div>
@@ -2028,6 +2111,158 @@ export default function CreateAccountAdminPage() {
                 </div>
               )}
 
+            </div>
+          </div>
+        )}
+
+        {/* ----------------------------------------------------------------- */}
+        {/* CHANGE MASTER ADMIN SECRET KEY MODAL                               */}
+        {/* ----------------------------------------------------------------- */}
+        {isChangeKeyModalOpen && (
+          <div className="fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-sm flex items-center justify-center p-4">
+            <div className="w-full max-w-md bg-slate-900 border border-slate-800 rounded-3xl p-6 sm:p-7 shadow-2xl space-y-5 animate-scale-in">
+              <div className="flex items-center justify-between pb-3 border-b border-slate-800">
+                <div className="flex items-center gap-2.5">
+                  <div className="p-2 rounded-xl bg-indigo-500/10 text-indigo-400 border border-indigo-500/20">
+                    <KeyRound className="w-5 h-5" />
+                  </div>
+                  <div>
+                    <h3 className="text-base font-bold text-white tracking-tight">
+                      Update Secret Master Key
+                    </h3>
+                    <p className="text-[11px] text-slate-400">
+                      Change the 2FA secret key for Agency Master Admin
+                    </p>
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setIsChangeKeyModalOpen(false)}
+                  className="text-slate-400 hover:text-white p-1 rounded-lg transition-colors cursor-pointer"
+                >
+                  ✕
+                </button>
+              </div>
+
+              {changeKeyError && (
+                <div className="p-3 rounded-xl bg-rose-500/10 border border-rose-500/20 text-rose-300 text-xs flex items-start gap-2">
+                  <AlertTriangle className="w-4 h-4 text-rose-400 shrink-0 mt-0.5" />
+                  <span>{changeKeyError}</span>
+                </div>
+              )}
+
+              {changeKeySuccess && (
+                <div className="p-3 rounded-xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-300 text-xs flex items-start gap-2">
+                  <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0 mt-0.5" />
+                  <span>{changeKeySuccess}</span>
+                </div>
+              )}
+
+              <form onSubmit={handleChangeMasterKey} className="space-y-3.5 text-left text-xs">
+                {/* Current Key */}
+                <div className="space-y-1">
+                  <label className="font-semibold text-slate-300 flex items-center gap-1.5">
+                    <Lock className="w-3.5 h-3.5 text-slate-500" />
+                    <span>Current Master Admin Key:</span>
+                  </label>
+                  <div className="relative">
+                    <input
+                      type={showKeyField1 ? 'text' : 'password'}
+                      value={currentKeyInput}
+                      onChange={(e) => setCurrentKeyInput(e.target.value)}
+                      placeholder="Enter existing master key"
+                      required
+                      className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3.5 py-2.5 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-indigo-500 font-mono pr-10"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowKeyField1(!showKeyField1)}
+                      className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-500 hover:text-slate-300 p-0.5 cursor-pointer"
+                    >
+                      {showKeyField1 ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
+                    </button>
+                  </div>
+                </div>
+
+                {/* New Key */}
+                <div className="space-y-1">
+                  <label className="font-semibold text-slate-300 flex items-center gap-1.5">
+                    <KeyRound className="w-3.5 h-3.5 text-indigo-400" />
+                    <span>New Master Admin Key (min. 8 chars):</span>
+                  </label>
+                  <div className="relative">
+                    <input
+                      type={showKeyField2 ? 'text' : 'password'}
+                      value={newKeyInput}
+                      onChange={(e) => setNewKeyInput(e.target.value)}
+                      placeholder="Enter new secret key"
+                      required
+                      minLength={8}
+                      className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3.5 py-2.5 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-indigo-500 font-mono pr-10"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowKeyField2(!showKeyField2)}
+                      className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-500 hover:text-slate-300 p-0.5 cursor-pointer"
+                    >
+                      {showKeyField2 ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
+                    </button>
+                  </div>
+                </div>
+
+                {/* Confirm New Key */}
+                <div className="space-y-1">
+                  <label className="font-semibold text-slate-300 flex items-center gap-1.5">
+                    <CheckCircle className="w-3.5 h-3.5 text-emerald-400" />
+                    <span>Confirm New Master Admin Key:</span>
+                  </label>
+                  <div className="relative">
+                    <input
+                      type={showKeyField3 ? 'text' : 'password'}
+                      value={confirmKeyInput}
+                      onChange={(e) => setConfirmKeyInput(e.target.value)}
+                      placeholder="Re-type new secret key"
+                      required
+                      minLength={8}
+                      className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3.5 py-2.5 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-indigo-500 font-mono pr-10"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowKeyField3(!showKeyField3)}
+                      className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-500 hover:text-slate-300 p-0.5 cursor-pointer"
+                    >
+                      {showKeyField3 ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
+                    </button>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-2 gap-3 pt-3">
+                  <button
+                    type="button"
+                    onClick={() => setIsChangeKeyModalOpen(false)}
+                    className="py-2.5 px-4 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 font-bold text-xs transition-colors cursor-pointer"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="submit"
+                    disabled={isUpdatingKey || !currentKeyInput || newKeyInput.length < 8}
+                    className="py-2.5 px-4 rounded-xl bg-gradient-to-r from-indigo-600 to-indigo-700 hover:from-indigo-500 hover:to-indigo-600 disabled:opacity-50 text-white font-bold text-xs shadow-md shadow-indigo-600/20 transition-all flex items-center justify-center gap-1.5 cursor-pointer"
+                  >
+                    {isUpdatingKey ? (
+                      <>
+                        <RefreshCw className="w-3.5 h-3.5 animate-spin" />
+                        <span>Updating...</span>
+                      </>
+                    ) : (
+                      <>
+                        <KeyRound className="w-3.5 h-3.5" />
+                        <span>Save New Key</span>
+                      </>
+                    )}
+                  </button>
+                </div>
+              </form>
             </div>
           </div>
         )}

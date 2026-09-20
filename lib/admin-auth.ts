@@ -1,4 +1,6 @@
 import crypto from 'crypto';
+import fs from 'fs';
+import path from 'path';
 import { NextRequest } from 'next/server';
 
 // ============================================================================
@@ -7,8 +9,67 @@ import { NextRequest } from 'next/server';
 export const MASTER_ADMIN_EMAIL =
   process.env.MASTER_ADMIN_EMAIL?.trim().toLowerCase() || 'reviewxpressindia@gmail.com';
 
-export const MASTER_ADMIN_KEY =
-  process.env.MASTER_ADMIN_KEY?.trim() || 'Admin@ReviewXpress2026!';
+const configFilePath = path.join(process.cwd(), 'data', 'admin-config.json');
+let cachedAdminKey: string | null = null;
+
+export function getMasterAdminKey(): string {
+  if (cachedAdminKey) return cachedAdminKey;
+
+  try {
+    if (fs.existsSync(configFilePath)) {
+      const content = fs.readFileSync(configFilePath, 'utf-8');
+      const parsed = JSON.parse(content);
+      if (parsed?.masterKey && typeof parsed.masterKey === 'string' && parsed.masterKey.trim()) {
+        const key = parsed.masterKey.trim();
+        cachedAdminKey = key;
+        return key;
+      }
+    }
+  } catch (err) {
+    console.warn('Failed to read admin-config.json:', err);
+  }
+
+  const envKey = process.env.MASTER_ADMIN_KEY?.trim();
+  if (envKey) {
+    cachedAdminKey = envKey;
+    return envKey;
+  }
+
+  const defaultKey = 'Admin@ReviewXpress2026!';
+  cachedAdminKey = defaultKey;
+  return defaultKey;
+}
+
+export function setMasterAdminKey(newKey: string): boolean {
+  try {
+    const trimmed = newKey.trim();
+    if (!trimmed || trimmed.length < 8) return false;
+
+    const dir = path.dirname(configFilePath);
+    if (!fs.existsSync(dir)) {
+      fs.mkdirSync(dir, { recursive: true });
+    }
+
+    let existingData: any = {};
+    try {
+      if (fs.existsSync(configFilePath)) {
+        existingData = JSON.parse(fs.readFileSync(configFilePath, 'utf-8'));
+      }
+    } catch {}
+
+    existingData.masterKey = trimmed;
+    existingData.updatedAt = new Date().toISOString();
+
+    fs.writeFileSync(configFilePath, JSON.stringify(existingData, null, 2), 'utf-8');
+    cachedAdminKey = trimmed;
+    return true;
+  } catch (err) {
+    console.error('Failed to write admin-config.json:', err);
+    return false;
+  }
+}
+
+export const MASTER_ADMIN_KEY = getMasterAdminKey();
 
 const SIGNING_SECRET =
   process.env.RESEND_API_KEY ||
@@ -172,7 +233,7 @@ export function createMasterAdminToken(): string {
 
   const payloadB64 = Buffer.from(JSON.stringify(payload)).toString('base64url');
   const signature = crypto
-    .createHmac('sha256', SIGNING_SECRET + MASTER_ADMIN_KEY)
+    .createHmac('sha256', SIGNING_SECRET + getMasterAdminKey())
     .update(payloadB64)
     .digest('base64url');
 
@@ -189,7 +250,7 @@ export function verifyMasterAdminToken(token: string): boolean {
 
   // Re-create expected signature
   const expectedSignature = crypto
-    .createHmac('sha256', SIGNING_SECRET + MASTER_ADMIN_KEY)
+    .createHmac('sha256', SIGNING_SECRET + getMasterAdminKey())
     .update(payloadB64)
     .digest('base64url');
 
