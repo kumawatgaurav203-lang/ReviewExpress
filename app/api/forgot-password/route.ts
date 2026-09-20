@@ -1,17 +1,26 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getOwnerAccountByEmail, updateOwnerPassword } from '@/lib/accounts-store';
 import { otpStore } from '@/lib/otp-store';
+import { checkRateLimit, RATE_LIMITS, checkRequestSize, validateField, hasSQLInjection } from '@/lib/api-guard';
 
 export async function POST(req: NextRequest) {
   try {
+    // ── Request size guard ──────────────────────────────────────────
+    const sizeError = checkRequestSize(req, 4 * 1024); // 4 KB max
+    if (sizeError) return sizeError;
+
+    // ── Rate Limiting: 5 forgot-password requests per 15 min per IP ─
+    const rateCheck = checkRateLimit(req, 'forgot-password', RATE_LIMITS.FORGOT_PASSWORD);
+    if (!rateCheck.allowed) return rateCheck.response;
+
     const body = await req.json();
     const { action, email, otp, newPassword } = body;
 
-    if (!email || !email.includes('@')) {
-      return NextResponse.json({ success: false, message: 'Valid email is required.' }, { status: 400 });
-    }
+    // ── Input Validation + SQL Injection Guard ──────────────────────
+    const emailError = validateField(email, 'Email', { isEmail: true, maxLength: 254 });
+    if (emailError) return emailError;
 
-    const cleanEmail = (email || '').toLowerCase().trim();
+    const cleanEmail = (email as string).toLowerCase().trim();
     const account = getOwnerAccountByEmail(cleanEmail);
     if (!account) {
       return NextResponse.json({ success: false, message: 'No account found with this email.' }, { status: 404 });

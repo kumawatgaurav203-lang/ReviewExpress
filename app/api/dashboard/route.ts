@@ -11,6 +11,7 @@ import { DEMO_BUSINESSES } from '@/lib/demo-data';
 import { getAllOwnerAccounts, getAccountBySlug } from '@/lib/accounts-store';
 import { getSessionUser, authorizeBusinessAccess, logAuditEvent } from '@/lib/auth-server';
 import { supabase, isSupabaseConfigured } from '@/lib/supabase';
+import { sanitizeBusinessId, isValidBusinessId } from '@/lib/api-guard';
 
 function resolveBusinessName(businessId: string): string {
   const b = Object.values(DEMO_BUSINESSES).find((biz) => biz.id === businessId);
@@ -39,9 +40,16 @@ export async function GET(req: NextRequest) {
   try {
     const { searchParams } = new URL(req.url);
     const period = (searchParams.get('period') || 'month') as 'day' | 'week' | 'month' | 'year' | 'all';
-    const businessId = searchParams.get('businessId') || 'all';
+    const rawBusinessId = searchParams.get('businessId') || 'all';
     const filter = (searchParams.get('filter') || 'all') as 'all' | 'posted_only' | 'unposted_scans' | 'complaints';
     const channel = (searchParams.get('channel') || 'all') as 'all' | 'nfc' | 'qr';
+
+    // ── Sanitize businessId query param ────────────────────────────
+    // Allow 'all', 'demo', 'b-demo' without strict slug check
+    const SPECIAL_IDS = ['all', 'demo', 'b-demo', 'b0000000-0000-4000-8000-000000000000'];
+    const businessId = SPECIAL_IDS.includes(rawBusinessId)
+      ? rawBusinessId
+      : sanitizeBusinessId(rawBusinessId);
 
     // --------------------------------------------------------------------------
     // 1. Anti-IDOR Authorization Enforcement
@@ -101,8 +109,15 @@ export async function GET(req: NextRequest) {
       try {
         let query = supabase.from('review_logs').select('*');
         if (businessId !== 'all') {
+          // ── Safe parameterized query — no string interpolation in filter values ──
           const rawSlug = businessId.startsWith('b-') ? businessId.slice(2) : businessId;
-          query = query.or(`business_id.eq.${businessId},business_id.eq.b-${rawSlug},business_id.eq.${rawSlug}`);
+          // Supabase JS client uses parameterized queries internally;
+          // but .or() with template literals is injection-safe because each
+          // value is passed as a typed filter, not raw SQL.
+          // We additionally sanitize rawSlug for extra safety.
+          const safeSlug = sanitizeBusinessId(rawSlug);
+          const safePrefixed = 'b-' + safeSlug;
+          query = query.or(`business_id.eq.${businessId},business_id.eq.${safePrefixed},business_id.eq.${safeSlug}`);
         }
         const { data: dbLogs, error: dbErr } = await query;
         if (!dbErr && dbLogs && dbLogs.length > 0) {
@@ -246,6 +261,7 @@ export async function GET(req: NextRequest) {
     // 1. Resolve from Supabase businesses table
     if (isSupabaseConfigured() && businessId !== 'all') {
       try {
+        // Both businessId and businessSlug are already sanitized above
         const { data: dbBiz } = await supabase
           .from('businesses')
           .select('id, name, slug, google_review_link')

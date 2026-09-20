@@ -8,6 +8,7 @@ import { otpStore } from '@/lib/otp-store';
 import { generateUniqueSlug } from '@/lib/slug';
 import { addLocalMembership, logAuditEvent } from '@/lib/auth-server';
 import { verifyMasterAdminRequest } from '@/lib/admin-auth';
+import { checkRequestSize, sanitizeBusinessName, detectSQLInjection, isValidURL, isValidEmail } from '@/lib/api-guard';
 
 export async function GET(req: NextRequest) {
   try {
@@ -67,6 +68,10 @@ export async function GET(req: NextRequest) {
 
 export async function POST(req: NextRequest) {
   try {
+    // ── Request size guard ──────────────────────────────────────────
+    const sizeError = checkRequestSize(req, 8 * 1024); // 8 KB max
+    if (sizeError) return sizeError;
+
     // 2FA Security Check: Master Admin only
     if (!verifyMasterAdminRequest(req)) {
       return NextResponse.json(
@@ -78,8 +83,23 @@ export async function POST(req: NextRequest) {
     const body = await req.json();
     const { email, password, businessName, googleReviewLink, category = "auto", otp } = body;
 
+    // ── SQL Injection scan on all incoming string fields ────────────
+    const injectionField = detectSQLInjection({
+      email: String(email || ''),
+      businessName: String(businessName || ''),
+      googleReviewLink: String(googleReviewLink || ''),
+      category: String(category || ''),
+    });
+    if (injectionField) {
+      console.warn(`[Security] SQL injection attempt in register-owner field: ${injectionField}`);
+      return NextResponse.json(
+        { success: false, message: 'Invalid characters detected in request fields. Please remove special characters and try again.' },
+        { status: 400 }
+      );
+    }
+
     // Strict field validation
-    if (!email || typeof email !== 'string' || !email.includes('@')) {
+    if (!email || !isValidEmail(String(email))) {
       return NextResponse.json(
         { success: false, message: 'Please provide a valid email address.' },
         { status: 400 }
@@ -89,6 +109,13 @@ export async function POST(req: NextRequest) {
     if (!businessName || typeof businessName !== 'string' || businessName.trim().length < 2) {
       return NextResponse.json(
         { success: false, message: 'Please enter a valid store / business name.' },
+        { status: 400 }
+      );
+    }
+
+    if (businessName.trim().length > 100) {
+      return NextResponse.json(
+        { success: false, message: 'Business name is too long. Maximum 100 characters allowed.' },
         { status: 400 }
       );
     }
@@ -112,10 +139,11 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // Google Maps Link validation
-    if (!googleReviewLink || typeof googleReviewLink !== 'string' || !googleReviewLink.trim() || googleReviewLink.trim().length < 5) {
+    // Google Maps Link validation — must be a valid http/https URL
+    const trimmedLink = (googleReviewLink || '').trim();
+    if (!trimmedLink || trimmedLink.length < 10 || !isValidURL(trimmedLink)) {
       return NextResponse.json(
-        { success: false, message: 'Google Maps Review Link is mandatory. Please provide a valid link.' },
+        { success: false, message: 'Google Maps Review Link is mandatory. Please provide a valid https:// link.' },
         { status: 400 }
       );
     }

@@ -3,9 +3,18 @@ import { supabase, isSupabaseConfigured } from '@/lib/supabase';
 import { SubmitFeedbackRequest, SubmitFeedbackResponse } from '@/lib/types';
 import { recordLiveReview, updateRuntimeLog, findRecentScanLog } from '@/lib/dashboard-data';
 import { resolveBusinessUuid } from '@/lib/auth-server';
+import { checkRateLimit, RATE_LIMITS, checkRequestSize, sanitizeString, sanitizeBusinessId, isValidBusinessId } from '@/lib/api-guard';
 
 export async function POST(req: NextRequest) {
   try {
+    // ── Request size guard ─────────────────────────────────────────
+    const sizeError = checkRequestSize(req, 16 * 1024); // 16 KB max
+    if (sizeError) return sizeError;
+
+    // ── Rate Limiting: 20 feedbacks per 5 minutes per IP ──────────
+    const rateCheck = checkRateLimit(req, 'submit-feedback', RATE_LIMITS.SUBMIT_FEEDBACK);
+    if (!rateCheck.allowed) return rateCheck.response;
+
     const body: SubmitFeedbackRequest = await req.json();
     const {
       logId,
@@ -19,36 +28,54 @@ export async function POST(req: NextRequest) {
       source = 'qr',
     } = body;
 
-    if (!businessId || rating === undefined || rating < 1 || rating > 5) {
+    // ── Input Validation ───────────────────────────────────────────
+    if (!businessId || !isValidBusinessId(String(businessId))) {
       return NextResponse.json(
-        { success: false, message: 'Invalid payload: businessId and valid rating (1-5) are required' },
+        { success: false, message: 'Invalid payload: businessId is missing or invalid.' },
         { status: 400 }
       );
     }
 
-    const channel = source === 'nfc' ? 'nfc' : 'qr';
+    if (rating === undefined || typeof rating !== 'number' || rating < 1 || rating > 5) {
+      return NextResponse.json(
+        { success: false, message: 'Invalid payload: rating must be a number between 1 and 5.' },
+        { status: 400 }
+      );
+    }
+
+    // ── Sanitize all text fields to prevent injection ──────────────
+    const safeBusinessId = sanitizeBusinessId(String(businessId));
+    const safeReviewText = sanitizeString(reviewText, 2000);
+    const safeCustomerPhone = sanitizeString(customerPhone, 20);
+    const safeCustomerFeedback = sanitizeString(customerFeedback, 2000);
+    const safeSource = source === 'nfc' ? 'nfc' : 'qr';
+    const safeTags = Array.isArray(selectedTags)
+      ? selectedTags.slice(0, 20).map((t) => sanitizeString(String(t), 100))
+      : [];
+
     let savedLogId = logId;
+    const channel = safeSource;
 
     if (logId) {
       const updated = updateRuntimeLog(logId, {
         rating,
-        selected_tags: selectedTags,
-        review_text: reviewText,
-        customer_phone: customerPhone,
-        customer_feedback: customerFeedback,
-        posted_to_google: postedToGoogle,
+        selected_tags: safeTags,
+        review_text: safeReviewText,
+        customer_phone: safeCustomerPhone,
+        customer_feedback: safeCustomerFeedback,
+        posted_to_google: Boolean(postedToGoogle),
         source: channel,
         is_scan: false,
       });
       if (!updated) {
         const created = recordLiveReview({
-          business_id: businessId,
+          business_id: safeBusinessId,
           rating,
-          selected_tags: selectedTags,
-          review_text: reviewText,
-          customer_phone: customerPhone,
-          customer_feedback: customerFeedback,
-          posted_to_google: postedToGoogle,
+          selected_tags: safeTags,
+          review_text: safeReviewText,
+          customer_phone: safeCustomerPhone,
+          customer_feedback: safeCustomerFeedback,
+          posted_to_google: Boolean(postedToGoogle),
           source: channel,
           is_scan: false,
         });
@@ -56,28 +83,28 @@ export async function POST(req: NextRequest) {
       }
     } else {
       // Check if there is a recent scan log from this visit to adopt rather than creating duplicate
-      const recentScan = findRecentScanLog(businessId, channel, 30);
+      const recentScan = findRecentScanLog(safeBusinessId, channel, 30);
       if (recentScan) {
         updateRuntimeLog(recentScan.id, {
           rating,
-          selected_tags: selectedTags,
-          review_text: reviewText,
-          customer_phone: customerPhone,
-          customer_feedback: customerFeedback,
-          posted_to_google: postedToGoogle,
+          selected_tags: safeTags,
+          review_text: safeReviewText,
+          customer_phone: safeCustomerPhone,
+          customer_feedback: safeCustomerFeedback,
+          posted_to_google: Boolean(postedToGoogle),
           source: channel,
           is_scan: false,
         });
         savedLogId = recentScan.id;
       } else {
         const created = recordLiveReview({
-          business_id: businessId,
+          business_id: safeBusinessId,
           rating,
-          selected_tags: selectedTags,
-          review_text: reviewText,
-          customer_phone: customerPhone,
-          customer_feedback: customerFeedback,
-          posted_to_google: postedToGoogle,
+          selected_tags: safeTags,
+          review_text: safeReviewText,
+          customer_phone: safeCustomerPhone,
+          customer_feedback: safeCustomerFeedback,
+          posted_to_google: Boolean(postedToGoogle),
           source: channel,
           is_scan: false,
         });
@@ -88,22 +115,23 @@ export async function POST(req: NextRequest) {
     // If Supabase is connected, persist to review_logs table
     if (isSupabaseConfigured()) {
       try {
-        const canonicalBusinessId = await resolveBusinessUuid(businessId);
+        const canonicalBusinessId = await resolveBusinessUuid(safeBusinessId);
         const { data, error } = await supabase
           .from('review_logs')
           .insert([
             {
               business_id: canonicalBusinessId,
               rating,
-              selected_tags: selectedTags,
-              review_text: reviewText,
-              customer_phone: customerPhone,
-              customer_feedback: customerFeedback,
-              posted_to_google: postedToGoogle,
+              selected_tags: safeTags,
+              review_text: safeReviewText,
+              customer_phone: safeCustomerPhone,
+              customer_feedback: safeCustomerFeedback,
+              posted_to_google: Boolean(postedToGoogle),
             },
           ])
           .select('id')
           .single();
+
 
         if (error) {
           console.error('Supabase insert error in review_logs:', error);

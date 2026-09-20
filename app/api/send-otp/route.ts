@@ -2,17 +2,26 @@ import { NextRequest, NextResponse } from 'next/server';
 import { Resend } from 'resend';
 import nodemailer from 'nodemailer';
 import { otpStore } from '@/lib/otp-store';
+import { checkRateLimit, RATE_LIMITS, checkRequestSize, validateField } from '@/lib/api-guard';
 
 export async function POST(req: NextRequest) {
   try {
+    // ── Request size guard ─────────────────────────────────────────
+    const sizeError = checkRequestSize(req, 4 * 1024); // 4 KB max
+    if (sizeError) return sizeError;
+
+    // ── Rate Limiting: 5 OTP requests per 10 minutes per IP ────────
+    const rateCheck = checkRateLimit(req, 'send-otp', RATE_LIMITS.SEND_OTP);
+    if (!rateCheck.allowed) return rateCheck.response;
+
     const body = await req.json();
     const { email } = body;
 
-    if (!email || typeof email !== 'string' || !email.includes('@')) {
-      return NextResponse.json({ success: false, message: 'Valid email address is required.' }, { status: 400 });
-    }
+    // ── Input Validation + SQL Injection Guard ─────────────────────
+    const emailError = validateField(email, 'Email', { isEmail: true, maxLength: 254 });
+    if (emailError) return emailError;
 
-    const cleanEmail = email.toLowerCase().trim();
+    const cleanEmail = (email as string).toLowerCase().trim();
 
     // 1. Generate or reuse active OTP within 2-minute freshness window
     // This prevents race conditions when retrying or clicking rapidly,

@@ -1,22 +1,33 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { recordLiveReview } from '@/lib/dashboard-data';
+import { checkRateLimit, RATE_LIMITS, checkRequestSize, sanitizeBusinessId, isValidBusinessId, getClientIP } from '@/lib/api-guard';
 
 // In-memory cache to deduplicate rapid scans from same IP/client within 60s
 const recentScans = new Map<string, number>();
 
 export async function POST(req: NextRequest) {
   try {
+    // ── Request size guard ──────────────────────────────────────────
+    const sizeError = checkRequestSize(req, 2 * 1024); // 2 KB max
+    if (sizeError) return sizeError;
+
+    // ── Rate Limiting: 60 scan logs per minute per IP ───────────────
+    const rateCheck = checkRateLimit(req, 'log-scan', RATE_LIMITS.LOG_SCAN);
+    if (!rateCheck.allowed) return rateCheck.response;
+
     const body = await req.json();
     const { businessId, source = 'qr' } = body;
 
-    if (!businessId) {
-      return NextResponse.json({ success: false, message: 'businessId is required' }, { status: 400 });
+    // ── Input Validation ────────────────────────────────────────────
+    if (!businessId || !isValidBusinessId(String(businessId))) {
+      return NextResponse.json({ success: false, message: 'Valid businessId is required.' }, { status: 400 });
     }
 
+    const safeBusinessId = sanitizeBusinessId(String(businessId));
     const channel = source === 'nfc' ? 'nfc' : 'qr';
-    const forwardedFor = req.headers.get('x-forwarded-for') || 'local';
-    const ip = forwardedFor.split(',')[0].trim();
-    const dedupeKey = `${businessId}_${channel}_${ip}`;
+    const ip = getClientIP(req);
+
+    const dedupeKey = `${safeBusinessId}_${channel}_${ip}`;
     const now = Date.now();
     const lastScanTime = recentScans.get(dedupeKey);
 
@@ -34,13 +45,14 @@ export async function POST(req: NextRequest) {
     }
 
     const savedLog = recordLiveReview({
-      business_id: businessId,
+      business_id: safeBusinessId,
       rating: 0,
       posted_to_google: false,
       is_scan: true,
       review_text: channel === 'nfc' ? 'NFC Chip Tapped' : 'QR Standee Scanned',
       source: channel,
     });
+
 
     return NextResponse.json({
       success: true,

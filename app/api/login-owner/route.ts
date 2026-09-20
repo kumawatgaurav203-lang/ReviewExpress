@@ -2,18 +2,24 @@ import { NextRequest, NextResponse } from 'next/server';
 import { verifyOwnerLogin, getOwnerAccountByEmail } from '@/lib/accounts-store';
 import { supabase, isSupabaseConfigured } from '@/lib/supabase';
 import { createSessionToken, getSessionUserByEmail, logAuditEvent } from '@/lib/auth-server';
+import { checkRateLimit, RATE_LIMITS, checkRequestSize, validateField, hasSQLInjection } from '@/lib/api-guard';
 
 export async function POST(req: NextRequest) {
   try {
+    // ── Request size guard ──────────────────────────────────────────
+    const sizeError = checkRequestSize(req, 4 * 1024); // 4 KB max
+    if (sizeError) return sizeError;
+
+    // ── Rate Limiting: 10 login attempts per 15 minutes per IP ─────
+    const rateCheck = checkRateLimit(req, 'login-owner', RATE_LIMITS.LOGIN);
+    if (!rateCheck.allowed) return rateCheck.response;
+
     const body = await req.json();
     const { email, password } = body;
 
-    if (!email || typeof email !== 'string' || !email.includes('@')) {
-      return NextResponse.json(
-        { success: false, message: 'Please enter a valid email address.' },
-        { status: 400 }
-      );
-    }
+    // ── Input Validation + SQL Injection Guard ──────────────────────
+    const emailError = validateField(email, 'Email', { isEmail: true, maxLength: 254 });
+    if (emailError) return emailError;
 
     if (!password || typeof password !== 'string' || password.length !== 8) {
       return NextResponse.json(
@@ -22,7 +28,11 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    const cleanEmail = email.toLowerCase().trim();
+    if (hasSQLInjection(password)) {
+      return NextResponse.json({ success: false, message: 'Invalid characters in password.' }, { status: 400 });
+    }
+
+    const cleanEmail = (email as string).toLowerCase().trim();
 
     // 1. Check in Supabase users table first if configured
     let isAuthenticated = false;
