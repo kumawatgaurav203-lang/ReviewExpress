@@ -80,13 +80,12 @@ export async function POST(req: NextRequest) {
       }
     }
 
-    // 2. Secondary Engine / Fallback: Nodemailer Gmail SMTP (Direct Port 465 SSL)
+    // 2. Secondary Engine / Fallback: Nodemailer Gmail SMTP
+    let lastSmtpError = '';
     if (!isSentViaResend && emailUser && emailPass) {
       try {
         const transporter = nodemailer.createTransport({
-          host: 'smtp.gmail.com',
-          port: 465,
-          secure: true,
+          service: 'gmail',
           auth: {
             user: emailUser,
             pass: emailPass,
@@ -103,7 +102,7 @@ export async function POST(req: NextRequest) {
             subject: 'ReviewXpress - Account Verification Code',
             html: emailHtml,
           }),
-          new Promise((_, reject) => setTimeout(() => reject(new Error('SMTP send timeout')), 8000)),
+          new Promise((_, reject) => setTimeout(() => reject(new Error('SMTP send timeout (12s)')), 12000)),
         ]);
 
         return NextResponse.json({
@@ -112,18 +111,56 @@ export async function POST(req: NextRequest) {
           message: 'OTP sent successfully to email.',
           otp,
         });
-      } catch (mailErr) {
-        console.error('[Nodemailer Error]:', mailErr);
+      } catch (mailErr: any) {
+        lastSmtpError = mailErr?.message || String(mailErr);
+        console.error('[Nodemailer Error]:', lastSmtpError);
+
+        // Fallback try port 587 STARTTLS
+        try {
+          const fallbackTransporter = nodemailer.createTransport({
+            host: 'smtp.gmail.com',
+            port: 587,
+            secure: false,
+            auth: {
+              user: emailUser,
+              pass: emailPass,
+            },
+            tls: {
+              rejectUnauthorized: false,
+            },
+          });
+
+          await Promise.race([
+            fallbackTransporter.sendMail({
+              from: `"ReviewXpress Security" <${emailUser}>`,
+              to: cleanEmail,
+              subject: 'ReviewXpress - Account Verification Code',
+              html: emailHtml,
+            }),
+            new Promise((_, reject) => setTimeout(() => reject(new Error('SMTP 587 send timeout (10s)')), 10000)),
+          ]);
+
+          return NextResponse.json({
+            success: true,
+            provider: 'nodemailer_587',
+            message: 'OTP sent successfully to email.',
+            otp,
+          });
+        } catch (mail587Err: any) {
+          lastSmtpError += ' | 587: ' + (mail587Err?.message || String(mail587Err));
+          console.error('[Nodemailer 587 Error]:', lastSmtpError);
+        }
       }
     }
 
     // 3. Fail-safe Engine: Always return valid OTP so onboarding never breaks
-    console.warn(`[OTP Safe-Mode] Dispatched valid onboarding code for ${cleanEmail}`);
+    console.warn(`[OTP Safe-Mode] Dispatched valid onboarding code for ${cleanEmail}. SMTP error: ${lastSmtpError}`);
     return NextResponse.json({
       success: true,
       provider: 'direct_otp',
       message: 'Verification code generated for store onboarding.',
       otp,
+      smtpError: lastSmtpError || undefined,
     });
   } catch (error: any) {
     console.error('Error in send-otp:', error);
