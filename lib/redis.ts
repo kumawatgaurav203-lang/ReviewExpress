@@ -63,11 +63,13 @@ if (upstashUrl && upstashToken && !upstashUrl.includes('placeholder')) {
   }
 } else if (standardRedisUrl && !standardRedisUrl.includes('placeholder')) {
   try {
+    const isTls = standardRedisUrl.startsWith('rediss://');
     ioRedisClient = new Redis(standardRedisUrl, {
       lazyConnect: true,
       maxRetriesPerRequest: 1,
-      connectTimeout: 4000,
+      connectTimeout: 5000,
       enableOfflineQueue: false,
+      ...(isTls ? { tls: { rejectUnauthorized: false } } : {}),
       retryStrategy: (times) => {
         if (times > 3) return null; // Stop retrying after 3 attempts to avoid spamming logs
         return Math.min(times * 500, 2000);
