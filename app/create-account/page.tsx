@@ -86,6 +86,19 @@ export default function CreateAccountAdminPage() {
   const [category, setCategory] = useState(''); // Direct text input
   const [selectedCategoryTab, setSelectedCategoryTab] = useState('all');
 
+  // Master Admin Two-Way Verification (2FA) State
+  const [isMasterVerified, setIsMasterVerified] = useState(false);
+  const [isCheckingAuth, setIsCheckingAuth] = useState(true);
+  const [masterKeyInput, setMasterKeyInput] = useState('');
+  const [showMasterKey, setShowMasterKey] = useState(false);
+  const [otpInput, setOtpInput] = useState('');
+  const [otpSent, setOtpSent] = useState(false);
+  const [maskedAdminEmail, setMaskedAdminEmail] = useState('');
+  const [authError, setAuthError] = useState('');
+  const [authSuccessMsg, setAuthSuccessMsg] = useState('');
+  const [isSubmittingAuth, setIsSubmittingAuth] = useState(false);
+  const [countdown, setCountdown] = useState(0);
+
   // UI state
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
@@ -290,12 +303,143 @@ export default function CreateAccountAdminPage() {
   // Active stores list (Starts completely empty - Zero fake data)
   const [activeStores, setActiveStores] = useState<StoreItem[]>([]);
 
-  // Fetch real registered stores on mount & poll every 6s (skips when tab hidden)
+  // 5-minute countdown for 2FA OTP
   useEffect(() => {
+    if (countdown <= 0) return;
+    const timer = setInterval(() => {
+      setCountdown((prev) => (prev > 0 ? prev - 1 : 0));
+    }, 1000);
+    return () => clearInterval(timer);
+  }, [countdown]);
+
+  // Check existing 2FA session on mount
+  useEffect(() => {
+    const checkSession = async () => {
+      try {
+        const res = await fetch('/api/admin-auth', { signal: AbortSignal.timeout(5000) });
+        const data = await res.json();
+        if (data?.success && data?.verified) {
+          setIsMasterVerified(true);
+        } else {
+          setIsMasterVerified(false);
+        }
+        if (data?.maskedEmail) {
+          setMaskedAdminEmail(data.maskedEmail);
+        }
+      } catch {
+        setIsMasterVerified(false);
+      } finally {
+        setIsCheckingAuth(false);
+      }
+    };
+    checkSession();
+  }, []);
+
+  const handleSend2FAOtp = async (e?: React.FormEvent) => {
+    if (e) e.preventDefault();
+    setAuthError('');
+    setAuthSuccessMsg('');
+
+    if (!masterKeyInput.trim()) {
+      setAuthError('Please enter your Master Admin Key.');
+      return;
+    }
+
+    setIsSubmittingAuth(true);
+    try {
+      const res = await fetch('/api/admin-auth', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'send-otp', masterKey: masterKeyInput.trim() }),
+      });
+      const data = await res.json();
+
+      if (!res.ok || !data.success) {
+        setAuthError(data.message || 'Failed to verify Master Key.');
+        setIsSubmittingAuth(false);
+        return;
+      }
+
+      setOtpSent(true);
+      setCountdown(300); // 5 minutes
+      if (data.maskedEmail) setMaskedAdminEmail(data.maskedEmail);
+      setAuthSuccessMsg(data.message || 'Security OTP sent to your verified admin email.');
+    } catch {
+      setAuthError('Network connection error while sending 2FA code.');
+    } finally {
+      setIsSubmittingAuth(false);
+    }
+  };
+
+  const handleVerify2FAOtp = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setAuthError('');
+    setAuthSuccessMsg('');
+
+    if (!otpInput.trim() || otpInput.trim().length < 6) {
+      setAuthError('Please enter the 6-digit security OTP code.');
+      return;
+    }
+
+    setIsSubmittingAuth(true);
+    try {
+      const res = await fetch('/api/admin-auth', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          action: 'verify-otp',
+          masterKey: masterKeyInput.trim(),
+          otp: otpInput.trim(),
+        }),
+      });
+      const data = await res.json();
+
+      if (!res.ok || !data.success) {
+        setAuthError(data.message || 'Invalid or expired OTP code.');
+        setIsSubmittingAuth(false);
+        return;
+      }
+
+      setIsMasterVerified(true);
+      setOtpSent(false);
+      setOtpInput('');
+      setAuthSuccessMsg('');
+    } catch {
+      setAuthError('Network error during 2-way verification.');
+    } finally {
+      setIsSubmittingAuth(false);
+    }
+  };
+
+  const handleLockPanel = async () => {
+    try {
+      await fetch('/api/admin-auth', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'lock' }),
+      });
+    } catch {}
+    setIsMasterVerified(false);
+    setOtpSent(false);
+    setOtpInput('');
+    setMasterKeyInput('');
+    setActiveStores([]);
+  };
+
+  // Fetch real registered stores on mount & poll every 60s (only when 2FA verified)
+  useEffect(() => {
+    if (!isMasterVerified) return;
+
     const loadStores = () => {
       if (typeof document !== 'undefined' && document.hidden) return;
       fetch(`/api/register-owner?t=${Date.now()}`, { signal: AbortSignal.timeout(7000) })
-        .then((res) => res.json())
+        .then((res) => {
+          if (res.status === 401) {
+            setIsMasterVerified(false);
+            return null;
+          }
+          return res.json();
+        })
         .then((data) => {
           if (data?.success && Array.isArray(data.stores)) {
             setActiveStores(data.stores);
@@ -307,7 +451,7 @@ export default function CreateAccountAdminPage() {
     loadStores();
     const interval = setInterval(loadStores, 60000); // 60s gentle sync to reduce server load
     return () => clearInterval(interval);
-  }, []);
+  }, [isMasterVerified]);
 
   // Slug preview computation
   const previewSlug = businessName
@@ -524,17 +668,227 @@ export default function CreateAccountAdminPage() {
             </span>
           </div>
 
-          <div className="flex items-center shrink-0">
+          <div className="flex items-center gap-2.5 sm:gap-3 shrink-0">
             <span className="text-[11px] sm:text-xs text-slate-400 font-medium hidden md:inline">
               Client Account Creation Portal
             </span>
+            {isMasterVerified && (
+              <button
+                type="button"
+                onClick={handleLockPanel}
+                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-rose-500/10 hover:bg-rose-500/20 text-rose-300 hover:text-rose-200 border border-rose-500/25 text-xs font-bold transition-all shadow-sm cursor-pointer active:scale-95"
+                title="Lock Master Admin Panel Immediately"
+              >
+                <Lock className="w-3.5 h-3.5 text-rose-400" />
+                <span>Lock Panel</span>
+              </button>
+            )}
           </div>
         </div>
       </header>
 
       {/* Main Container */}
       <main className="flex-1 max-w-5xl w-full mx-auto px-4 sm:px-6 py-8 sm:py-12 space-y-8">
-        {/* Header Hero */}
+        {isCheckingAuth ? (
+          <div className="min-h-[50vh] flex flex-col items-center justify-center space-y-4">
+            <div className="relative">
+              <div className="w-14 h-14 rounded-2xl bg-indigo-500/10 border border-indigo-500/20 flex items-center justify-center">
+                <ShieldCheck className="w-7 h-7 text-indigo-400 animate-pulse" />
+              </div>
+              <div className="absolute -inset-1 rounded-2xl bg-indigo-500/20 blur-md -z-10" />
+            </div>
+            <p className="text-xs text-slate-400 font-medium flex items-center gap-2">
+              <RefreshCw className="w-3.5 h-3.5 animate-spin text-indigo-400" />
+              <span>Verifying Two-Way Security Handshake...</span>
+            </p>
+          </div>
+        ) : !isMasterVerified ? (
+          /* ================================================================= */
+          /* ULTRA-STRONG TWO-WAY VERIFICATION (2FA) SECURITY SHIELD           */
+          /* ================================================================= */
+          <div className="max-w-md mx-auto my-4 sm:my-8 space-y-6 animate-fade-in">
+            <div className="bg-slate-900/90 border border-slate-800 rounded-3xl p-6 sm:p-8 shadow-2xl backdrop-blur-xl relative overflow-hidden space-y-6">
+              {/* Subtle Ambient Glow */}
+              <div className="absolute -top-24 -right-24 w-48 h-48 bg-indigo-500/15 rounded-full blur-3xl pointer-events-none" />
+              <div className="absolute -bottom-24 -left-24 w-48 h-48 bg-purple-500/15 rounded-full blur-3xl pointer-events-none" />
+
+              {/* Shield Header */}
+              <div className="text-center space-y-2">
+                <div className="inline-flex p-3 rounded-2xl bg-gradient-to-br from-indigo-500/20 to-purple-500/20 border border-indigo-500/30 text-indigo-400 mb-1 shadow-inner">
+                  <ShieldCheck className="w-8 h-8 text-indigo-400" />
+                </div>
+                <div>
+                  <span className="inline-block px-2.5 py-0.5 rounded-full bg-amber-500/10 text-amber-300 border border-amber-500/20 text-[10px] font-bold uppercase tracking-wider">
+                    Two-Way Verification (2FA) Required
+                  </span>
+                </div>
+                <h2 className="text-xl sm:text-2xl font-black text-white tracking-tight">
+                  Agency Master Admin
+                </h2>
+                <p className="text-xs text-slate-400 leading-relaxed max-w-sm mx-auto">
+                  Strictly restricted access. Enter your secret Master Admin Key and verify the 6-digit one-time code sent to your registered email.
+                </p>
+              </div>
+
+              {/* Security Errors / Success Notifications */}
+              {authError && (
+                <div className="p-3.5 rounded-2xl bg-rose-500/10 border border-rose-500/20 text-rose-300 text-xs flex items-start gap-2.5">
+                  <AlertTriangle className="w-4 h-4 text-rose-400 shrink-0 mt-0.5" />
+                  <span className="leading-snug">{authError}</span>
+                </div>
+              )}
+
+              {authSuccessMsg && (
+                <div className="p-3.5 rounded-2xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-300 text-xs flex items-start gap-2.5">
+                  <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0 mt-0.5" />
+                  <span className="leading-snug">{authSuccessMsg}</span>
+                </div>
+              )}
+
+              {/* Form Step: Master Key & OTP */}
+              {!otpSent ? (
+                /* ---------------- STEP 1: ENTER MASTER KEY ---------------- */
+                <form onSubmit={handleSend2FAOtp} className="space-y-4">
+                  <div className="space-y-1.5 text-left">
+                    <label className="text-xs font-semibold text-slate-300 flex items-center justify-between">
+                      <span className="flex items-center gap-1.5">
+                        <KeyRound className="w-3.5 h-3.5 text-indigo-400" />
+                        <span>Master Admin Secret Key</span>
+                      </span>
+                    </label>
+                    <div className="relative">
+                      <input
+                        type={showMasterKey ? 'text' : 'password'}
+                        value={masterKeyInput}
+                        onChange={(e) => setMasterKeyInput(e.target.value)}
+                        placeholder="Enter Master Admin Secret Key"
+                        required
+                        disabled={isSubmittingAuth}
+                        className="w-full bg-slate-950/80 border border-slate-800 rounded-xl px-4 py-3 text-sm text-white placeholder-slate-500 focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 transition-all font-mono pr-11"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => setShowMasterKey(!showMasterKey)}
+                        className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-white p-1 transition-colors cursor-pointer"
+                        title={showMasterKey ? 'Hide key' : 'Show key'}
+                      >
+                        {showMasterKey ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                      </button>
+                    </div>
+                  </div>
+
+                  <button
+                    type="submit"
+                    disabled={isSubmittingAuth || !masterKeyInput.trim()}
+                    className="w-full py-3 px-4 rounded-xl bg-gradient-to-r from-indigo-600 to-indigo-700 hover:from-indigo-500 hover:to-indigo-600 disabled:opacity-50 text-white font-bold text-xs tracking-wide shadow-lg shadow-indigo-600/20 transition-all flex items-center justify-center gap-2 cursor-pointer active:scale-[0.98]"
+                  >
+                    {isSubmittingAuth ? (
+                      <>
+                        <RefreshCw className="w-4 h-4 animate-spin" />
+                        <span>Verifying Key & Dispatching 2FA Code...</span>
+                      </>
+                    ) : (
+                      <>
+                        <Lock className="w-4 h-4 text-indigo-300" />
+                        <span>Verify Key & Send 2-Way OTP</span>
+                        <ArrowRight className="w-3.5 h-3.5 text-indigo-300" />
+                      </>
+                    )}
+                  </button>
+                </form>
+              ) : (
+                /* ---------------- STEP 2: ENTER EMAIL OTP ---------------- */
+                <form onSubmit={handleVerify2FAOtp} className="space-y-4">
+                  <div className="p-3 rounded-xl bg-indigo-500/10 border border-indigo-500/20 text-xs text-indigo-300 flex items-start gap-2">
+                    <Mail className="w-4 h-4 text-indigo-400 shrink-0 mt-0.5" />
+                    <div>
+                      <p className="font-semibold text-white">Verification Code Dispatched</p>
+                      <p className="text-[11px] text-slate-300 mt-0.5">
+                        Sent to: <strong className="text-indigo-300 font-mono">{maskedAdminEmail || 'Admin Email'}</strong>
+                      </p>
+                    </div>
+                  </div>
+
+                  <div className="space-y-1.5 text-left">
+                    <div className="flex items-center justify-between">
+                      <label className="text-xs font-semibold text-slate-300 flex items-center gap-1.5">
+                        <Lock className="w-3.5 h-3.5 text-amber-400" />
+                        <span>6-Digit Security OTP</span>
+                      </label>
+                      <span className="text-[11px] font-mono font-bold text-amber-300">
+                        {countdown > 0
+                          ? `⏱️ ${Math.floor(countdown / 60)}:${(countdown % 60).toString().padStart(2, '0')}`
+                          : '⚠️ Code Expired'}
+                      </span>
+                    </div>
+                    <input
+                      type="text"
+                      maxLength={6}
+                      value={otpInput}
+                      onChange={(e) => setOtpInput(e.target.value.replace(/\D/g, ''))}
+                      placeholder="••••••"
+                      autoFocus
+                      required
+                      disabled={isSubmittingAuth}
+                      className="w-full bg-slate-950/80 border border-slate-800 rounded-xl px-4 py-3.5 text-center text-2xl font-mono font-black tracking-[12px] text-indigo-400 placeholder-slate-600 focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 transition-all select-all"
+                    />
+                  </div>
+
+                  <button
+                    type="submit"
+                    disabled={isSubmittingAuth || otpInput.trim().length !== 6 || countdown <= 0}
+                    className="w-full py-3.5 px-4 rounded-xl bg-gradient-to-r from-emerald-600 via-indigo-600 to-indigo-700 hover:from-emerald-500 hover:to-indigo-600 disabled:opacity-50 text-white font-bold text-xs tracking-wide shadow-lg shadow-indigo-600/25 transition-all flex items-center justify-center gap-2 cursor-pointer active:scale-[0.98]"
+                  >
+                    {isSubmittingAuth ? (
+                      <>
+                        <RefreshCw className="w-4 h-4 animate-spin" />
+                        <span>Validating Handshake...</span>
+                      </>
+                    ) : (
+                      <>
+                        <ShieldCheck className="w-4 h-4 text-emerald-300" />
+                        <span>Confirm & Unlock Agency Master Panel</span>
+                      </>
+                    )}
+                  </button>
+
+                  <div className="flex items-center justify-between pt-2 text-[11px]">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setOtpSent(false);
+                        setOtpInput('');
+                        setAuthError('');
+                        setAuthSuccessMsg('');
+                      }}
+                      className="text-slate-400 hover:text-slate-200 transition-colors cursor-pointer"
+                    >
+                      ← Re-enter Master Key
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => handleSend2FAOtp()}
+                      disabled={isSubmittingAuth || countdown > 240}
+                      className="text-indigo-400 hover:text-indigo-300 disabled:opacity-40 transition-colors font-medium cursor-pointer"
+                    >
+                      Resend Code {countdown > 240 ? `(${countdown - 240}s)` : ''}
+                    </button>
+                  </div>
+                </form>
+              )}
+
+              {/* Zero-Storage Protocol Security Notice */}
+              <div className="pt-4 border-t border-slate-800/80 text-[11px] text-slate-500 flex items-start gap-2 text-left">
+                <ShieldCheck className="w-4 h-4 text-slate-500 shrink-0 mt-0.5" />
+                <p className="leading-relaxed">
+                  <strong>Zero-Storage Security Protocol:</strong> Authentication operates purely via stateless HMAC-SHA256 signatures with 0 database storage and near-zero server memory footprint. 5 failed attempts will initiate an automatic 15-minute security lockout.
+                </p>
+              </div>
+            </div>
+          </div>
+        ) : (
+          <>
+            {/* Header Hero */}
         <div className="text-center max-w-2xl mx-auto space-y-2">
           <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-indigo-500/10 border border-indigo-500/20 text-indigo-300 text-xs font-semibold">
             <UserCheck className="w-3.5 h-3.5 text-indigo-400" />
@@ -1676,6 +2030,8 @@ export default function CreateAccountAdminPage() {
 
             </div>
           </div>
+        )}
+          </>
         )}
       </main>
 

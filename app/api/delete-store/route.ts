@@ -4,9 +4,18 @@ import { deleteBusiness } from '@/lib/demo-data';
 import { deleteBusinessData } from '@/lib/dashboard-data';
 import { supabase, isSupabaseConfigured } from '@/lib/supabase';
 import { logAuditEvent } from '@/lib/auth-server';
+import { verifyMasterAdminRequest } from '@/lib/admin-auth';
 
 export async function POST(req: NextRequest) {
   try {
+    // 2FA Security Check: Master Admin only
+    if (!verifyMasterAdminRequest(req)) {
+      return NextResponse.json(
+        { success: false, message: 'Access Denied: Master Admin Two-Way Verification required.' },
+        { status: 401 }
+      );
+    }
+
     const body = await req.json();
     const { email, password, confirmPassword } = body;
 

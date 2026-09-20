@@ -7,9 +7,17 @@ import { Business } from '@/lib/types';
 import { otpStore } from '@/lib/otp-store';
 import { generateUniqueSlug } from '@/lib/slug';
 import { addLocalMembership, logAuditEvent } from '@/lib/auth-server';
+import { verifyMasterAdminRequest } from '@/lib/admin-auth';
 
-export async function GET() {
+export async function GET(req: NextRequest) {
   try {
+    // 2FA Security Check: Master Admin only
+    if (!verifyMasterAdminRequest(req)) {
+      return NextResponse.json(
+        { success: false, message: 'Access Denied: Master Admin Two-Way Verification required.' },
+        { status: 401 }
+      );
+    }
     // Check in Supabase first
     if (isSupabaseConfigured()) {
       try {
@@ -59,6 +67,14 @@ export async function GET() {
 
 export async function POST(req: NextRequest) {
   try {
+    // 2FA Security Check: Master Admin only
+    if (!verifyMasterAdminRequest(req)) {
+      return NextResponse.json(
+        { success: false, message: 'Access Denied: Master Admin Two-Way Verification required.' },
+        { status: 401 }
+      );
+    }
+
     const body = await req.json();
     const { email, password, businessName, googleReviewLink, category = "auto", otp } = body;
 
