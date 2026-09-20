@@ -2,6 +2,7 @@ import crypto from 'crypto';
 import fs from 'fs';
 import path from 'path';
 import { NextRequest } from 'next/server';
+import { supabase, isSupabaseConfigured } from '@/lib/supabase';
 
 // ============================================================================
 // CONFIGURATION & SECRETS
@@ -12,6 +13,7 @@ export const MASTER_ADMIN_EMAIL =
 const configFilePath = path.join(process.cwd(), 'data', 'admin-config.json');
 let cachedAdminKey: string | null = null;
 
+// Synchronously get the key (memory cache -> local file -> default)
 export function getMasterAdminKey(): string {
   if (cachedAdminKey) return cachedAdminKey;
 
@@ -40,31 +42,83 @@ export function getMasterAdminKey(): string {
   return defaultKey;
 }
 
-export function setMasterAdminKey(newKey: string): boolean {
+// Asynchronously sync the master key from Supabase DB (guarantees persistence across Render restarts)
+export async function syncMasterAdminKeyWithDb(): Promise<string> {
+  if (isSupabaseConfigured()) {
+    try {
+      const { data, error } = await supabase
+        .from('users')
+        .select('password_hash')
+        .eq('email', 'master-admin-key@system.internal')
+        .maybeSingle();
+
+      if (!error && data?.password_hash && typeof data.password_hash === 'string' && data.password_hash.trim().length >= 8) {
+        const keyFromDb = data.password_hash.trim();
+        cachedAdminKey = keyFromDb;
+        // Keep local file in sync
+        try {
+          const dir = path.dirname(configFilePath);
+          if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
+          fs.writeFileSync(
+            configFilePath,
+            JSON.stringify({ masterKey: keyFromDb, updatedAt: new Date().toISOString() }, null, 2),
+            'utf-8'
+          );
+        } catch {}
+        return keyFromDb;
+      }
+    } catch (e) {
+      console.warn('Sync master key with db error:', e);
+    }
+  }
+  return getMasterAdminKey();
+}
+
+export async function setMasterAdminKey(newKey: string): Promise<boolean> {
   try {
     const trimmed = newKey.trim();
     if (!trimmed || trimmed.length < 8) return false;
 
-    const dir = path.dirname(configFilePath);
-    if (!fs.existsSync(dir)) {
-      fs.mkdirSync(dir, { recursive: true });
+    // 1. Immediately cache in-memory
+    cachedAdminKey = trimmed;
+
+    // 2. Persist locally to data/admin-config.json
+    try {
+      const dir = path.dirname(configFilePath);
+      if (!fs.existsSync(dir)) {
+        fs.mkdirSync(dir, { recursive: true });
+      }
+      fs.writeFileSync(
+        configFilePath,
+        JSON.stringify({ masterKey: trimmed, updatedAt: new Date().toISOString() }, null, 2),
+        'utf-8'
+      );
+    } catch (fsErr) {
+      console.warn('Local fs save notice:', fsErr);
     }
 
-    let existingData: any = {};
-    try {
-      if (fs.existsSync(configFilePath)) {
-        existingData = JSON.parse(fs.readFileSync(configFilePath, 'utf-8'));
+    // 3. Persist permanently to Supabase DB (survives all Render rebuilds / redeploys)
+    if (isSupabaseConfigured()) {
+      try {
+        await supabase.from('users').upsert(
+          [
+            {
+              id: '00000000-0000-0000-0000-000000000001',
+              email: 'master-admin-key@system.internal',
+              password_hash: trimmed,
+              role: 'admin',
+            },
+          ],
+          { onConflict: 'email' }
+        );
+      } catch (dbErr) {
+        console.warn('Supabase key persist notice:', dbErr);
       }
-    } catch {}
+    }
 
-    existingData.masterKey = trimmed;
-    existingData.updatedAt = new Date().toISOString();
-
-    fs.writeFileSync(configFilePath, JSON.stringify(existingData, null, 2), 'utf-8');
-    cachedAdminKey = trimmed;
     return true;
   } catch (err) {
-    console.error('Failed to write admin-config.json:', err);
+    console.error('Failed to write master key:', err);
     return false;
   }
 }
@@ -77,7 +131,9 @@ const SIGNING_SECRET =
   'rx_ultra_secure_master_signing_secret_2026';
 
 export const COOKIE_NAME = 'rx_master_admin_session';
-export const SESSION_MAX_AGE_SECONDS = 4 * 60 * 60; // 4 hours
+// Session auto-locks after exactly 15 minutes as requested by user
+export const SESSION_MAX_AGE_SECONDS = 15 * 60; // 15 minutes
+
 
 // ============================================================================
 // IN-MEMORY ZERO-STORAGE STORES (Ultra-lightweight, <10KB RAM)

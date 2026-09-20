@@ -31,6 +31,7 @@ import {
   Smartphone,
   Download,
   RefreshCw,
+  Clock,
 } from 'lucide-react';
 import QRCode from 'qrcode';
 import { detectCategory } from '@/lib/tags-data';
@@ -324,6 +325,9 @@ export default function CreateAccountAdminPage() {
     return () => clearInterval(timer);
   }, [countdown]);
 
+  // Master Admin Auto-Lock Timer (15 minutes = 900 seconds)
+  const [sessionRemaining, setSessionRemaining] = useState<number>(15 * 60);
+
   // Check existing 2FA session on mount
   useEffect(() => {
     const checkSession = async () => {
@@ -331,6 +335,26 @@ export default function CreateAccountAdminPage() {
         const res = await fetch('/api/admin-auth', { signal: AbortSignal.timeout(5000) });
         const data = await res.json();
         if (data?.success && data?.verified) {
+          // Check if session start time in sessionStorage has exceeded 15 minutes
+          const storedStart = typeof window !== 'undefined' ? sessionStorage.getItem('rx_admin_session_start') : null;
+          if (storedStart) {
+            const elapsed = Math.floor((Date.now() - parseInt(storedStart, 10)) / 1000);
+            if (elapsed >= 15 * 60) {
+              // 15 minutes expired! Force lock
+              await fetch('/api/admin-auth', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ action: 'lock' }),
+              });
+              if (typeof window !== 'undefined') {
+                sessionStorage.removeItem('rx_admin_session_start');
+              }
+              setIsMasterVerified(false);
+              return;
+            } else {
+              setSessionRemaining(Math.max(0, 15 * 60 - elapsed));
+            }
+          }
           setIsMasterVerified(true);
         } else {
           setIsMasterVerified(false);
@@ -346,6 +370,25 @@ export default function CreateAccountAdminPage() {
     };
     checkSession();
   }, []);
+
+  // 15-minute Active auto-lock countdown timer
+  useEffect(() => {
+    if (!isMasterVerified) return;
+
+    const timer = setInterval(() => {
+      setSessionRemaining((prev) => {
+        if (prev <= 1) {
+          clearInterval(timer);
+          handleLockPanel();
+          return 0;
+        }
+        return prev - 1;
+      });
+    }, 1000);
+
+    return () => clearInterval(timer);
+  }, [isMasterVerified]);
+
 
   const handleSend2FAOtp = async (e?: React.FormEvent) => {
     if (e) e.preventDefault();
@@ -413,6 +456,10 @@ export default function CreateAccountAdminPage() {
       }
 
       setIsMasterVerified(true);
+      if (typeof window !== 'undefined') {
+        sessionStorage.setItem('rx_admin_session_start', Date.now().toString());
+      }
+      setSessionRemaining(15 * 60);
       setOtpSent(false);
       setOtpInput('');
       setAuthSuccessMsg('');
@@ -431,12 +478,16 @@ export default function CreateAccountAdminPage() {
         body: JSON.stringify({ action: 'lock' }),
       });
     } catch {}
+    if (typeof window !== 'undefined') {
+      sessionStorage.removeItem('rx_admin_session_start');
+    }
     setIsMasterVerified(false);
     setOtpSent(false);
     setOtpInput('');
     setMasterKeyInput('');
     setActiveStores([]);
   };
+
 
   const handleChangeMasterKey = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -751,12 +802,25 @@ export default function CreateAccountAdminPage() {
             </span>
           </div>
 
-          <div className="flex items-center gap-2.5 sm:gap-3 shrink-0">
-            <span className="text-[11px] sm:text-xs text-slate-400 font-medium hidden md:inline">
+          <div className="flex items-center gap-2 sm:gap-3 shrink-0">
+            <span className="text-[11px] sm:text-xs text-slate-400 font-medium hidden lg:inline">
               Client Account Creation Portal
             </span>
             {isMasterVerified && (
               <>
+                <div 
+                  className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-xl text-[11px] sm:text-xs font-semibold border ${
+                    sessionRemaining < 120 
+                      ? 'bg-rose-500/10 text-rose-300 border-rose-500/30 animate-pulse' 
+                      : 'bg-emerald-500/10 text-emerald-300 border-emerald-500/20'
+                  }`}
+                  title="Session locks automatically when timer expires"
+                >
+                  <Clock className="w-3.5 h-3.5" />
+                  <span>
+                    Auto-Lock: {Math.floor(sessionRemaining / 60)}:{String(sessionRemaining % 60).padStart(2, '0')}
+                  </span>
+                </div>
                 <button
                   type="button"
                   onClick={() => {

@@ -4,6 +4,7 @@ import nodemailer from 'nodemailer';
 import {
   MASTER_ADMIN_EMAIL,
   getMasterAdminKey,
+  syncMasterAdminKeyWithDb,
   setMasterAdminKey,
   COOKIE_NAME,
   SESSION_MAX_AGE_SECONDS,
@@ -29,6 +30,7 @@ function getClientIp(req: NextRequest): string {
 // GET: Verify Session State
 // ----------------------------------------------------------------------------
 export async function GET(req: NextRequest) {
+  await syncMasterAdminKeyWithDb();
   const isValid = verifyMasterAdminRequest(req);
   if (isValid) {
     return NextResponse.json({
@@ -50,9 +52,11 @@ export async function GET(req: NextRequest) {
 // ----------------------------------------------------------------------------
 export async function POST(req: NextRequest) {
   try {
+    await syncMasterAdminKeyWithDb();
     const ip = getClientIp(req);
     const body = await req.json();
     const { action, masterKey, otp } = body;
+
 
     // ACTION: LOCK / LOGOUT
     if (action === 'lock' || action === 'logout') {
@@ -305,13 +309,14 @@ export async function POST(req: NextRequest) {
         );
       }
 
-      const updated = setMasterAdminKey(newKey.trim());
+      const updated = await setMasterAdminKey(newKey.trim());
       if (!updated) {
         return NextResponse.json(
           { success: false, message: 'Failed to persist new Master Key.' },
           { status: 500 }
         );
       }
+
 
       // Re-issue session token signed with the updated key
       const newToken = createMasterAdminToken();

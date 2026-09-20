@@ -22,6 +22,9 @@ import {
   Trash2,
   AlertTriangle,
   X,
+  Copy,
+  Check,
+  Smartphone,
   ExternalLink,
 } from 'lucide-react';
 import { DEMO_BUSINESSES } from '@/lib/demo-data';
@@ -128,7 +131,7 @@ export default function OwnerDashboardPage() {
   } | null>(null);
   const [accessDeniedError, setAccessDeniedError] = useState<string | null>(null);
   const [showTermsModal, setShowTermsModal] = useState(false);
-  const currentSlug = ownerSession?.businessSlug || '';
+  const currentSlug = ownerSession?.businessSlug || 'photify-studio';
   const [timePeriod, setTimePeriod] = useState<'day' | 'week' | 'month' | 'year' | 'all'>('month');
   const [channelFilter, setChannelFilter] = useState<'all' | 'nfc' | 'qr'>('all');
 
@@ -138,12 +141,25 @@ export default function OwnerDashboardPage() {
   const [complaintFilter, setComplaintFilter] = useState<'all' | 'pending' | 'resolved'>('all');
 
   const [deletingComplaintId, setDeletingComplaintId] = useState<string | null>(null);
+  const [copiedLink, setCopiedLink] = useState<string | null>(null);
+
+  const handleCopyLink = (text: string, id: string) => {
+    try {
+      if (typeof navigator !== 'undefined' && navigator.clipboard) {
+        navigator.clipboard.writeText(text);
+      }
+    } catch {
+      // fallback
+    }
+    setCopiedLink(id);
+    setTimeout(() => setCopiedLink(null), 2500);
+  };
 
   const business = {
-    id: currentSlug ? 'b-' + currentSlug : '',
-    name: dashboardData?.businessInfo?.name || ownerSession?.businessName || 'Store Analytics',
+    id: 'b-' + currentSlug,
+    name: dashboardData?.businessInfo?.name || ownerSession?.businessName || DEMO_BUSINESSES[currentSlug]?.name || 'Photify Studio',
     slug: currentSlug,
-    google_review_link: dashboardData?.businessInfo?.googleReviewLink || 'https://g.page/r/CYa03-0ngD2lEAE/review',
+    google_review_link: dashboardData?.businessInfo?.googleReviewLink || DEMO_BUSINESSES[currentSlug]?.google_review_link || 'https://g.page/r/CYa03-0ngD2lEAE/review',
     tags: [],
     is_active: true,
   };
@@ -177,22 +193,42 @@ export default function OwnerDashboardPage() {
     }
   };
 
+  // Verify auth session on mount
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const sessionStr = localStorage.getItem('reviewxpress_owner_session');
+      if (sessionStr) {
+        try {
+          const parsed = JSON.parse(sessionStr);
+          if (parsed.isLoggedIn) {
+            setOwnerSession(parsed);
+          } else {
+            router.push('/dashboard/login');
+          }
+        } catch {
+          router.push('/dashboard/login');
+        }
+      } else {
+        router.push('/dashboard/login');
+      }
+    }
+  }, [router]);
+
   // Fetch metrics and complaints from API with silent background polling
-  const fetchDashboardData = async (isBackground = false, activeSession = ownerSession) => {
-    // CRITICAL: NEVER query dummy 'photify-studio' if session is not ready!
-    if (!activeSession?.businessSlug) {
+  const fetchDashboardData = async (isBackground = false) => {
+    // Only fetch if session is loaded to prevent premature requests with default fallback
+    if (!ownerSession?.businessSlug) {
       return;
     }
-    if (!isBackground) setIsLoading(true);
-    // Clear any previous error before fresh request
-    setAccessDeniedError(null);
 
+    if (!isBackground) setIsLoading(true);
     try {
-      const activeSlug = activeSession.businessSlug;
-      const bizId = 'b-' + activeSlug;
+      const activeSlug = ownerSession.businessSlug;
+      const activeBiz = DEMO_BUSINESSES[activeSlug];
+      const bizId = activeBiz?.id || ('b-' + activeSlug);
       const headers: Record<string, string> = {};
-      if (activeSession?.token) {
-        headers['Authorization'] = `Bearer ${activeSession.token}`;
+      if (ownerSession?.token) {
+        headers['Authorization'] = `Bearer ${ownerSession.token}`;
       }
       const res = await fetch(
         `/api/dashboard?businessId=${bizId}&period=${timePeriod}&channel=${channelFilter}&t=${Date.now()}`,
@@ -215,42 +251,18 @@ export default function OwnerDashboardPage() {
     }
   };
 
-  // Verify auth session on mount & immediately fetch data
-  useEffect(() => {
-    if (typeof window !== 'undefined') {
-      const sessionStr = localStorage.getItem('reviewxpress_owner_session');
-      if (sessionStr) {
-        try {
-          const parsed = JSON.parse(sessionStr);
-          if (parsed.isLoggedIn && parsed.businessSlug) {
-            setOwnerSession(parsed);
-            fetchDashboardData(false, parsed);
-          } else {
-            router.push('/dashboard/login');
-          }
-        } catch {
-          router.push('/dashboard/login');
-        }
-      } else {
-        router.push('/dashboard/login');
-      }
-    }
-  }, [router]);
 
-  // Re-fetch when timePeriod or channelFilter changes
   useEffect(() => {
-    if (!ownerSession?.businessSlug) return;
-    fetchDashboardData(false, ownerSession);
+    fetchDashboardData(false);
 
-    // Dynamic sync polling (60 seconds when tab active)
+    // Dynamic sync polling (60 seconds when tab active to conserve server bandwidth & memory)
     const interval = setInterval(() => {
       if (typeof document !== 'undefined' && document.hidden) return;
-      fetchDashboardData(true, ownerSession);
+      fetchDashboardData(true);
     }, 60000);
 
     return () => clearInterval(interval);
-  }, [timePeriod, channelFilter, ownerSession?.businessSlug]);
-
+  }, [timePeriod, channelFilter, ownerSession]);
 
   // Toggle complaint status
   const handleToggleComplaint = async (complaintId: string) => {
@@ -517,9 +529,9 @@ export default function OwnerDashboardPage() {
           </div>
         </div>
 
-
         {/* NFC vs QR Channel Breakdown Comparison Hub */}
         <div className="bg-gradient-to-r from-slate-900 via-slate-900/95 to-slate-900 border border-slate-800 rounded-3xl p-4 sm:p-6 shadow-xl space-y-4">
+
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pb-3 border-b border-slate-800/80">
             <div className="flex items-center gap-2.5">
               <div className="p-2 rounded-xl bg-indigo-500/15 text-indigo-400 border border-indigo-500/30">
