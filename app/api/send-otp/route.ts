@@ -26,7 +26,10 @@ export async function POST(req: NextRequest) {
     const FALLBACK_RESEND_KEY = Buffer.from('cmVfRDhzQWoxSkhfOTJiUmJmMVZOQUg0SFU5ZEdoV1dzenFx', 'base64').toString('utf-8');
     const envKey = process.env.RESEND_API_KEY;
     const resendApiKey = (envKey && envKey.startsWith('re_D8s')) ? envKey : FALLBACK_RESEND_KEY;
-    const resendFrom = process.env.RESEND_FROM_EMAIL || 'ReviewXpress <noreply@reviewxpress.in>';
+    const envFrom = process.env.RESEND_FROM_EMAIL;
+    const resendFrom = (envFrom && !envFrom.includes('onboarding@resend.dev'))
+      ? envFrom
+      : 'ReviewXpress <noreply@reviewxpress.in>';
 
     // Fallback credentials if not injected in Render env
     const emailUser = process.env.EMAIL_USER || 'botmate.in@gmail.com';
