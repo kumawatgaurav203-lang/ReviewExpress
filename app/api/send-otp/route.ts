@@ -24,7 +24,8 @@ export async function POST(req: NextRequest) {
     });
 
     const FALLBACK_RESEND_KEY = Buffer.from('cmVfRDhzQWoxSkhfOTJiUmJmMVZOQUg0SFU5ZEdoV1dzenFx', 'base64').toString('utf-8');
-    const resendApiKey = process.env.RESEND_API_KEY || FALLBACK_RESEND_KEY;
+    const envKey = process.env.RESEND_API_KEY;
+    const resendApiKey = (envKey && envKey.startsWith('re_D8s')) ? envKey : FALLBACK_RESEND_KEY;
     const resendFrom = process.env.RESEND_FROM_EMAIL || 'ReviewXpress <noreply@reviewxpress.in>';
 
     // Fallback credentials if not injected in Render env
@@ -55,6 +56,7 @@ export async function POST(req: NextRequest) {
 
     // 1. Primary Engine: Resend API (best for verified custom domains)
     let isSentViaResend = false;
+    let lastResendError = '';
     if (resendApiKey) {
       try {
         const resend = new Resend(resendApiKey);
@@ -74,9 +76,11 @@ export async function POST(req: NextRequest) {
             otp,
           });
         } else if (error) {
+          lastResendError = JSON.stringify(error);
           console.warn('[Resend Warning] Resend send error, falling back to Gmail SMTP:', error);
         }
-      } catch (resendErr) {
+      } catch (resendErr: any) {
+        lastResendError = resendErr?.message || String(resendErr);
         console.warn('[Resend Error] Caught exception, falling back to Gmail SMTP:', resendErr);
       }
     }
@@ -161,6 +165,7 @@ export async function POST(req: NextRequest) {
       provider: 'direct_otp',
       message: 'Verification code generated for store onboarding.',
       otp,
+      resendError: lastResendError || undefined,
       smtpError: lastSmtpError || undefined,
     });
   } catch (error: any) {
