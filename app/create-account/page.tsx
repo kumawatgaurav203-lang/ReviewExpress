@@ -852,28 +852,87 @@ export default function CreateAccountAdminPage() {
 
                 {/* NFC Details & Actions */}
                 <div className="md:col-span-8 space-y-3">
+                  {/* BOX 1: Permanent QR Code URL */}
                   <div>
-                    <label className="text-[11px] font-semibold text-slate-400 block mb-1">
-                      Permanent Public Review URL (Write to NFC Tag)
-                    </label>
+                    <div className="flex items-center justify-between mb-1">
+                      <label className="text-[11px] font-semibold text-indigo-300 flex items-center gap-1">
+                        <QrCode className="w-3.5 h-3.5 text-indigo-400" />
+                        <span>Permanent Public Review URL (For QR Standee & Print)</span>
+                      </label>
+                      <a
+                        href={`/r/${createdBusiness.slug}?source=qr`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-[10px] text-slate-400 hover:text-indigo-300 flex items-center gap-1 transition-colors"
+                      >
+                        <span>Test QR Flow</span>
+                        <ExternalLink className="w-2.5 h-2.5" />
+                      </a>
+                    </div>
                     <div className="flex items-center gap-2">
                       <div className="flex-1 bg-slate-900/90 border border-slate-800 rounded-xl px-3 py-2 text-xs font-mono text-indigo-300 truncate select-all">
-                        {origin ? `${origin}/r/${createdBusiness.slug}` : `/r/${createdBusiness.slug}`}
+                        {origin ? `${origin}/r/${createdBusiness.slug}?source=qr` : `/r/${createdBusiness.slug}?source=qr`}
                       </div>
                       <button
                         type="button"
                         onClick={() =>
                           handleCopy(
-                            origin ? `${origin}/r/${createdBusiness.slug}` : `${window.location.origin}/r/${createdBusiness.slug}`,
-                            'nfc-permanent'
+                            origin ? `${origin}/r/${createdBusiness.slug}?source=qr` : `${window.location.origin}/r/${createdBusiness.slug}?source=qr`,
+                            'qr-permanent'
                           )
                         }
                         className="px-3.5 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold flex items-center gap-1.5 transition-colors shadow shrink-0 cursor-pointer"
                       >
-                        {copiedField === 'nfc-permanent' ? (
+                        {copiedField === 'qr-permanent' ? (
                           <>
                             <Check className="w-4 h-4 text-emerald-300" />
                             <span className="text-emerald-300">Copied!</span>
+                          </>
+                        ) : (
+                          <>
+                            <Copy className="w-4 h-4" />
+                            <span>Copy QR Link</span>
+                          </>
+                        )}
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* BOX 2: Permanent NFC Review URL */}
+                  <div>
+                    <div className="flex items-center justify-between mb-1">
+                      <label className="text-[11px] font-semibold text-amber-300 flex items-center gap-1">
+                        <Smartphone className="w-3.5 h-3.5 text-amber-400" />
+                        <span>Permanent NFC Tag URL (Write to NFC Chip / PVC Card)</span>
+                      </label>
+                      <a
+                        href={`/r/${createdBusiness.slug}?source=nfc`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-[10px] text-slate-400 hover:text-amber-300 flex items-center gap-1 transition-colors"
+                      >
+                        <span>Test NFC Flow</span>
+                        <ExternalLink className="w-2.5 h-2.5" />
+                      </a>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <div className="flex-1 bg-slate-900/90 border border-slate-800 rounded-xl px-3 py-2 text-xs font-mono text-amber-300 truncate select-all">
+                        {origin ? `${origin}/r/${createdBusiness.slug}?source=nfc` : `/r/${createdBusiness.slug}?source=nfc`}
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() =>
+                          handleCopy(
+                            origin ? `${origin}/r/${createdBusiness.slug}?source=nfc` : `${window.location.origin}/r/${createdBusiness.slug}?source=nfc`,
+                            'nfc-permanent'
+                          )
+                        }
+                        className="px-3.5 py-2 rounded-xl bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-600 hover:to-amber-700 text-slate-950 font-black text-xs flex items-center gap-1.5 transition-colors shadow shrink-0 cursor-pointer"
+                      >
+                        {copiedField === 'nfc-permanent' ? (
+                          <>
+                            <Check className="w-4 h-4 text-slate-950" />
+                            <span className="text-slate-950">Copied!</span>
                           </>
                         ) : (
                           <>
@@ -883,30 +942,6 @@ export default function CreateAccountAdminPage() {
                         )}
                       </button>
                     </div>
-                  </div>
-
-                  {/* Quick Test Direct Links */}
-                  <div className="grid grid-cols-2 gap-2 text-xs">
-                    <a
-                      href={`/r/${createdBusiness.slug}?source=nfc`}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="p-2 rounded-lg bg-slate-900/90 border border-slate-800 hover:border-indigo-500/40 text-slate-300 hover:text-white flex items-center justify-center gap-1.5 transition-all text-center"
-                    >
-                      <Smartphone className="w-3.5 h-3.5 text-amber-400" />
-                      <span className="text-[11px] font-medium">Test NFC Tap</span>
-                      <ExternalLink className="w-2.5 h-2.5 text-slate-500" />
-                    </a>
-                    <a
-                      href={`/r/${createdBusiness.slug}?source=qr`}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="p-2 rounded-lg bg-slate-900/90 border border-slate-800 hover:border-teal-500/40 text-slate-300 hover:text-white flex items-center justify-center gap-1.5 transition-all text-center"
-                    >
-                      <QrCode className="w-3.5 h-3.5 text-teal-400" />
-                      <span className="text-[11px] font-medium">Test QR Scan</span>
-                      <ExternalLink className="w-2.5 h-2.5 text-slate-500" />
-                    </a>
                   </div>
 
                   {/* NFC Re-write explanation */}
@@ -1150,170 +1185,215 @@ export default function CreateAccountAdminPage() {
                 })}
               </div>
 
-              {/* Categorized Store Sections */}
-              <div className="space-y-6">
-                {(selectedCategoryTab === 'all'
-                  ? Array.from(new Set(activeStores.map((s) => normalizeCategory(s.category, s.name))))
-                  : [selectedCategoryTab]
-                ).map((catKey) => {
-                  const meta = getCategoryDisplay(catKey);
-                  const categoryStores = activeStores.filter(
-                    (s) => normalizeCategory(s.category, s.name) === catKey
-                  );
+              {/* Horizontal Grid of All Filtered Stores */}
+              {(() => {
+                const displayedStores =
+                  selectedCategoryTab === 'all'
+                    ? activeStores
+                    : activeStores.filter(
+                        (s) => normalizeCategory(s.category, s.name) === selectedCategoryTab
+                      );
 
-                  if (categoryStores.length === 0) return null;
-
+                if (displayedStores.length === 0) {
                   return (
-                    <div
-                      key={catKey}
-                      className="space-y-3 bg-slate-900/50 border border-slate-800/90 rounded-2xl p-4 sm:p-5"
-                    >
-                      {/* Category Section Header */}
-                      <div className="flex items-center justify-between pb-3 border-b border-slate-800/70">
-                        <div className="flex items-center gap-2.5">
-                          <span className="text-xl p-2 bg-slate-800/80 border border-slate-700/60 rounded-xl leading-none">
-                            {meta.icon}
-                          </span>
-                          <div>
-                            <h4 className="text-sm font-bold text-white tracking-tight flex items-center gap-2">
-                              <span>{meta.label}</span>
-                            </h4>
-                            <span className="text-[11px] text-slate-400">
-                              {categoryStores.length}{' '}
-                              {categoryStores.length === 1 ? 'store account' : 'store accounts'} registered in this category
-                            </span>
-                          </div>
-                        </div>
-                        <span className="text-[10px] font-bold text-indigo-400 bg-indigo-500/10 border border-indigo-500/20 px-2.5 py-1 rounded-full uppercase tracking-wider">
-                          {catKey}
-                        </span>
-                      </div>
+                    <div className="p-8 rounded-2xl bg-slate-900/40 border border-dashed border-slate-800 text-center space-y-1">
+                      <p className="text-xs text-slate-400 font-medium">
+                        No store accounts found in this category.
+                      </p>
+                      <button
+                        type="button"
+                        onClick={() => setSelectedCategoryTab('all')}
+                        className="text-[11px] text-indigo-400 hover:underline cursor-pointer"
+                      >
+                        View all registered stores
+                      </button>
+                    </div>
+                  );
+                }
 
-                      {/* Store Cards in this Category */}
-                      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 pt-1">
-                        {categoryStores.map((store, idx) => (
-                          <div
-                            key={idx}
-                            className="p-4 rounded-xl bg-slate-950/90 border border-slate-800/90 hover:border-slate-700 transition-all flex flex-col justify-between gap-3 shadow-md group"
-                          >
-                            <div className="space-y-2">
-                              {/* Top Bar: Store Name & Action Badges */}
-                              <div className="flex items-start justify-between gap-2">
-                                <span className="text-xs font-bold text-white tracking-tight block truncate group-hover:text-indigo-300 transition-colors">
+                return (
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                    {displayedStores.map((store, idx) => {
+                      const catKey = normalizeCategory(store.category, store.name);
+                      const meta = getCategoryDisplay(catKey);
+
+                      return (
+                        <div
+                          key={store.email || store.slug || idx}
+                          className="p-4 rounded-2xl bg-slate-900/60 border border-slate-800/90 hover:border-slate-700 transition-all flex flex-col justify-between gap-3 shadow-lg group"
+                        >
+                          <div className="space-y-3">
+                            {/* Top Bar: Store Name, Category Pill, Active & Delete */}
+                            <div className="flex items-start justify-between gap-2">
+                              <div className="min-w-0 flex-1">
+                                <h4
+                                  className="text-sm font-bold text-white tracking-tight truncate group-hover:text-indigo-300 transition-colors"
+                                  title={store.name}
+                                >
                                   {store.name}
+                                </h4>
+                                <span className="inline-flex items-center gap-1 text-[10px] font-medium text-slate-400 mt-0.5">
+                                  <span>{meta.icon}</span>
+                                  <span className="truncate max-w-[140px]">{meta.label}</span>
                                 </span>
-                                <div className="flex items-center gap-1.5 shrink-0">
-                                  <span className="inline-flex items-center gap-1 text-[9px] font-semibold text-emerald-400 bg-emerald-500/10 border border-emerald-500/20 px-1.5 py-0.5 rounded-full">
-                                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
-                                    Active
+                              </div>
+                              <div className="flex items-center gap-1.5 shrink-0">
+                                <span className="inline-flex items-center gap-1 text-[9px] font-semibold text-emerald-400 bg-emerald-500/10 border border-emerald-500/20 px-2 py-0.5 rounded-full">
+                                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
+                                  Active
+                                </span>
+                                <button
+                                  type="button"
+                                  onClick={() => openDeleteModal(store)}
+                                  title="Delete store account"
+                                  className="inline-flex items-center gap-1 text-[9px] font-semibold text-rose-400 hover:text-rose-200 bg-rose-500/10 hover:bg-rose-500/25 border border-rose-500/25 px-2 py-0.5 rounded-full transition-colors cursor-pointer"
+                                >
+                                  <Trash2 className="w-2.5 h-2.5" />
+                                  <span>Delete</span>
+                                </button>
+                              </div>
+                            </div>
+
+                            {/* Real-Time Synced ID & Current Password Box */}
+                            <div className="p-2.5 rounded-xl bg-slate-950/70 border border-slate-800/80 space-y-2 text-xs">
+                              <div className="flex items-center justify-between text-[11px]">
+                                <span className="text-slate-400 flex items-center gap-1">
+                                  <Mail className="w-3 h-3 text-slate-500" />
+                                  <span>Client ID:</span>
+                                </span>
+                                <span
+                                  className="text-white font-mono font-medium truncate max-w-[140px]"
+                                  title={store.email}
+                                >
+                                  {store.email}
+                                </span>
+                              </div>
+                              <div className="flex items-center justify-between text-[11px]">
+                                <span className="text-slate-400 flex items-center gap-1">
+                                  <Lock className="w-3 h-3 text-slate-500" />
+                                  <span>Password:</span>
+                                </span>
+                                <div className="flex items-center gap-1.5 font-mono">
+                                  <span className="text-emerald-400 font-bold tracking-wider">
+                                    {visiblePasswords[store.email] ? store.password || '••••••••' : '••••••••'}
                                   </span>
                                   <button
                                     type="button"
-                                    onClick={() => openDeleteModal(store)}
-                                    title="Delete store account"
-                                    className="inline-flex items-center gap-1 text-[9px] font-semibold text-rose-400 hover:text-rose-200 bg-rose-500/10 hover:bg-rose-500/25 border border-rose-500/25 px-2 py-0.5 rounded-full transition-colors cursor-pointer"
+                                    onClick={() =>
+                                      setVisiblePasswords((prev) => ({
+                                        ...prev,
+                                        [store.email]: !prev[store.email],
+                                      }))
+                                    }
+                                    className="text-slate-500 hover:text-slate-300 p-0.5 transition-colors cursor-pointer"
+                                    title={visiblePasswords[store.email] ? 'Hide password' : 'Show current password'}
                                   >
-                                    <Trash2 className="w-2.5 h-2.5" />
-                                    <span>Delete</span>
+                                    {visiblePasswords[store.email] ? <EyeOff className="w-3 h-3" /> : <Eye className="w-3 h-3" />}
                                   </button>
                                 </div>
                               </div>
 
-                              {/* Real-Time Synced ID & Current Password Box */}
-                              <div className="p-2.5 rounded-lg bg-slate-900/90 border border-slate-800/80 space-y-2 text-xs">
-                                <div className="flex items-center justify-between text-[11px]">
-                                  <span className="text-slate-400 flex items-center gap-1">
-                                    <Mail className="w-3 h-3 text-slate-500" />
-                                    <span>Client ID:</span>
+                              {/* Review URLs Preview */}
+                              <div className="pt-2 border-t border-slate-800/80 space-y-1.5">
+                                {/* QR Review URL */}
+                                <div className="flex items-center justify-between text-[10px]">
+                                  <span className="text-indigo-300 font-semibold flex items-center gap-1">
+                                    <QrCode className="w-3 h-3 text-indigo-400" />
+                                    <span>QR Review URL:</span>
                                   </span>
-                                  <span className="text-white font-mono font-medium truncate max-w-[135px]" title={store.email}>
-                                    {store.email}
-                                  </span>
+                                  <Link
+                                    href={`/r/${store.slug}?source=qr`}
+                                    target="_blank"
+                                    className="text-[10px] text-slate-400 hover:text-indigo-300 flex items-center gap-0.5 transition-colors"
+                                    title="Test QR Flow"
+                                  >
+                                    <span>Test QR</span>
+                                    <ExternalLink className="w-2.5 h-2.5" />
+                                  </Link>
                                 </div>
-                                <div className="flex items-center justify-between text-[11px]">
-                                  <span className="text-slate-400 flex items-center gap-1">
-                                    <Lock className="w-3 h-3 text-slate-500" />
-                                    <span>Password:</span>
-                                  </span>
-                                  <div className="flex items-center gap-1.5 font-mono">
-                                    <span className="text-emerald-400 font-bold tracking-wider">
-                                      {visiblePasswords[store.email] ? store.password || '••••••••' : '••••••••'}
-                                    </span>
-                                    <button
-                                      type="button"
-                                      onClick={() =>
-                                        setVisiblePasswords((prev) => ({
-                                          ...prev,
-                                          [store.email]: !prev[store.email],
-                                        }))
-                                      }
-                                      className="text-slate-500 hover:text-slate-300 p-0.5 transition-colors cursor-pointer"
-                                      title={visiblePasswords[store.email] ? 'Hide password' : 'Show current password'}
-                                    >
-                                      {visiblePasswords[store.email] ? <EyeOff className="w-3 h-3" /> : <Eye className="w-3 h-3" />}
-                                    </button>
-                                  </div>
+                                <div className="bg-slate-900/90 border border-slate-800 rounded-lg px-2 py-1 text-[10.5px] font-mono text-indigo-300 truncate select-all">
+                                  {origin ? `${origin}/r/${store.slug}?source=qr` : `/r/${store.slug}?source=qr`}
                                 </div>
 
-                                {/* Store PVC Card (NFC & QR) Review URL Preview */}
-                                <div className="pt-2 border-t border-slate-800/80 space-y-1">
-                                  <div className="flex items-center justify-between text-[11px]">
-                                    <span className="text-amber-300 font-semibold flex items-center gap-1">
-                                      <Smartphone className="w-3.5 h-3.5 text-amber-400" />
-                                      <span>PVC Card Review URL:</span>
-                                    </span>
-                                    <Link
-                                      href={`/r/${store.slug}`}
-                                      target="_blank"
-                                      className="text-[10px] text-slate-400 hover:text-indigo-300 flex items-center gap-1 transition-colors"
-                                      title="Open review page in new tab"
-                                    >
-                                      <span>Test Flow</span>
-                                      <ExternalLink className="w-2.5 h-2.5" />
-                                    </Link>
-                                  </div>
-                                  <div className="flex items-center gap-1.5 bg-slate-950/90 border border-slate-800 rounded-lg px-2.5 py-1.5">
-                                    <span className="text-[10.5px] font-mono text-indigo-300 truncate select-all flex-1" title={origin ? `${origin}/r/${store.slug}` : `/r/${store.slug}`}>
-                                      {origin ? `${origin}/r/${store.slug}` : `/r/${store.slug}`}
-                                    </span>
-                                  </div>
+                                {/* NFC Tag URL */}
+                                <div className="flex items-center justify-between text-[10px] pt-1">
+                                  <span className="text-amber-300 font-semibold flex items-center gap-1">
+                                    <Smartphone className="w-3 h-3 text-amber-400" />
+                                    <span>NFC Tag URL:</span>
+                                  </span>
+                                  <Link
+                                    href={`/r/${store.slug}?source=nfc`}
+                                    target="_blank"
+                                    className="text-[10px] text-slate-400 hover:text-amber-300 flex items-center gap-0.5 transition-colors"
+                                    title="Test NFC Flow"
+                                  >
+                                    <span>Test NFC</span>
+                                    <ExternalLink className="w-2.5 h-2.5" />
+                                  </Link>
+                                </div>
+                                <div className="bg-slate-900/90 border border-slate-800 rounded-lg px-2 py-1 text-[10.5px] font-mono text-amber-300 truncate select-all">
+                                  {origin ? `${origin}/r/${store.slug}?source=nfc` : `/r/${store.slug}?source=nfc`}
                                 </div>
                               </div>
                             </div>
-
-                            {/* The ONLY One Action Option: Copy PVC Card Link (NFC + QR) */}
-                            <div className="pt-2.5 border-t border-slate-800/60">
-                              <button
-                                type="button"
-                                onClick={() =>
-                                  handleCopy(
-                                    origin ? `${origin}/r/${store.slug}` : `${window.location.origin}/r/${store.slug}`,
-                                    `pvc-${store.slug}`
-                                  )
-                                }
-                                className="w-full py-2.5 px-3 rounded-xl bg-gradient-to-r from-amber-500 via-indigo-600 to-indigo-600 hover:from-amber-600 hover:to-indigo-700 text-white font-bold text-xs shadow-md shadow-indigo-600/20 transition-all flex items-center justify-center gap-2 cursor-pointer active:scale-[0.98]"
-                                title="Copy Link for PVC Card NFC Tap & QR Code"
-                              >
-                                {copiedField === `pvc-${store.slug}` ? (
-                                  <>
-                                    <Check className="w-3.5 h-3.5 text-emerald-300" />
-                                    <span className="text-emerald-200">PVC Card Link Copied!</span>
-                                  </>
-                                ) : (
-                                  <>
-                                    <Copy className="w-3.5 h-3.5 text-amber-200" />
-                                    <span>Copy PVC Card Link (NFC & QR)</span>
-                                  </>
-                                )}
-                              </button>
-                            </div>
                           </div>
-                        ))}
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
+
+                          {/* Dual Action Copy Buttons: QR & NFC */}
+                          <div className="grid grid-cols-2 gap-2 pt-2 border-t border-slate-800/60">
+                            <button
+                              type="button"
+                              onClick={() =>
+                                handleCopy(
+                                  origin ? `${origin}/r/${store.slug}?source=qr` : `${window.location.origin}/r/${store.slug}?source=qr`,
+                                  `qr-${store.slug}`
+                                )
+                              }
+                              className="py-2 px-2 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-[11px] flex items-center justify-center gap-1 transition-colors cursor-pointer shadow active:scale-[0.98]"
+                              title="Copy Permanent QR URL"
+                            >
+                              {copiedField === `qr-${store.slug}` ? (
+                                <>
+                                  <Check className="w-3.5 h-3.5 text-emerald-300" />
+                                  <span className="text-emerald-300">Copied!</span>
+                                </>
+                              ) : (
+                                <>
+                                  <QrCode className="w-3.5 h-3.5" />
+                                  <span>Copy QR Link</span>
+                                </>
+                              )}
+                            </button>
+
+                            <button
+                              type="button"
+                              onClick={() =>
+                                handleCopy(
+                                  origin ? `${origin}/r/${store.slug}?source=nfc` : `${window.location.origin}/r/${store.slug}?source=nfc`,
+                                  `nfc-${store.slug}`
+                                )
+                              }
+                              className="py-2 px-2 rounded-xl bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-600 hover:to-amber-700 text-slate-950 font-black text-[11px] flex items-center justify-center gap-1 transition-colors cursor-pointer shadow active:scale-[0.98]"
+                              title="Copy Permanent NFC Tag URL"
+                            >
+                              {copiedField === `nfc-${store.slug}` ? (
+                                <>
+                                  <Check className="w-3.5 h-3.5 text-slate-950" />
+                                  <span>Copied!</span>
+                                </>
+                              ) : (
+                                <>
+                                  <Smartphone className="w-3.5 h-3.5" />
+                                  <span>Copy NFC Link</span>
+                                </>
+                              )}
+                            </button>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                );
+              })()}
             </div>
           )}
         </div>
