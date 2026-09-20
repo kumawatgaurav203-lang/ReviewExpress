@@ -22,9 +22,6 @@ import {
   Trash2,
   AlertTriangle,
   X,
-  Copy,
-  Check,
-  Smartphone,
   ExternalLink,
 } from 'lucide-react';
 import { DEMO_BUSINESSES } from '@/lib/demo-data';
@@ -131,7 +128,7 @@ export default function OwnerDashboardPage() {
   } | null>(null);
   const [accessDeniedError, setAccessDeniedError] = useState<string | null>(null);
   const [showTermsModal, setShowTermsModal] = useState(false);
-  const currentSlug = ownerSession?.businessSlug || 'photify-studio';
+  const currentSlug = ownerSession?.businessSlug || '';
   const [timePeriod, setTimePeriod] = useState<'day' | 'week' | 'month' | 'year' | 'all'>('month');
   const [channelFilter, setChannelFilter] = useState<'all' | 'nfc' | 'qr'>('all');
 
@@ -141,25 +138,12 @@ export default function OwnerDashboardPage() {
   const [complaintFilter, setComplaintFilter] = useState<'all' | 'pending' | 'resolved'>('all');
 
   const [deletingComplaintId, setDeletingComplaintId] = useState<string | null>(null);
-  const [copiedLink, setCopiedLink] = useState<string | null>(null);
-
-  const handleCopyLink = (text: string, id: string) => {
-    try {
-      if (typeof navigator !== 'undefined' && navigator.clipboard) {
-        navigator.clipboard.writeText(text);
-      }
-    } catch {
-      // fallback
-    }
-    setCopiedLink(id);
-    setTimeout(() => setCopiedLink(null), 2500);
-  };
 
   const business = {
-    id: 'b-' + currentSlug,
-    name: dashboardData?.businessInfo?.name || ownerSession?.businessName || DEMO_BUSINESSES[currentSlug]?.name || 'Photify Studio',
+    id: currentSlug ? 'b-' + currentSlug : '',
+    name: dashboardData?.businessInfo?.name || ownerSession?.businessName || 'Store Analytics',
     slug: currentSlug,
-    google_review_link: dashboardData?.businessInfo?.googleReviewLink || DEMO_BUSINESSES[currentSlug]?.google_review_link || 'https://g.page/r/CYa03-0ngD2lEAE/review',
+    google_review_link: dashboardData?.businessInfo?.googleReviewLink || 'https://g.page/r/CYa03-0ngD2lEAE/review',
     tags: [],
     is_active: true,
   };
@@ -193,37 +177,22 @@ export default function OwnerDashboardPage() {
     }
   };
 
-  // Verify auth session on mount
-  useEffect(() => {
-    if (typeof window !== 'undefined') {
-      const sessionStr = localStorage.getItem('reviewxpress_owner_session');
-      if (sessionStr) {
-        try {
-          const parsed = JSON.parse(sessionStr);
-          if (parsed.isLoggedIn) {
-            setOwnerSession(parsed);
-          } else {
-            router.push('/dashboard/login');
-          }
-        } catch {
-          router.push('/dashboard/login');
-        }
-      } else {
-        router.push('/dashboard/login');
-      }
-    }
-  }, [router]);
-
   // Fetch metrics and complaints from API with silent background polling
-  const fetchDashboardData = async (isBackground = false) => {
+  const fetchDashboardData = async (isBackground = false, activeSession = ownerSession) => {
+    // CRITICAL: NEVER query dummy 'photify-studio' if session is not ready!
+    if (!activeSession?.businessSlug) {
+      return;
+    }
     if (!isBackground) setIsLoading(true);
+    // Clear any previous error before fresh request
+    setAccessDeniedError(null);
+
     try {
-      const activeSlug = ownerSession?.businessSlug || 'photify-studio';
-      const activeBiz = DEMO_BUSINESSES[activeSlug];
-      const bizId = activeBiz?.id || ('b-' + activeSlug);
+      const activeSlug = activeSession.businessSlug;
+      const bizId = 'b-' + activeSlug;
       const headers: Record<string, string> = {};
-      if (ownerSession?.token) {
-        headers['Authorization'] = `Bearer ${ownerSession.token}`;
+      if (activeSession?.token) {
+        headers['Authorization'] = `Bearer ${activeSession.token}`;
       }
       const res = await fetch(
         `/api/dashboard?businessId=${bizId}&period=${timePeriod}&channel=${channelFilter}&t=${Date.now()}`,
@@ -246,17 +215,42 @@ export default function OwnerDashboardPage() {
     }
   };
 
+  // Verify auth session on mount & immediately fetch data
   useEffect(() => {
-    fetchDashboardData(false);
+    if (typeof window !== 'undefined') {
+      const sessionStr = localStorage.getItem('reviewxpress_owner_session');
+      if (sessionStr) {
+        try {
+          const parsed = JSON.parse(sessionStr);
+          if (parsed.isLoggedIn && parsed.businessSlug) {
+            setOwnerSession(parsed);
+            fetchDashboardData(false, parsed);
+          } else {
+            router.push('/dashboard/login');
+          }
+        } catch {
+          router.push('/dashboard/login');
+        }
+      } else {
+        router.push('/dashboard/login');
+      }
+    }
+  }, [router]);
 
-    // Dynamic sync polling (60 seconds when tab active to conserve server bandwidth & memory)
+  // Re-fetch when timePeriod or channelFilter changes
+  useEffect(() => {
+    if (!ownerSession?.businessSlug) return;
+    fetchDashboardData(false, ownerSession);
+
+    // Dynamic sync polling (60 seconds when tab active)
     const interval = setInterval(() => {
       if (typeof document !== 'undefined' && document.hidden) return;
-      fetchDashboardData(true);
+      fetchDashboardData(true, ownerSession);
     }, 60000);
 
     return () => clearInterval(interval);
-  }, [timePeriod, channelFilter, ownerSession]);
+  }, [timePeriod, channelFilter, ownerSession?.businessSlug]);
+
 
   // Toggle complaint status
   const handleToggleComplaint = async (complaintId: string) => {
@@ -523,113 +517,6 @@ export default function OwnerDashboardPage() {
           </div>
         </div>
 
-
-        {/* Quick Review Links Card (For Shopkeeper phone access) */}
-        <div className="p-4 sm:p-5 rounded-2xl bg-gradient-to-r from-indigo-950/50 via-slate-900 to-indigo-950/40 border border-indigo-500/25 shadow-lg space-y-3">
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
-            <div className="flex items-center gap-2">
-              <span className="p-1.5 rounded-xl bg-indigo-500/20 text-indigo-300">
-                <Smartphone className="w-4 h-4" />
-              </span>
-              <div>
-                <h3 className="text-sm font-bold text-white flex items-center gap-2">
-                  <span>Store Review Links</span>
-                  <span className="text-[10px] font-semibold text-emerald-400 bg-emerald-500/10 border border-emerald-500/20 px-2 py-0.5 rounded-full">
-                    Live
-                  </span>
-                </h3>
-                <p className="text-[11px] text-slate-400">Copy NFC & QR review links or preview standee</p>
-              </div>
-            </div>
-            <Link
-              href={`/qr/${currentSlug}`}
-              target="_blank"
-              className="text-xs font-semibold bg-slate-800 hover:bg-slate-700 text-teal-300 border border-slate-700 px-3 py-1.5 rounded-xl flex items-center justify-center gap-1.5 self-start sm:self-auto transition-colors"
-            >
-              <QrCode className="w-3.5 h-3.5" />
-              <span>Open Standee Print</span>
-              <ExternalLink className="w-3 h-3" />
-            </Link>
-          </div>
-
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
-            {/* QR Link */}
-            <div className="p-3 rounded-xl bg-slate-950/80 border border-indigo-500/20 space-y-1.5">
-              <div className="flex items-center justify-between">
-                <span className="text-indigo-300 font-bold flex items-center gap-1 text-[11px]">
-                  <QrCode className="w-3.5 h-3.5 text-indigo-400" />
-                  <span>QR Review Link</span>
-                </span>
-                <Link
-                  href={`/r/${currentSlug}?source=qr`}
-                  target="_blank"
-                  className="text-[10px] text-slate-400 hover:text-indigo-300 flex items-center gap-0.5"
-                >
-                  <span>Test Flow</span>
-                  <ExternalLink className="w-2.5 h-2.5" />
-                </Link>
-              </div>
-              <div className="bg-slate-900 border border-slate-800 rounded-lg px-2.5 py-1.5 font-mono text-indigo-300 truncate text-[11px] select-all">
-                {typeof window !== 'undefined' ? `${window.location.origin}/r/${currentSlug}?source=qr` : `/r/${currentSlug}?source=qr`}
-              </div>
-              <button
-                type="button"
-                onClick={() => handleCopyLink(typeof window !== 'undefined' ? `${window.location.origin}/r/${currentSlug}?source=qr` : `/r/${currentSlug}?source=qr`, 'qr')}
-                className="w-full py-2 px-3 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white font-bold text-xs flex items-center justify-center gap-1.5 transition-colors cursor-pointer active:scale-95"
-              >
-                {copiedLink === 'qr' ? (
-                  <>
-                    <Check className="w-3.5 h-3.5 text-emerald-300" />
-                    <span>Copied QR Link!</span>
-                  </>
-                ) : (
-                  <>
-                    <Copy className="w-3.5 h-3.5" />
-                    <span>Copy QR Link</span>
-                  </>
-                )}
-              </button>
-            </div>
-
-            {/* NFC Link */}
-            <div className="p-3 rounded-xl bg-slate-950/80 border border-amber-500/20 space-y-1.5">
-              <div className="flex items-center justify-between">
-                <span className="text-amber-300 font-bold flex items-center gap-1 text-[11px]">
-                  <Smartphone className="w-3.5 h-3.5 text-amber-400" />
-                  <span>NFC Tag Link</span>
-                </span>
-                <Link
-                  href={`/r/${currentSlug}?source=nfc`}
-                  target="_blank"
-                  className="text-[10px] text-slate-400 hover:text-amber-300 flex items-center gap-0.5"
-                >
-                  <span>Test Flow</span>
-                  <ExternalLink className="w-2.5 h-2.5" />
-                </Link>
-              </div>
-              <div className="bg-slate-900 border border-slate-800 rounded-lg px-2.5 py-1.5 font-mono text-amber-300 truncate text-[11px] select-all">
-                {typeof window !== 'undefined' ? `${window.location.origin}/r/${currentSlug}?source=nfc` : `/r/${currentSlug}?source=nfc`}
-              </div>
-              <button
-                type="button"
-                onClick={() => handleCopyLink(typeof window !== 'undefined' ? `${window.location.origin}/r/${currentSlug}?source=nfc` : `/r/${currentSlug}?source=nfc`, 'nfc')}
-                className="w-full py-2 px-3 rounded-lg bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-600 hover:to-amber-700 text-slate-950 font-bold text-xs flex items-center justify-center gap-1.5 transition-colors cursor-pointer active:scale-95"
-              >
-                {copiedLink === 'nfc' ? (
-                  <>
-                    <Check className="w-3.5 h-3.5 text-slate-950" />
-                    <span>Copied NFC Link!</span>
-                  </>
-                ) : (
-                  <>
-                    <Copy className="w-3.5 h-3.5 text-slate-950" />
-                    <span>Copy NFC Link</span>
-                  </>
-                )}
-              </button>
-            </div>
-          </div>
-        </div>
 
         {/* NFC vs QR Channel Breakdown Comparison Hub */}
         <div className="bg-gradient-to-r from-slate-900 via-slate-900/95 to-slate-900 border border-slate-800 rounded-3xl p-4 sm:p-6 shadow-xl space-y-4">
