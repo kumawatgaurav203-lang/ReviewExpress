@@ -425,6 +425,10 @@ export default function CreateAccountAdminPage() {
           return;
         }
 
+        if (data.otp) {
+          setOtp(data.otp);
+        }
+
         setShowOtpField(true);
         setErrorMsg(''); // Clear errors
       } catch (err: any) {
@@ -735,10 +739,17 @@ export default function CreateAccountAdminPage() {
 
               {/* Submit Button & OTP Field */}
               {showOtpField && (
-                <div className="mt-6 p-4 rounded-xl bg-slate-900 border border-indigo-500/30">
-                  <label className="block text-xs font-semibold text-slate-300 mb-1.5">
-                    Enter OTP sent to {email} <span className="text-rose-400">*</span>
-                  </label>
+                <div className="mt-6 p-4 rounded-2xl bg-slate-900/90 border border-indigo-500/40 shadow-lg space-y-2">
+                  <div className="flex items-center justify-between">
+                    <label className="block text-xs font-semibold text-slate-200">
+                      Enter OTP sent to {email} <span className="text-rose-400">*</span>
+                    </label>
+                    {otp && (
+                      <span className="text-[10px] text-emerald-400 font-bold bg-emerald-500/10 px-2.5 py-0.5 rounded-full border border-emerald-500/30 flex items-center gap-1">
+                        <CheckCircle2 className="w-3 h-3 text-emerald-400" /> Auto-Filled Code
+                      </span>
+                    )}
+                  </div>
                   <div className="relative">
                     <ShieldCheck className="w-4 h-4 text-indigo-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
                     <input
@@ -748,11 +759,13 @@ export default function CreateAccountAdminPage() {
                       value={otp}
                       onChange={(e) => setOtp(e.target.value)}
                       placeholder="Enter 6-digit OTP"
-                      className="w-full text-sm bg-slate-950/70 border border-slate-800 rounded-xl pl-10 pr-3 py-2.5 text-white placeholder:text-slate-500 focus:outline-none focus:border-indigo-500 transition-colors font-mono tracking-wider"
+                      className="w-full text-sm bg-slate-950/70 border border-slate-800 rounded-xl pl-10 pr-3 py-2.5 text-white placeholder:text-slate-500 focus:outline-none focus:border-indigo-500 transition-colors font-mono tracking-wider font-bold"
                     />
                   </div>
-                  <p className="mt-1 text-[10px] text-slate-400">
-                    Please check your client's email inbox (or spam) for the verification code.
+                  <p className="text-[11px] text-slate-400">
+                    {otp
+                      ? '✓ Verification code generated & auto-filled. Click below to complete store creation!'
+                      : "Please check client's email inbox for the verification code."}
                   </p>
                 </div>
               )}

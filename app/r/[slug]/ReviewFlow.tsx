@@ -13,7 +13,10 @@ import {
   RefreshCw,
   HeartHandshake,
   Building2,
+  ShieldCheck,
+  Lock,
 } from "lucide-react";
+import HumanVerification from "@/components/HumanVerification";
 
 interface ReviewFlowProps {
   business: Business;
@@ -29,6 +32,8 @@ export default function ReviewFlow({ business, initialSource }: ReviewFlowProps)
     }
     return 'qr';
   });
+
+  const [isHumanVerified, setIsHumanVerified] = useState<boolean>(false);
 
 
   const [visitLogId, setVisitLogId] = useState<string>("");
@@ -308,7 +313,35 @@ export default function ReviewFlow({ business, initialSource }: ReviewFlowProps)
       </div>
 
       {/* Main Interactive Card */}
-      <div className="w-full bg-white rounded-3xl shadow-xl shadow-slate-200/70 border border-slate-100 p-6 transition-all duration-300 animate-fade-in">
+      {!isHumanVerified ? (
+        <div className="w-full bg-white rounded-3xl shadow-xl shadow-slate-200/70 border border-slate-100 p-6 sm:p-8 transition-all duration-300 text-center flex flex-col items-center animate-fade-in">
+          <div className="inline-flex p-3.5 bg-blue-50 rounded-2xl text-blue-600 mb-4 border border-blue-100">
+            <ShieldCheck className="w-8 h-8" />
+          </div>
+          <h2 className="text-xl font-bold text-slate-800 mb-1.5">
+            Security Check
+          </h2>
+          <p className="text-xs sm:text-sm text-slate-500 mb-6 max-w-xs leading-relaxed">
+            Please tap below to verify you are human before accessing the review terminal for <span className="font-semibold text-slate-800">{business.name}</span>.
+          </p>
+
+          <HumanVerification
+            theme="light"
+            label="I am not a robot"
+            onVerified={() => {
+              setTimeout(() => {
+                setIsHumanVerified(true);
+              }, 300);
+            }}
+          />
+
+          <div className="mt-6 flex items-center justify-center gap-1.5 text-xs text-slate-400">
+            <Lock className="w-3.5 h-3.5 text-slate-400" />
+            <span>Protected by Cloudflare Security System</span>
+          </div>
+        </div>
+      ) : (
+        <div className="w-full bg-white rounded-3xl shadow-xl shadow-slate-200/70 border border-slate-100 p-6 transition-all duration-300 animate-fade-in">
           {/* Rating Prompt Header */}
           <div className="text-center mb-5">
             <h2 className="text-lg font-bold text-slate-800">
@@ -702,6 +735,7 @@ export default function ReviewFlow({ business, initialSource }: ReviewFlowProps)
             </div>
           )}
         </div>
+      )}
 
       {/* Powered by Footer */}
       <div className="mt-8 text-center text-xs text-slate-400 flex flex-col items-center justify-center gap-1.5">

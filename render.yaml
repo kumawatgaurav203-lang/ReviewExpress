@@ -22,9 +22,9 @@ services:
       - key: RESEND_FROM_EMAIL
         sync: false
       - key: EMAIL_USER
-        sync: false
+        value: botmate.in@gmail.com
       - key: EMAIL_PASS
-        sync: false
+        value: wcvmiginkraahyxj
       - key: NEXT_PUBLIC_TURNSTILE_SITE_KEY
         sync: false
       - key: TURNSTILE_SECRET_KEY

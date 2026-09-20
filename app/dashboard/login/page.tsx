@@ -16,6 +16,7 @@ import {
   Scale,
 } from 'lucide-react';
 import TermsModal from '@/components/TermsModal';
+import HumanVerification from '@/components/HumanVerification';
 
 export default function OwnerLoginPage() {
   const router = useRouter();
@@ -26,6 +27,9 @@ export default function OwnerLoginPage() {
   // Form Fields
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+
+  // Human Verification State
+  const [isHumanVerified, setIsHumanVerified] = useState(false);
 
   // UI state
   const [showPassword, setShowPassword] = useState(false);
@@ -65,6 +69,11 @@ export default function OwnerLoginPage() {
     const hasSymbol = /[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?~`]/.test(password);
     if (!hasSymbol) {
       setErrorMsg('Password must contain at least 1 special symbol (@, #, $).');
+      return;
+    }
+
+    if (!isHumanVerified) {
+      setErrorMsg('Please tap "I am not a robot" security check before signing in.');
       return;
     }
 
@@ -373,6 +382,18 @@ export default function OwnerLoginPage() {
                       : '○ 1 Symbol Mandatory (@, #, $)'}
                   </span>
                 </div>
+              </div>
+
+              {/* Human Verification Security Check */}
+              <div className="pt-1">
+                <HumanVerification
+                  theme="dark"
+                  label="I am not a robot"
+                  onVerified={() => {
+                    setIsHumanVerified(true);
+                    setErrorMsg('');
+                  }}
+                />
               </div>
 
               <button
