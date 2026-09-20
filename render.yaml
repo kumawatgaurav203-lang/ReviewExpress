@@ -20,7 +20,7 @@ services:
       - key: RESEND_API_KEY
         sync: false
       - key: RESEND_FROM_EMAIL
-        sync: false
+        value: "ReviewXpress <noreply@reviewxpress.in>"
       - key: EMAIL_USER
         value: botmate.in@gmail.com
       - key: EMAIL_PASS
