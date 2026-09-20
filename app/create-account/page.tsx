@@ -305,7 +305,7 @@ export default function CreateAccountAdminPage() {
     };
 
     loadStores();
-    const interval = setInterval(loadStores, 6000);
+    const interval = setInterval(loadStores, 60000); // 60s gentle sync to reduce server load
     return () => clearInterval(interval);
   }, []);
 
@@ -425,10 +425,7 @@ export default function CreateAccountAdminPage() {
           return;
         }
 
-        if (data.otp) {
-          setOtp(data.otp);
-        }
-
+        setOtp('');
         setShowOtpField(true);
         setErrorMsg(''); // Clear errors
       } catch (err: any) {
@@ -742,13 +739,8 @@ export default function CreateAccountAdminPage() {
                 <div className="mt-6 p-4 rounded-2xl bg-slate-900/90 border border-indigo-500/40 shadow-lg space-y-2">
                   <div className="flex items-center justify-between">
                     <label className="block text-xs font-semibold text-slate-200">
-                      Enter OTP sent to {email} <span className="text-rose-400">*</span>
+                      Enter 6-Digit OTP sent to {email} <span className="text-rose-400">*</span>
                     </label>
-                    {otp && (
-                      <span className="text-[10px] text-emerald-400 font-bold bg-emerald-500/10 px-2.5 py-0.5 rounded-full border border-emerald-500/30 flex items-center gap-1">
-                        <CheckCircle2 className="w-3 h-3 text-emerald-400" /> Auto-Filled Code
-                      </span>
-                    )}
                   </div>
                   <div className="relative">
                     <ShieldCheck className="w-4 h-4 text-indigo-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
@@ -757,15 +749,13 @@ export default function CreateAccountAdminPage() {
                       required
                       maxLength={6}
                       value={otp}
-                      onChange={(e) => setOtp(e.target.value)}
-                      placeholder="Enter 6-digit OTP"
-                      className="w-full text-sm bg-slate-950/70 border border-slate-800 rounded-xl pl-10 pr-3 py-2.5 text-white placeholder:text-slate-500 focus:outline-none focus:border-indigo-500 transition-colors font-mono tracking-wider font-bold"
+                      onChange={(e) => setOtp(e.target.value.replace(/\D/g, ''))}
+                      placeholder="Enter 6-digit verification code"
+                      className="w-full text-sm bg-slate-950/70 border border-slate-800 rounded-xl pl-10 pr-3 py-2.5 text-white placeholder:text-slate-500 focus:outline-none focus:border-indigo-500 transition-colors font-mono tracking-wider font-bold text-center tracking-widest text-lg"
                     />
                   </div>
                   <p className="text-[11px] text-slate-400">
-                    {otp
-                      ? '✓ Verification code generated & auto-filled. Click below to complete store creation!'
-                      : "Please check client's email inbox for the verification code."}
+                    📧 Please check your client's email inbox for the 6-digit verification code from <span className="text-indigo-400 font-medium">noreply@reviewxpress.in</span>.
                   </p>
                 </div>
               )}

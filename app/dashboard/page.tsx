@@ -232,11 +232,11 @@ export default function OwnerDashboardPage() {
   useEffect(() => {
     fetchDashboardData(false);
 
-    // Dynamic sync polling (6 seconds when tab active, skips when hidden)
+    // Dynamic sync polling (60 seconds when tab active to conserve server bandwidth & memory)
     const interval = setInterval(() => {
       if (typeof document !== 'undefined' && document.hidden) return;
       fetchDashboardData(true);
-    }, 6000);
+    }, 60000);
 
     return () => clearInterval(interval);
   }, [timePeriod, channelFilter, ownerSession]);

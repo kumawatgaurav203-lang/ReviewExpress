@@ -51,18 +51,27 @@ export interface DashboardMetrics {
   qr: ChannelStats;
 }
 
-// Persistent reviews storage in data/reviews.json
+// Persistent reviews storage in data/reviews.json (compact & memory-cached)
 const reviewsFilePath = path.join(process.cwd(), 'data', 'reviews.json');
+let reviewsCache: Array<ReviewLog & { id: string; is_resolved?: boolean }> | null = null;
+let lastReadTime = 0;
 
 function readReviewsFromFile(): Array<ReviewLog & { id: string; is_resolved?: boolean }> {
+  const now = Date.now();
+  if (reviewsCache && now - lastReadTime < 15000) {
+    return reviewsCache;
+  }
   try {
     if (fs.existsSync(reviewsFilePath)) {
       const content = fs.readFileSync(reviewsFilePath, 'utf8');
-      return JSON.parse(content);
+      reviewsCache = JSON.parse(content);
+      lastReadTime = now;
+      return reviewsCache || [];
     }
   } catch (err) {
     console.error('Failed to read reviews file:', err);
   }
+  reviewsCache = [];
   return [];
 }
 
@@ -72,7 +81,11 @@ function writeReviewsToFile(logs: Array<ReviewLog & { id: string; is_resolved?: 
     if (!fs.existsSync(dir)) {
       fs.mkdirSync(dir, { recursive: true });
     }
-    fs.writeFileSync(reviewsFilePath, JSON.stringify(logs, null, 2), 'utf8');
+    // Cap to last 100 entries to prevent disk bloat and conserve server storage
+    const capped = logs.slice(0, 100);
+    reviewsCache = capped;
+    lastReadTime = Date.now();
+    fs.writeFileSync(reviewsFilePath, JSON.stringify(capped), 'utf8');
   } catch (err) {
     console.error('Failed to write reviews file:', err);
   }

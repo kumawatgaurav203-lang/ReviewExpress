@@ -14,34 +14,44 @@ export interface OwnerAccount {
 
 const dataFilePath = path.join(process.cwd(), 'data', 'accounts.json');
 
+// In-memory cache with TTL to eliminate unnecessary disk I/O
+let accountsCache: OwnerAccount[] | null = null;
+let lastAccountsReadTime = 0;
+
 // Read from JSON file
 function readAccountsFromFile(): OwnerAccount[] {
+  const now = Date.now();
+  if (accountsCache && now - lastAccountsReadTime < 15000) {
+    return accountsCache;
+  }
   try {
     if (fs.existsSync(dataFilePath)) {
       const content = fs.readFileSync(dataFilePath, 'utf8');
-      return JSON.parse(content);
+      accountsCache = JSON.parse(content);
+      lastAccountsReadTime = now;
+      return accountsCache || [];
     }
   } catch (err) {
     console.error('Failed to read accounts file:', err);
   }
+  accountsCache = [];
   return [];
 }
 
-// Write to JSON file
+// Write to JSON file (compact to save disk space)
 function writeAccountsToFile(accounts: OwnerAccount[]) {
   try {
     const dir = path.dirname(dataFilePath);
     if (!fs.existsSync(dir)) {
       fs.mkdirSync(dir, { recursive: true });
     }
-    fs.writeFileSync(dataFilePath, JSON.stringify(accounts, null, 2), 'utf8');
+    accountsCache = accounts;
+    lastAccountsReadTime = Date.now();
+    fs.writeFileSync(dataFilePath, JSON.stringify(accounts), 'utf8');
   } catch (err) {
     console.error('Failed to write accounts file:', err);
   }
 }
-
-// In-memory cache
-let accountsCache: OwnerAccount[] = readAccountsFromFile();
 
 export function saveOwnerAccount(account: Omit<OwnerAccount, 'id' | 'createdAt'>): OwnerAccount {
   accountsCache = readAccountsFromFile();

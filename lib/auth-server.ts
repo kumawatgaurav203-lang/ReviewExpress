@@ -354,8 +354,8 @@ export async function logAuditEvent(
       existingLogs = JSON.parse(fs.readFileSync(auditLogsPath, 'utf8'));
     }
     existingLogs.unshift(logEntry);
-    if (existingLogs.length > 500) existingLogs = existingLogs.slice(0, 500);
-    fs.writeFileSync(auditLogsPath, JSON.stringify(existingLogs, null, 2), 'utf8');
+    if (existingLogs.length > 50) existingLogs = existingLogs.slice(0, 50);
+    fs.writeFileSync(auditLogsPath, JSON.stringify(existingLogs), 'utf8');
   } catch (err) {
     // non-blocking
   }
