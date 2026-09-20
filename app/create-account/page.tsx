@@ -705,11 +705,27 @@ export default function CreateAccountAdminPage() {
     }
   };
 
+  const liveOrigin =
+    origin ||
+    (typeof window !== 'undefined' && window.location.origin
+      ? window.location.origin
+      : 'https://reviewexpress.onrender.com');
+
   const getHandoverMessage = () => {
     if (!createdBusiness) return '';
+    const host = liveOrigin;
+    const qrLink = `${host}/r/${createdBusiness.slug}?source=qr`;
+    const nfcLink = `${host}/r/${createdBusiness.slug}?source=nfc`;
+    const loginLink = `${host}/dashboard/login`;
     return (
-      `Client Email: ${createdBusiness.ownerEmail}\n` +
-      `Password: ${createdBusiness.ownerPassword}`
+      `⭐ *ReviewXpress Store Setup Complete!*\n\n` +
+      `🏪 *Store Name:* ${createdBusiness.name}\n\n` +
+      `📱 *NFC Tag Link (Write to NFC Chip / Card):*\n${nfcLink}\n\n` +
+      `📷 *QR Review Link (Standee Print):*\n${qrLink}\n\n` +
+      `🔐 *Store Owner Dashboard Login:*\n${loginLink}\n` +
+      `📧 *Client ID / Email:* ${createdBusiness.ownerEmail}\n` +
+      `🔑 *Password:* ${createdBusiness.ownerPassword}\n\n` +
+      `⚡ *ReviewXpress Smart NFC & QR Review System*`
     );
   };
 
@@ -1287,38 +1303,38 @@ export default function CreateAccountAdminPage() {
                   </button>
                 </div>
 
-                {/* NFC Details & Actions */}
-                <div className="md:col-span-8 space-y-3">
+                {/* NFC & QR Details & Copy Actions */}
+                <div className="md:col-span-8 space-y-4">
                   {/* BOX 1: Permanent QR Code URL */}
-                  <div>
-                    <div className="flex items-center justify-between mb-1">
-                      <label className="text-[11px] font-semibold text-indigo-300 flex items-center gap-1">
-                        <QrCode className="w-3.5 h-3.5 text-indigo-400" />
-                        <span>Permanent Public Review URL (For QR Standee & Print)</span>
+                  <div className="p-3.5 rounded-xl bg-indigo-950/40 border border-indigo-500/30 space-y-2">
+                    <div className="flex items-center justify-between">
+                      <label className="text-xs font-bold text-indigo-300 flex items-center gap-1.5">
+                        <QrCode className="w-4 h-4 text-indigo-400" />
+                        <span>Permanent QR Review URL (Standee Print)</span>
                       </label>
                       <a
-                        href={`/r/${createdBusiness.slug}?source=qr`}
+                        href={`${liveOrigin}/r/${createdBusiness.slug}?source=qr`}
                         target="_blank"
                         rel="noopener noreferrer"
-                        className="text-[10px] text-slate-400 hover:text-indigo-300 flex items-center gap-1 transition-colors"
+                        className="text-[11px] text-indigo-400 hover:text-indigo-200 font-semibold flex items-center gap-1 transition-colors"
                       >
                         <span>Test QR Flow</span>
-                        <ExternalLink className="w-2.5 h-2.5" />
+                        <ExternalLink className="w-3 h-3" />
                       </a>
                     </div>
-                    <div className="flex items-center gap-2">
-                      <div className="flex-1 bg-slate-900/90 border border-slate-800 rounded-xl px-3 py-2 text-xs font-mono text-indigo-300 truncate select-all">
-                        {origin ? `${origin}/r/${createdBusiness.slug}?source=qr` : `/r/${createdBusiness.slug}?source=qr`}
+                    <div className="flex flex-col sm:flex-row gap-2">
+                      <div className="flex-1 bg-slate-950 border border-slate-800 rounded-xl px-3 py-2.5 text-xs font-mono text-indigo-300 break-all select-all">
+                        {`${liveOrigin}/r/${createdBusiness.slug}?source=qr`}
                       </div>
                       <button
                         type="button"
                         onClick={() =>
                           handleCopy(
-                            origin ? `${origin}/r/${createdBusiness.slug}?source=qr` : `${window.location.origin}/r/${createdBusiness.slug}?source=qr`,
+                            `${liveOrigin}/r/${createdBusiness.slug}?source=qr`,
                             'qr-permanent'
                           )
                         }
-                        className="px-3.5 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold flex items-center gap-1.5 transition-colors shadow shrink-0 cursor-pointer"
+                        className="w-full sm:w-auto px-4 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 active:scale-95 text-white text-xs font-bold flex items-center justify-center gap-2 transition-all shadow-md shrink-0 cursor-pointer"
                       >
                         {copiedField === 'qr-permanent' ? (
                           <>
@@ -1336,35 +1352,35 @@ export default function CreateAccountAdminPage() {
                   </div>
 
                   {/* BOX 2: Permanent NFC Review URL */}
-                  <div>
-                    <div className="flex items-center justify-between mb-1">
-                      <label className="text-[11px] font-semibold text-amber-300 flex items-center gap-1">
-                        <Smartphone className="w-3.5 h-3.5 text-amber-400" />
-                        <span>Permanent NFC Tag URL (Write to NFC Chip / PVC Card)</span>
+                  <div className="p-3.5 rounded-xl bg-amber-950/30 border border-amber-500/30 space-y-2">
+                    <div className="flex items-center justify-between">
+                      <label className="text-xs font-bold text-amber-300 flex items-center gap-1.5">
+                        <Smartphone className="w-4 h-4 text-amber-400" />
+                        <span>Permanent NFC Tag URL (Write to NFC Chip)</span>
                       </label>
                       <a
-                        href={`/r/${createdBusiness.slug}?source=nfc`}
+                        href={`${liveOrigin}/r/${createdBusiness.slug}?source=nfc`}
                         target="_blank"
                         rel="noopener noreferrer"
-                        className="text-[10px] text-slate-400 hover:text-amber-300 flex items-center gap-1 transition-colors"
+                        className="text-[11px] text-amber-400 hover:text-amber-200 font-semibold flex items-center gap-1 transition-colors"
                       >
                         <span>Test NFC Flow</span>
-                        <ExternalLink className="w-2.5 h-2.5" />
+                        <ExternalLink className="w-3 h-3" />
                       </a>
                     </div>
-                    <div className="flex items-center gap-2">
-                      <div className="flex-1 bg-slate-900/90 border border-slate-800 rounded-xl px-3 py-2 text-xs font-mono text-amber-300 truncate select-all">
-                        {origin ? `${origin}/r/${createdBusiness.slug}?source=nfc` : `/r/${createdBusiness.slug}?source=nfc`}
+                    <div className="flex flex-col sm:flex-row gap-2">
+                      <div className="flex-1 bg-slate-950 border border-slate-800 rounded-xl px-3 py-2.5 text-xs font-mono text-amber-300 break-all select-all">
+                        {`${liveOrigin}/r/${createdBusiness.slug}?source=nfc`}
                       </div>
                       <button
                         type="button"
                         onClick={() =>
                           handleCopy(
-                            origin ? `${origin}/r/${createdBusiness.slug}?source=nfc` : `${window.location.origin}/r/${createdBusiness.slug}?source=nfc`,
+                            `${liveOrigin}/r/${createdBusiness.slug}?source=nfc`,
                             'nfc-permanent'
                           )
                         }
-                        className="px-3.5 py-2 rounded-xl bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-600 hover:to-amber-700 text-slate-950 font-black text-xs flex items-center gap-1.5 transition-colors shadow shrink-0 cursor-pointer"
+                        className="w-full sm:w-auto px-4 py-2.5 rounded-xl bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-600 hover:to-amber-700 active:scale-95 text-slate-950 text-xs font-black flex items-center justify-center gap-2 transition-all shadow-md shrink-0 cursor-pointer"
                       >
                         {copiedField === 'nfc-permanent' ? (
                           <>
@@ -1373,7 +1389,7 @@ export default function CreateAccountAdminPage() {
                           </>
                         ) : (
                           <>
-                            <Copy className="w-4 h-4" />
+                            <Copy className="w-4 h-4 text-slate-950" />
                             <span>Copy NFC Link</span>
                           </>
                         )}
@@ -1391,6 +1407,7 @@ export default function CreateAccountAdminPage() {
                 </div>
               </div>
             </div>
+
 
             {/* Generated Links Grid */}
             <div className="space-y-4">
@@ -1749,7 +1766,7 @@ export default function CreateAccountAdminPage() {
                                   </Link>
                                 </div>
                                 <div className="bg-slate-900/90 border border-slate-800 rounded-lg px-2 py-1 text-[10.5px] font-mono text-indigo-300 truncate select-all">
-                                  {origin ? `${origin}/r/${store.slug}?source=qr` : `/r/${store.slug}?source=qr`}
+                                  {`${liveOrigin}/r/${store.slug}?source=qr`}
                                 </div>
 
                                 {/* NFC Tag URL */}
@@ -1769,7 +1786,7 @@ export default function CreateAccountAdminPage() {
                                   </Link>
                                 </div>
                                 <div className="bg-slate-900/90 border border-slate-800 rounded-lg px-2 py-1 text-[10.5px] font-mono text-amber-300 truncate select-all">
-                                  {origin ? `${origin}/r/${store.slug}?source=nfc` : `/r/${store.slug}?source=nfc`}
+                                  {`${liveOrigin}/r/${store.slug}?source=nfc`}
                                 </div>
                               </div>
                             </div>
@@ -1781,7 +1798,7 @@ export default function CreateAccountAdminPage() {
                               type="button"
                               onClick={() =>
                                 handleCopy(
-                                  origin ? `${origin}/r/${store.slug}?source=qr` : `${window.location.origin}/r/${store.slug}?source=qr`,
+                                  `${liveOrigin}/r/${store.slug}?source=qr`,
                                   `qr-${store.slug}`
                                 )
                               }
@@ -1805,7 +1822,7 @@ export default function CreateAccountAdminPage() {
                               type="button"
                               onClick={() =>
                                 handleCopy(
-                                  origin ? `${origin}/r/${store.slug}?source=nfc` : `${window.location.origin}/r/${store.slug}?source=nfc`,
+                                  `${liveOrigin}/r/${store.slug}?source=nfc`,
                                   `nfc-${store.slug}`
                                 )
                               }

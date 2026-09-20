@@ -22,6 +22,10 @@ import {
   Trash2,
   AlertTriangle,
   X,
+  Copy,
+  Check,
+  Smartphone,
+  ExternalLink,
 } from 'lucide-react';
 import { DEMO_BUSINESSES } from '@/lib/demo-data';
 import TermsModal from '@/components/TermsModal';
@@ -137,6 +141,19 @@ export default function OwnerDashboardPage() {
   const [complaintFilter, setComplaintFilter] = useState<'all' | 'pending' | 'resolved'>('all');
 
   const [deletingComplaintId, setDeletingComplaintId] = useState<string | null>(null);
+  const [copiedLink, setCopiedLink] = useState<string | null>(null);
+
+  const handleCopyLink = (text: string, id: string) => {
+    try {
+      if (typeof navigator !== 'undefined' && navigator.clipboard) {
+        navigator.clipboard.writeText(text);
+      }
+    } catch {
+      // fallback
+    }
+    setCopiedLink(id);
+    setTimeout(() => setCopiedLink(null), 2500);
+  };
 
   const business = {
     id: 'b-' + currentSlug,
@@ -360,32 +377,33 @@ export default function OwnerDashboardPage() {
             </p>
           </div>
 
-          {/* Time Filter Controls: 1 Deen, 1 Week, 1 Month, 1 Year */}
-          <div className="flex items-center gap-1 p-1 bg-slate-900 border border-slate-800 rounded-2xl">
+          {/* Time Filter Controls: Today, 1 Week, 1 Month, 1 Year, All Time */}
+          <div className="flex items-center gap-1 p-1 bg-slate-900 border border-slate-800 rounded-2xl overflow-x-auto scrollbar-none w-full sm:w-auto">
             {[
-              { label: 'Today (24h)', value: 'day' },
-              { label: '1 Week', value: 'week' },
-              { label: '1 Month', value: 'month' },
-              { label: '1 Year', value: 'year' },
-              { label: 'All Time', value: 'all' },
+              { label: 'Today (24h)', shortLabel: 'Today', value: 'day' },
+              { label: '1 Week', shortLabel: '1 Week', value: 'week' },
+              { label: '1 Month', shortLabel: '1 Month', value: 'month' },
+              { label: '1 Year', shortLabel: '1 Year', value: 'year' },
+              { label: 'All Time', shortLabel: 'All', value: 'all' },
             ].map((tab) => (
               <button
                 key={tab.value}
                 onClick={() => setTimePeriod(tab.value as any)}
-                className={`px-3 py-1.5 text-xs font-bold rounded-xl transition-all ${
+                className={`px-3 py-1.5 text-xs font-bold rounded-xl transition-all whitespace-nowrap shrink-0 flex-1 sm:flex-initial text-center ${
                   timePeriod === tab.value
                     ? 'bg-gradient-to-r from-blue-600 to-indigo-600 text-white shadow-md'
                     : 'text-slate-400 hover:text-white hover:bg-slate-800/50'
                 }`}
               >
-                {tab.label}
+                <span className="sm:hidden">{tab.shortLabel}</span>
+                <span className="hidden sm:inline">{tab.label}</span>
               </button>
             ))}
           </div>
         </div>
 
         {/* Source Channel Filter Bar (NFC vs QR separation) */}
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-3 bg-slate-900/90 border border-slate-800 rounded-2xl shadow-md">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 p-3 bg-slate-900/90 border border-slate-800 rounded-2xl shadow-md">
           <div className="flex items-center gap-2">
             <span className="p-1 rounded-lg bg-violet-500/15 text-violet-400 text-xs">📱/📷</span>
             <span className="text-xs font-bold text-white">Source Channel:</span>
@@ -394,60 +412,62 @@ export default function OwnerDashboardPage() {
             </span>
           </div>
 
-          <div className="flex flex-wrap items-center gap-1.5">
+          <div className="grid grid-cols-3 sm:flex sm:flex-wrap items-center gap-1.5 w-full sm:w-auto">
             <button
               onClick={() => setChannelFilter('all')}
-              className={`px-3 py-1.5 text-xs font-semibold rounded-xl transition-all cursor-pointer ${
+              className={`px-2.5 py-1.5 text-xs font-semibold rounded-xl transition-all text-center cursor-pointer ${
                 channelFilter === 'all'
                   ? 'bg-slate-800 text-white shadow-sm border border-slate-700'
                   : 'text-slate-400 hover:text-white hover:bg-slate-800/50'
               }`}
             >
-              🌐 All Traffic ({dashboardData?.metrics.totalTraffic || 0})
+              <span className="sm:hidden">All ({dashboardData?.metrics.totalTraffic || 0})</span>
+              <span className="hidden sm:inline">🌐 All Traffic ({dashboardData?.metrics.totalTraffic || 0})</span>
             </button>
 
             <button
               onClick={() => setChannelFilter('nfc')}
-              className={`px-3 py-1.5 text-xs font-bold rounded-xl transition-all flex items-center gap-1.5 cursor-pointer ${
+              className={`px-2.5 py-1.5 text-xs font-bold rounded-xl transition-all text-center flex items-center justify-center gap-1 cursor-pointer ${
                 channelFilter === 'nfc'
                   ? 'bg-violet-600 text-white shadow-md shadow-violet-600/30 border border-violet-500 ring-2 ring-violet-500/30'
                   : 'text-violet-400 bg-violet-500/10 hover:bg-violet-500/20 border border-violet-500/30'
               }`}
             >
-              <span>📱 NFC Taps ({dashboardData?.metrics.nfc?.total || 0})</span>
+              <span>📱 NFC ({dashboardData?.metrics.nfc?.total || 0})</span>
             </button>
 
             <button
               onClick={() => setChannelFilter('qr')}
-              className={`px-3 py-1.5 text-xs font-bold rounded-xl transition-all flex items-center gap-1.5 cursor-pointer ${
+              className={`px-2.5 py-1.5 text-xs font-bold rounded-xl transition-all text-center flex items-center justify-center gap-1 cursor-pointer ${
                 channelFilter === 'qr'
                   ? 'bg-blue-600 text-white shadow-md shadow-blue-600/30 border border-blue-500 ring-2 ring-blue-500/30'
                   : 'text-blue-400 bg-blue-500/10 hover:bg-blue-500/20 border border-blue-500/30'
               }`}
             >
-              <span>📷 QR Scans ({dashboardData?.metrics.qr?.total || 0})</span>
+              <span>📷 QR ({dashboardData?.metrics.qr?.total || 0})</span>
             </button>
           </div>
         </div>
 
+
         {/* 3 Primary KPI Summary Cards */}
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-4">
           {/* Card 1: Total Visits / Scans */}
-          <div className="bg-slate-900/80 border border-slate-800 rounded-3xl p-5 shadow-lg relative overflow-hidden">
+          <div className="bg-slate-900/80 border border-slate-800 rounded-2xl sm:rounded-3xl p-4 sm:p-5 shadow-lg relative overflow-hidden">
             <div className="flex items-center justify-between">
-              <span className="text-xs font-semibold text-slate-400 uppercase tracking-wider">
+              <span className="text-[11px] sm:text-xs font-semibold text-slate-400 uppercase tracking-wider">
                 {channelFilter === 'nfc'
                   ? 'Total NFC Taps'
                   : channelFilter === 'qr'
                   ? 'Total QR Scans'
                   : 'Total Visits (NFC & QR)'}
               </span>
-              <div className="p-2 rounded-xl bg-blue-500/10 text-blue-400 border border-blue-500/20">
+              <div className="p-1.5 sm:p-2 rounded-xl bg-blue-500/10 text-blue-400 border border-blue-500/20">
                 <BarChart3 className="w-4 h-4" />
               </div>
             </div>
-            <div className="mt-3 flex items-baseline gap-2">
-              <span className="text-3xl font-black text-white">
+            <div className="mt-2.5 sm:mt-3 flex items-baseline gap-2">
+              <span className="text-2xl sm:text-3xl font-black text-white">
                 {isLoading ? '...' : dashboardData?.metrics.totalTraffic ?? 0}
               </span>
               <span className="text-xs font-semibold text-blue-400 flex items-center gap-0.5">
@@ -455,42 +475,42 @@ export default function OwnerDashboardPage() {
                 Live
               </span>
             </div>
-            <p className="text-[11px] text-slate-400 mt-1">Customer counter interactions in selected period</p>
+            <p className="text-[10px] sm:text-[11px] text-slate-400 mt-1">Customer counter interactions in selected period</p>
           </div>
 
           {/* Card 2: Reviews Posted to Google */}
-          <div className="bg-slate-900/80 border border-slate-800 rounded-3xl p-5 shadow-lg relative overflow-hidden">
+          <div className="bg-slate-900/80 border border-slate-800 rounded-2xl sm:rounded-3xl p-4 sm:p-5 shadow-lg relative overflow-hidden">
             <div className="flex items-center justify-between">
-              <span className="text-xs font-semibold text-slate-400 uppercase tracking-wider">
+              <span className="text-[11px] sm:text-xs font-semibold text-slate-400 uppercase tracking-wider">
                 Review Live Status (3-5 ⭐)
               </span>
-              <div className="p-2 rounded-xl bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
+              <div className="p-1.5 sm:p-2 rounded-xl bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
                 <CheckCircle2 className="w-4 h-4" />
               </div>
             </div>
-            <div className="mt-3 flex items-baseline gap-2">
-              <span className="text-3xl font-black text-emerald-400">
+            <div className="mt-2.5 sm:mt-3 flex items-baseline gap-2">
+              <span className="text-2xl sm:text-3xl font-black text-emerald-400">
                 {isLoading ? '...' : dashboardData?.metrics.postedToGoogle ?? 0}
               </span>
               <span className="text-xs font-semibold text-slate-400">
                 ({dashboardData?.metrics.googleConversionRate ?? 0}%)
               </span>
             </div>
-            <p className="text-[11px] text-slate-400 mt-1">Confirmed published on Google Maps</p>
+            <p className="text-[10px] sm:text-[11px] text-slate-400 mt-1">Confirmed published on Google Maps</p>
           </div>
 
           {/* Card 3: Shielded Complaints (1-2 Stars) */}
-          <div className="bg-slate-900/80 border border-slate-800 rounded-3xl p-5 shadow-lg relative overflow-hidden">
+          <div className="bg-slate-900/80 border border-slate-800 rounded-2xl sm:rounded-3xl p-4 sm:p-5 shadow-lg relative overflow-hidden">
             <div className="flex items-center justify-between">
-              <span className="text-xs font-semibold text-rose-400 uppercase tracking-wider">
+              <span className="text-[11px] sm:text-xs font-semibold text-rose-400 uppercase tracking-wider">
                 Shielded Complaints (1-2 ⭐)
               </span>
-              <div className="p-2 rounded-xl bg-rose-500/10 text-rose-400 border border-rose-500/20">
+              <div className="p-1.5 sm:p-2 rounded-xl bg-rose-500/10 text-rose-400 border border-rose-500/20">
                 <ShieldAlert className="w-4 h-4" />
               </div>
             </div>
-            <div className="mt-3 flex items-baseline gap-2">
-              <span className="text-3xl font-black text-rose-400">
+            <div className="mt-2.5 sm:mt-3 flex items-baseline gap-2">
+              <span className="text-2xl sm:text-3xl font-black text-rose-400">
                 {isLoading ? '...' : dashboardData?.metrics.interceptedComplaints ?? 0}
               </span>
               {pendingComplaintsCount > 0 && (
@@ -499,12 +519,120 @@ export default function OwnerDashboardPage() {
                 </span>
               )}
             </div>
-            <p className="text-[11px] text-slate-400 mt-1">Private feedback saved from public Google Maps</p>
+            <p className="text-[10px] sm:text-[11px] text-slate-400 mt-1">Private feedback saved from public Google Maps</p>
+          </div>
+        </div>
+
+
+        {/* Quick Review Links Card (For Shopkeeper phone access) */}
+        <div className="p-4 sm:p-5 rounded-2xl bg-gradient-to-r from-indigo-950/50 via-slate-900 to-indigo-950/40 border border-indigo-500/25 shadow-lg space-y-3">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+            <div className="flex items-center gap-2">
+              <span className="p-1.5 rounded-xl bg-indigo-500/20 text-indigo-300">
+                <Smartphone className="w-4 h-4" />
+              </span>
+              <div>
+                <h3 className="text-sm font-bold text-white flex items-center gap-2">
+                  <span>Store Review Links</span>
+                  <span className="text-[10px] font-semibold text-emerald-400 bg-emerald-500/10 border border-emerald-500/20 px-2 py-0.5 rounded-full">
+                    Live
+                  </span>
+                </h3>
+                <p className="text-[11px] text-slate-400">Copy NFC & QR review links or preview standee</p>
+              </div>
+            </div>
+            <Link
+              href={`/qr/${currentSlug}`}
+              target="_blank"
+              className="text-xs font-semibold bg-slate-800 hover:bg-slate-700 text-teal-300 border border-slate-700 px-3 py-1.5 rounded-xl flex items-center justify-center gap-1.5 self-start sm:self-auto transition-colors"
+            >
+              <QrCode className="w-3.5 h-3.5" />
+              <span>Open Standee Print</span>
+              <ExternalLink className="w-3 h-3" />
+            </Link>
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
+            {/* QR Link */}
+            <div className="p-3 rounded-xl bg-slate-950/80 border border-indigo-500/20 space-y-1.5">
+              <div className="flex items-center justify-between">
+                <span className="text-indigo-300 font-bold flex items-center gap-1 text-[11px]">
+                  <QrCode className="w-3.5 h-3.5 text-indigo-400" />
+                  <span>QR Review Link</span>
+                </span>
+                <Link
+                  href={`/r/${currentSlug}?source=qr`}
+                  target="_blank"
+                  className="text-[10px] text-slate-400 hover:text-indigo-300 flex items-center gap-0.5"
+                >
+                  <span>Test Flow</span>
+                  <ExternalLink className="w-2.5 h-2.5" />
+                </Link>
+              </div>
+              <div className="bg-slate-900 border border-slate-800 rounded-lg px-2.5 py-1.5 font-mono text-indigo-300 truncate text-[11px] select-all">
+                {typeof window !== 'undefined' ? `${window.location.origin}/r/${currentSlug}?source=qr` : `/r/${currentSlug}?source=qr`}
+              </div>
+              <button
+                type="button"
+                onClick={() => handleCopyLink(typeof window !== 'undefined' ? `${window.location.origin}/r/${currentSlug}?source=qr` : `/r/${currentSlug}?source=qr`, 'qr')}
+                className="w-full py-2 px-3 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white font-bold text-xs flex items-center justify-center gap-1.5 transition-colors cursor-pointer active:scale-95"
+              >
+                {copiedLink === 'qr' ? (
+                  <>
+                    <Check className="w-3.5 h-3.5 text-emerald-300" />
+                    <span>Copied QR Link!</span>
+                  </>
+                ) : (
+                  <>
+                    <Copy className="w-3.5 h-3.5" />
+                    <span>Copy QR Link</span>
+                  </>
+                )}
+              </button>
+            </div>
+
+            {/* NFC Link */}
+            <div className="p-3 rounded-xl bg-slate-950/80 border border-amber-500/20 space-y-1.5">
+              <div className="flex items-center justify-between">
+                <span className="text-amber-300 font-bold flex items-center gap-1 text-[11px]">
+                  <Smartphone className="w-3.5 h-3.5 text-amber-400" />
+                  <span>NFC Tag Link</span>
+                </span>
+                <Link
+                  href={`/r/${currentSlug}?source=nfc`}
+                  target="_blank"
+                  className="text-[10px] text-slate-400 hover:text-amber-300 flex items-center gap-0.5"
+                >
+                  <span>Test Flow</span>
+                  <ExternalLink className="w-2.5 h-2.5" />
+                </Link>
+              </div>
+              <div className="bg-slate-900 border border-slate-800 rounded-lg px-2.5 py-1.5 font-mono text-amber-300 truncate text-[11px] select-all">
+                {typeof window !== 'undefined' ? `${window.location.origin}/r/${currentSlug}?source=nfc` : `/r/${currentSlug}?source=nfc`}
+              </div>
+              <button
+                type="button"
+                onClick={() => handleCopyLink(typeof window !== 'undefined' ? `${window.location.origin}/r/${currentSlug}?source=nfc` : `/r/${currentSlug}?source=nfc`, 'nfc')}
+                className="w-full py-2 px-3 rounded-lg bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-600 hover:to-amber-700 text-slate-950 font-bold text-xs flex items-center justify-center gap-1.5 transition-colors cursor-pointer active:scale-95"
+              >
+                {copiedLink === 'nfc' ? (
+                  <>
+                    <Check className="w-3.5 h-3.5 text-slate-950" />
+                    <span>Copied NFC Link!</span>
+                  </>
+                ) : (
+                  <>
+                    <Copy className="w-3.5 h-3.5 text-slate-950" />
+                    <span>Copy NFC Link</span>
+                  </>
+                )}
+              </button>
+            </div>
           </div>
         </div>
 
         {/* NFC vs QR Channel Breakdown Comparison Hub */}
-        <div className="bg-gradient-to-r from-slate-900 via-slate-900/95 to-slate-900 border border-slate-800 rounded-3xl p-5 sm:p-6 shadow-xl space-y-4">
+        <div className="bg-gradient-to-r from-slate-900 via-slate-900/95 to-slate-900 border border-slate-800 rounded-3xl p-4 sm:p-6 shadow-xl space-y-4">
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pb-3 border-b border-slate-800/80">
             <div className="flex items-center gap-2.5">
               <div className="p-2 rounded-xl bg-indigo-500/15 text-indigo-400 border border-indigo-500/30">
@@ -515,7 +643,7 @@ export default function OwnerDashboardPage() {
                   <span>Channel Analytics: 📱 NFC Tap vs 📷 QR Standee</span>
                 </h2>
                 <p className="text-xs text-slate-400">
-                  Real-time comparison between NFC chip taps and QR standee scans (Total, Review Live Status, Complaints)
+                  Real-time comparison between NFC chip taps and QR standee scans
                 </p>
               </div>
             </div>
@@ -550,18 +678,18 @@ export default function OwnerDashboardPage() {
                 </div>
               </div>
 
-              <div className="grid grid-cols-3 gap-2.5 pt-1">
-                <div className="p-2.5 rounded-xl bg-violet-500/10 border border-violet-500/20 text-center">
-                  <span className="text-[10px] uppercase font-bold text-violet-300 block">Total Taps</span>
-                  <span className="text-lg font-black text-violet-300">{dashboardData?.metrics.nfc?.total || 0}</span>
+              <div className="grid grid-cols-3 gap-1.5 sm:gap-2.5 pt-1">
+                <div className="p-2 sm:p-2.5 rounded-xl bg-violet-500/10 border border-violet-500/20 text-center">
+                  <span className="text-[9px] sm:text-[10px] uppercase font-bold text-violet-300 block truncate">Total Taps</span>
+                  <span className="text-base sm:text-lg font-black text-violet-300">{dashboardData?.metrics.nfc?.total || 0}</span>
                 </div>
-                <div className="p-2.5 rounded-xl bg-emerald-500/10 border border-emerald-500/20 text-center">
-                  <span className="text-[10px] uppercase font-bold text-emerald-400 block">Review Live Status</span>
-                  <span className="text-lg font-black text-emerald-400">{dashboardData?.metrics.nfc?.posted || 0}</span>
+                <div className="p-2 sm:p-2.5 rounded-xl bg-emerald-500/10 border border-emerald-500/20 text-center">
+                  <span className="text-[9px] sm:text-[10px] uppercase font-bold text-emerald-400 block truncate">Google Reviews</span>
+                  <span className="text-base sm:text-lg font-black text-emerald-400">{dashboardData?.metrics.nfc?.posted || 0}</span>
                 </div>
-                <div className="p-2.5 rounded-xl bg-rose-500/10 border border-rose-500/20 text-center">
-                  <span className="text-[10px] uppercase font-bold text-rose-400 block">Complaints</span>
-                  <span className="text-lg font-black text-rose-400">{dashboardData?.metrics.nfc?.complaints || 0}</span>
+                <div className="p-2 sm:p-2.5 rounded-xl bg-rose-500/10 border border-rose-500/20 text-center">
+                  <span className="text-[9px] sm:text-[10px] uppercase font-bold text-rose-400 block truncate">Complaints</span>
+                  <span className="text-base sm:text-lg font-black text-rose-400">{dashboardData?.metrics.nfc?.complaints || 0}</span>
                 </div>
               </div>
             </div>
@@ -584,23 +712,24 @@ export default function OwnerDashboardPage() {
                 </div>
               </div>
 
-              <div className="grid grid-cols-3 gap-2.5 pt-1">
-                <div className="p-2.5 rounded-xl bg-blue-500/10 border border-blue-500/20 text-center">
-                  <span className="text-[10px] uppercase font-bold text-blue-300 block">Total Scans</span>
-                  <span className="text-lg font-black text-blue-300">{dashboardData?.metrics.qr?.total || 0}</span>
+              <div className="grid grid-cols-3 gap-1.5 sm:gap-2.5 pt-1">
+                <div className="p-2 sm:p-2.5 rounded-xl bg-blue-500/10 border border-blue-500/20 text-center">
+                  <span className="text-[9px] sm:text-[10px] uppercase font-bold text-blue-300 block truncate">Total Scans</span>
+                  <span className="text-base sm:text-lg font-black text-blue-300">{dashboardData?.metrics.qr?.total || 0}</span>
                 </div>
-                <div className="p-2.5 rounded-xl bg-emerald-500/10 border border-emerald-500/20 text-center">
-                  <span className="text-[10px] uppercase font-bold text-emerald-400 block">Review Live Status</span>
-                  <span className="text-lg font-black text-emerald-400">{dashboardData?.metrics.qr?.posted || 0}</span>
+                <div className="p-2 sm:p-2.5 rounded-xl bg-emerald-500/10 border border-emerald-500/20 text-center">
+                  <span className="text-[9px] sm:text-[10px] uppercase font-bold text-emerald-400 block truncate">Google Reviews</span>
+                  <span className="text-base sm:text-lg font-black text-emerald-400">{dashboardData?.metrics.qr?.posted || 0}</span>
                 </div>
-                <div className="p-2.5 rounded-xl bg-rose-500/10 border border-rose-500/20 text-center">
-                  <span className="text-[10px] uppercase font-bold text-rose-400 block">Complaints</span>
-                  <span className="text-lg font-black text-rose-400">{dashboardData?.metrics.qr?.complaints || 0}</span>
+                <div className="p-2 sm:p-2.5 rounded-xl bg-rose-500/10 border border-rose-500/20 text-center">
+                  <span className="text-[9px] sm:text-[10px] uppercase font-bold text-rose-400 block truncate">Complaints</span>
+                  <span className="text-base sm:text-lg font-black text-rose-400">{dashboardData?.metrics.qr?.complaints || 0}</span>
                 </div>
               </div>
             </div>
           </div>
         </div>
+
 
         {/* 2-Column Grid: Rating Breakdown & Funnel */}
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
