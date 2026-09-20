@@ -148,11 +148,11 @@ export default function OwnerLoginPage() {
           return;
         }
 
-        // Send OTP
+        // Send OTP with generous timeout
         const otpRes = await fetch('/api/send-otp', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          signal: AbortSignal.timeout(10000),
+          signal: AbortSignal.timeout(25000),
           body: JSON.stringify({ email: email.trim() }),
         });
         const otpData = await otpRes.json();
@@ -166,15 +166,38 @@ export default function OwnerLoginPage() {
         setForgotStep(2);
         setIsLoading(false);
       } catch (err: any) {
-        setErrorMsg(err.name === 'TimeoutError' ? 'Request timed out. Please try again.' : 'Network error.');
+        setErrorMsg(err.name === 'TimeoutError' ? 'OTP delivery timed out. Please try again.' : 'Network error. Please try again.');
         setIsLoading(false);
       }
     } else if (forgotStep === 2) {
       if (!forgotOtp.trim()) {
-        setErrorMsg('Please enter the OTP.');
+        setErrorMsg('Please enter the 6-digit OTP received in your email.');
         return;
       }
-      setForgotStep(3);
+      setIsLoading(true);
+      try {
+        const verifyRes = await fetch('/api/forgot-password', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          signal: AbortSignal.timeout(12000),
+          body: JSON.stringify({
+            action: 'verify_otp',
+            email: email.trim(),
+            otp: forgotOtp.trim(),
+          }),
+        });
+        const verifyData = await verifyRes.json();
+        setIsLoading(false);
+        if (!verifyData.success) {
+          setErrorMsg(verifyData.message || 'Invalid OTP. Please enter the 6-digit code received in your email.');
+          return;
+        }
+        setErrorMsg('');
+        setForgotStep(3);
+      } catch (err: any) {
+        setIsLoading(false);
+        setErrorMsg('Network error while verifying code. Please try again.');
+      }
     } else if (forgotStep === 3) {
       if (newPassword.length !== 8) {
         setErrorMsg('New password must be strictly 8 characters (currently: ' + newPassword.length + '/8 characters).');

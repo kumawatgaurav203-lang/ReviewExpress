@@ -414,7 +414,7 @@ export default function CreateAccountAdminPage() {
         const res = await fetch('/api/send-otp', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          signal: AbortSignal.timeout(10000),
+          signal: AbortSignal.timeout(25000),
           body: JSON.stringify({ email: email.trim() }),
         });
         const data = await res.json();
@@ -508,7 +508,7 @@ export default function CreateAccountAdminPage() {
       <header className="border-b border-slate-800 bg-slate-900/70 backdrop-blur-md sticky top-0 z-50">
         <div className="max-w-6xl mx-auto px-3 sm:px-6 h-14 sm:h-16 flex items-center justify-between gap-2">
           <div className="flex items-center gap-2 sm:gap-3 shrink-0">
-            <Link href="/" className="flex items-center gap-2">
+            <div className="flex items-center gap-2 select-none cursor-default">
               <img
                 src="/reviewxpress-icon.png"
                 alt="ReviewXpress"
@@ -517,7 +517,7 @@ export default function CreateAccountAdminPage() {
               <span className="font-extrabold text-base sm:text-lg tracking-tight text-white">
                 Review<span className="text-indigo-400">Xpress</span>
               </span>
-            </Link>
+            </div>
             <span className="text-[10px] sm:text-[11px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full bg-amber-500/10 text-amber-300 border border-amber-500/20 shrink-0">
               <span className="sm:hidden">Admin</span>
               <span className="hidden sm:inline">Agency Master Admin</span>

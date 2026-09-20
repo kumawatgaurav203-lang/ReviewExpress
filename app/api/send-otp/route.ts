@@ -14,14 +14,20 @@ export async function POST(req: NextRequest) {
 
     const cleanEmail = email.toLowerCase().trim();
 
-    // Generate 6-digit OTP
-    const otp = Math.floor(100000 + Math.random() * 900000).toString();
-
-    // Store OTP in memory, valid for 10 minutes
-    otpStore.set(cleanEmail, {
-      otp,
-      expiresAt: Date.now() + 10 * 60 * 1000,
-    });
+    // 1. Generate or reuse active OTP within 2-minute freshness window
+    // This prevents race conditions when retrying or clicking rapidly,
+    // ensuring the code already sent to user's inbox remains 100% valid!
+    const existing = otpStore.get(cleanEmail);
+    let otp: string;
+    if (existing && existing.expiresAt - Date.now() > 8 * 60 * 1000) {
+      otp = existing.otp;
+    } else {
+      otp = Math.floor(100000 + Math.random() * 900000).toString();
+      otpStore.set(cleanEmail, {
+        otp,
+        expiresAt: Date.now() + 10 * 60 * 1000,
+      });
+    }
 
     const FALLBACK_RESEND_KEY = Buffer.from('cmVfRDhzQWoxSkhfOTJiUmJmMVZOQUg0SFU5ZEdoV1dzenFx', 'base64').toString('utf-8');
     const envKey = process.env.RESEND_API_KEY;
@@ -63,12 +69,17 @@ export async function POST(req: NextRequest) {
     if (resendApiKey) {
       try {
         const resend = new Resend(resendApiKey);
-        const { data, error } = await resend.emails.send({
-          from: resendFrom,
-          to: cleanEmail,
-          subject: 'ReviewXpress - Account Verification Code',
-          html: emailHtml,
-        });
+        const { data, error } = await Promise.race([
+          resend.emails.send({
+            from: resendFrom,
+            to: cleanEmail,
+            subject: 'ReviewXpress - Account Verification Code',
+            html: emailHtml,
+          }),
+          new Promise<any>((_, reject) =>
+            setTimeout(() => reject(new Error('Resend dispatch timeout (7s)')), 7000)
+          ),
+        ]);
 
         if (data && !error) {
           isSentViaResend = true;
@@ -109,7 +120,7 @@ export async function POST(req: NextRequest) {
             subject: 'ReviewXpress - Account Verification Code',
             html: emailHtml,
           }),
-          new Promise((_, reject) => setTimeout(() => reject(new Error('SMTP send timeout (12s)')), 12000)),
+          new Promise((_, reject) => setTimeout(() => reject(new Error('SMTP send timeout (4s)')), 4000)),
         ]);
 
         return NextResponse.json({
@@ -120,41 +131,6 @@ export async function POST(req: NextRequest) {
       } catch (mailErr: any) {
         lastSmtpError = mailErr?.message || String(mailErr);
         console.error('[Nodemailer Error]:', lastSmtpError);
-
-        // Fallback try port 587 STARTTLS
-        try {
-          const fallbackTransporter = nodemailer.createTransport({
-            host: 'smtp.gmail.com',
-            port: 587,
-            secure: false,
-            auth: {
-              user: emailUser,
-              pass: emailPass,
-            },
-            tls: {
-              rejectUnauthorized: false,
-            },
-          });
-
-          await Promise.race([
-            fallbackTransporter.sendMail({
-              from: `"ReviewXpress Security" <${emailUser}>`,
-              to: cleanEmail,
-              subject: 'ReviewXpress - Account Verification Code',
-              html: emailHtml,
-            }),
-            new Promise((_, reject) => setTimeout(() => reject(new Error('SMTP 587 send timeout (10s)')), 10000)),
-          ]);
-
-          return NextResponse.json({
-            success: true,
-            provider: 'nodemailer_587',
-            message: 'OTP sent successfully to email.',
-          });
-        } catch (mail587Err: any) {
-          lastSmtpError += ' | 587: ' + (mail587Err?.message || String(mail587Err));
-          console.error('[Nodemailer 587 Error]:', lastSmtpError);
-        }
       }
     }
 

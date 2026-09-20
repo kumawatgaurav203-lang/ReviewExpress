@@ -11,16 +11,36 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ success: false, message: 'Valid email is required.' }, { status: 400 });
     }
 
-    const account = getOwnerAccountByEmail(email);
+    const cleanEmail = (email || '').toLowerCase().trim();
+    const account = getOwnerAccountByEmail(cleanEmail);
     if (!account) {
       return NextResponse.json({ success: false, message: 'No account found with this email.' }, { status: 404 });
     }
 
     if (action === 'send_otp') {
-       // Just delegate to /api/send-otp internally, or just let client call /api/send-otp. 
-       // Actually I'll let the client call /api/send-otp after hitting an endpoint to check existence.
-       // Let's change action='check_email' to just return success if account exists
        return NextResponse.json({ success: true, message: 'Email found.' });
+    }
+
+    if (action === 'verify_otp') {
+      if (!otp) {
+        return NextResponse.json({ success: false, message: 'OTP is required.' }, { status: 400 });
+      }
+
+      const storedOtpData = otpStore.get(cleanEmail);
+      if (!storedOtpData) {
+        return NextResponse.json({ success: false, message: 'OTP not found. Please request a new one.' }, { status: 400 });
+      }
+
+      if (Date.now() > storedOtpData.expiresAt) {
+        otpStore.delete(cleanEmail);
+        return NextResponse.json({ success: false, message: 'OTP has expired. Please request a new one.' }, { status: 400 });
+      }
+
+      if (storedOtpData.otp !== String(otp).trim()) {
+        return NextResponse.json({ success: false, message: 'Invalid OTP. Please enter the 6-digit code received in your email.' }, { status: 400 });
+      }
+
+      return NextResponse.json({ success: true, message: 'OTP verified successfully.' });
     }
 
     if (action === 'verify_and_reset') {
@@ -28,18 +48,18 @@ export async function POST(req: NextRequest) {
         return NextResponse.json({ success: false, message: 'OTP is required.' }, { status: 400 });
       }
 
-      const storedOtpData = otpStore.get(email);
+      const storedOtpData = otpStore.get(cleanEmail);
       if (!storedOtpData) {
         return NextResponse.json({ success: false, message: 'OTP not found. Please request a new one.' }, { status: 400 });
       }
 
       if (Date.now() > storedOtpData.expiresAt) {
-        otpStore.delete(email);
+        otpStore.delete(cleanEmail);
         return NextResponse.json({ success: false, message: 'OTP has expired.' }, { status: 400 });
       }
 
-      if (storedOtpData.otp !== otp) {
-        return NextResponse.json({ success: false, message: 'Invalid OTP.' }, { status: 400 });
+      if (storedOtpData.otp !== String(otp).trim()) {
+        return NextResponse.json({ success: false, message: 'Invalid OTP. Please enter the 6-digit code received in your email.' }, { status: 400 });
       }
 
       // Password validation: strictly 8 characters and at least 1 special symbol
@@ -51,9 +71,9 @@ export async function POST(req: NextRequest) {
         }, { status: 400 });
       }
 
-      const updated = updateOwnerPassword(email, newPassword);
+      const updated = updateOwnerPassword(cleanEmail, newPassword);
       if (updated) {
-        otpStore.delete(email);
+        otpStore.delete(cleanEmail);
         return NextResponse.json({ success: true, message: 'Password reset successfully. You can now login.' });
       } else {
         return NextResponse.json({ success: false, message: 'Failed to update password.' }, { status: 500 });
