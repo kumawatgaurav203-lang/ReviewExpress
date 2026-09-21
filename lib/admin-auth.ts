@@ -44,13 +44,23 @@ export function getMasterAdminKey(): string {
 
 import { redisCache } from '@/lib/redis';
 
+let lastSyncTimestamp = 0;
+const SYNC_CACHE_TTL = 5 * 60 * 1000; // 5 minutes in-memory cache
+
 // Asynchronously sync the master key from Redis and Supabase DB (guarantees persistence across Render restarts)
-export async function syncMasterAdminKeyWithDb(): Promise<string> {
+export async function syncMasterAdminKeyWithDb(force = false): Promise<string> {
+  const now = Date.now();
+  // Fast path: if already cached in RAM within TTL, return instantly (0ms)
+  if (!force && cachedAdminKey && (now - lastSyncTimestamp < SYNC_CACHE_TTL)) {
+    return cachedAdminKey;
+  }
+
   // 1. Try Redis (Render Key Value)
   try {
     const fromRedis = await redisCache.get<string>('sys:master-admin-key');
     if (fromRedis && typeof fromRedis === 'string' && fromRedis.trim().length >= 8) {
       cachedAdminKey = fromRedis.trim();
+      lastSyncTimestamp = now;
       return cachedAdminKey;
     }
   } catch {}
@@ -67,6 +77,7 @@ export async function syncMasterAdminKeyWithDb(): Promise<string> {
       if (!error && data?.google_review_link && typeof data.google_review_link === 'string' && data.google_review_link.trim().length >= 8) {
         const keyFromDb = data.google_review_link.trim();
         cachedAdminKey = keyFromDb;
+        lastSyncTimestamp = now;
         // Mirror to Redis for instant lookup
         redisCache.set('sys:master-admin-key', keyFromDb, 0).catch(() => {});
         return keyFromDb;
@@ -76,7 +87,9 @@ export async function syncMasterAdminKeyWithDb(): Promise<string> {
     }
   }
 
-  return getMasterAdminKey();
+  const fallback = getMasterAdminKey();
+  lastSyncTimestamp = now;
+  return fallback;
 }
 
 export async function setMasterAdminKey(newKey: string): Promise<boolean> {
@@ -84,8 +97,9 @@ export async function setMasterAdminKey(newKey: string): Promise<boolean> {
     const trimmed = newKey.trim();
     if (!trimmed || trimmed.length < 8) return false;
 
-    // 1. Immediately cache in-memory
+    // 1. Immediately cache in-memory with updated timestamp
     cachedAdminKey = trimmed;
+    lastSyncTimestamp = Date.now();
 
     // 2. Persist to Redis (survives container redeploys)
     try {

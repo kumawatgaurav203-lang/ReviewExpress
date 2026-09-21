@@ -430,12 +430,13 @@ export default function CreateAccountAdminPage() {
     }
   };
 
-  const handleVerify2FAOtp = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const handleVerify2FAOtp = async (e?: React.FormEvent, directOtp?: string) => {
+    if (e) e.preventDefault();
     setAuthError('');
     setAuthSuccessMsg('');
 
-    if (!otpInput.trim() || otpInput.trim().length < 6) {
+    const targetOtp = (directOtp !== undefined ? directOtp : otpInput).trim();
+    if (!targetOtp || targetOtp.length < 6) {
       setAuthError('Please enter the 6-digit security OTP code.');
       return;
     }
@@ -445,11 +446,11 @@ export default function CreateAccountAdminPage() {
       const res = await fetch('/api/admin-auth', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        signal: AbortSignal.timeout(10000),
+        signal: AbortSignal.timeout(8000),
         body: JSON.stringify({
           action: 'verify-otp',
           masterKey: masterKeyInput.trim(),
-          otp: otpInput.trim(),
+          otp: targetOtp,
         }),
       });
       const data = await res.json();
@@ -973,7 +974,7 @@ export default function CreateAccountAdminPage() {
                 </form>
               ) : (
                 /* ---------------- STEP 2: ENTER EMAIL OTP ---------------- */
-                <form onSubmit={handleVerify2FAOtp} className="space-y-4">
+                <form onSubmit={(e) => handleVerify2FAOtp(e)} className="space-y-4">
                   <div className="p-3 rounded-xl bg-indigo-500/10 border border-indigo-500/20 text-xs text-indigo-300 flex items-start gap-2">
                     <Mail className="w-4 h-4 text-indigo-400 shrink-0 mt-0.5" />
                     <div>
@@ -1000,7 +1001,13 @@ export default function CreateAccountAdminPage() {
                       type="text"
                       maxLength={6}
                       value={otpInput}
-                      onChange={(e) => setOtpInput(e.target.value.replace(/\D/g, ''))}
+                      onChange={(e) => {
+                        const val = e.target.value.replace(/\D/g, '');
+                        setOtpInput(val);
+                        if (val.length === 6 && !isSubmittingAuth) {
+                          handleVerify2FAOtp(undefined, val);
+                        }
+                      }}
                       placeholder="••••••"
                       autoFocus
                       required

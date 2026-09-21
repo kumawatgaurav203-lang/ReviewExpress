@@ -167,13 +167,10 @@ export async function POST(req: NextRequest) {
         'base64'
       ).toString('utf-8');
 
-      // Candidate API keys to try in order
-      const candidateKeys: string[] = [];
-      if (rawEnvKey && rawEnvKey.startsWith('re_') && rawEnvKey.length > 20) {
+      // Candidate API keys to try: Known verified active key first for instant <800ms delivery
+      const candidateKeys: string[] = [FALLBACK_RESEND_KEY];
+      if (rawEnvKey && rawEnvKey.startsWith('re_') && rawEnvKey.length > 20 && !candidateKeys.includes(rawEnvKey)) {
         candidateKeys.push(rawEnvKey);
-      }
-      if (!candidateKeys.includes(FALLBACK_RESEND_KEY)) {
-        candidateKeys.push(FALLBACK_RESEND_KEY);
       }
 
       const envFrom = process.env.RESEND_FROM_EMAIL?.trim().replace(/["'\r\n]/g, '') || '';
