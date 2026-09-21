@@ -30,7 +30,11 @@ function getClientIp(req: NextRequest): string {
 // GET: Verify Session State
 // ----------------------------------------------------------------------------
 export async function GET(req: NextRequest) {
-  await syncMasterAdminKeyWithDb();
+  try {
+    await syncMasterAdminKeyWithDb();
+  } catch (syncErr) {
+    console.warn('syncMasterAdminKeyWithDb GET error:', syncErr);
+  }
   const isValid = verifyMasterAdminRequest(req);
   if (isValid) {
     return NextResponse.json({
@@ -52,7 +56,11 @@ export async function GET(req: NextRequest) {
 // ----------------------------------------------------------------------------
 export async function POST(req: NextRequest) {
   try {
-    await syncMasterAdminKeyWithDb();
+    try {
+      await syncMasterAdminKeyWithDb();
+    } catch (syncErr) {
+      console.warn('syncMasterAdminKeyWithDb POST error:', syncErr);
+    }
     const ip = getClientIp(req);
     const body = await req.json();
     const { action, masterKey, otp } = body;
@@ -167,6 +175,8 @@ export async function POST(req: NextRequest) {
           : 'ReviewXpress <noreply@reviewxpress.in>';
 
       let emailSent = false;
+      let lastEmailError = '';
+
       if (resendApiKey) {
         try {
           const resend = new Resend(resendApiKey);
@@ -178,14 +188,18 @@ export async function POST(req: NextRequest) {
               html: emailHtml,
             }),
             new Promise<any>((_, reject) =>
-              setTimeout(() => reject(new Error('Resend dispatch timeout')), 7000)
+              setTimeout(() => reject(new Error('Resend dispatch timeout')), 4000)
             ),
           ]);
 
           if (data && !error) {
             emailSent = true;
+          } else if (error) {
+            lastEmailError = error.message || 'Resend API returned error';
+            console.warn('[Admin 2FA] Resend API error:', error);
           }
-        } catch (resendErr) {
+        } catch (resendErr: any) {
+          lastEmailError = resendErr?.message || 'Resend dispatch failed';
           console.warn('[Admin 2FA] Resend failed, falling back to SMTP:', resendErr);
         }
       }
@@ -201,18 +215,36 @@ export async function POST(req: NextRequest) {
             port: 465,
             secure: true,
             auth: { user: emailUser, pass: emailPass },
+            connectionTimeout: 3000,
+            socketTimeout: 3500,
           });
 
-          await transporter.sendMail({
-            from: `"ReviewXpress Security" <${emailUser}>`,
-            to: MASTER_ADMIN_EMAIL,
-            subject: 'ReviewXpress Master Admin - Two-Way Verification Code (2FA)',
-            html: emailHtml,
-          });
+          await Promise.race([
+            transporter.sendMail({
+              from: `"ReviewXpress Security" <${emailUser}>`,
+              to: MASTER_ADMIN_EMAIL,
+              subject: 'ReviewXpress Master Admin - Two-Way Verification Code (2FA)',
+              html: emailHtml,
+            }),
+            new Promise<any>((_, reject) =>
+              setTimeout(() => reject(new Error('SMTP dispatch timeout')), 4000)
+            ),
+          ]);
           emailSent = true;
-        } catch (smtpErr) {
+        } catch (smtpErr: any) {
+          lastEmailError = smtpErr?.message || 'SMTP dispatch failed';
           console.error('[Admin 2FA] SMTP Fallback also failed:', smtpErr);
         }
+      }
+
+      if (!emailSent) {
+        return NextResponse.json(
+          {
+            success: false,
+            message: `Failed to deliver OTP to ${getMaskedAdminEmail()}. Error: ${lastEmailError || 'Email service unavailable'}. Please try again in a moment.`,
+          },
+          { status: 500 }
+        );
       }
 
       return NextResponse.json({
@@ -344,7 +376,12 @@ export async function POST(req: NextRequest) {
   } catch (err: any) {
     console.error('Error in admin-auth handler:', err);
     return NextResponse.json(
-      { success: false, message: 'Internal server error during verification.' },
+      {
+        success: false,
+        message: err?.message || 'Internal server error during verification.',
+        errorType: err?.name || 'Error',
+        detail: String(err?.stack || err),
+      },
       { status: 500 }
     );
   }

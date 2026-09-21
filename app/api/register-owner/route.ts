@@ -26,11 +26,14 @@ export async function GET(req: NextRequest) {
         const { data: dbStores, error } = await supabase
           .from('businesses')
           .select('id, name, slug, category, created_at, is_active, status')
+          .neq('slug', 'sys-master-admin-key')
           .order('created_at', { ascending: false });
 
         if (!error && dbStores && dbStores.length > 0) {
           const accounts = getAllOwnerAccounts();
-          const stores = dbStores.map((b) => {
+          const stores = dbStores
+            .filter((b) => b.slug !== 'sys-master-admin-key' && !b.slug.startsWith('sys-'))
+            .map((b) => {
             const acc = accounts.find((a) => a.businessSlug === b.slug);
             return {
               id: b.id,

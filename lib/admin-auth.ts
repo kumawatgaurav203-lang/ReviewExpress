@@ -42,35 +42,40 @@ export function getMasterAdminKey(): string {
   return defaultKey;
 }
 
-// Asynchronously sync the master key from Supabase DB (guarantees persistence across Render restarts)
+import { redisCache } from '@/lib/redis';
+
+// Asynchronously sync the master key from Redis and Supabase DB (guarantees persistence across Render restarts)
 export async function syncMasterAdminKeyWithDb(): Promise<string> {
+  // 1. Try Redis (Render Key Value)
+  try {
+    const fromRedis = await redisCache.get<string>('sys:master-admin-key');
+    if (fromRedis && typeof fromRedis === 'string' && fromRedis.trim().length >= 8) {
+      cachedAdminKey = fromRedis.trim();
+      return cachedAdminKey;
+    }
+  } catch {}
+
+  // 2. Try Supabase businesses table (sys-master-admin-key vault row)
   if (isSupabaseConfigured()) {
     try {
       const { data, error } = await supabase
-        .from('users')
-        .select('password_hash')
-        .eq('email', 'master-admin-key@system.internal')
+        .from('businesses')
+        .select('google_review_link')
+        .eq('slug', 'sys-master-admin-key')
         .maybeSingle();
 
-      if (!error && data?.password_hash && typeof data.password_hash === 'string' && data.password_hash.trim().length >= 8) {
-        const keyFromDb = data.password_hash.trim();
+      if (!error && data?.google_review_link && typeof data.google_review_link === 'string' && data.google_review_link.trim().length >= 8) {
+        const keyFromDb = data.google_review_link.trim();
         cachedAdminKey = keyFromDb;
-        // Keep local file in sync
-        try {
-          const dir = path.dirname(configFilePath);
-          if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
-          fs.writeFileSync(
-            configFilePath,
-            JSON.stringify({ masterKey: keyFromDb, updatedAt: new Date().toISOString() }, null, 2),
-            'utf-8'
-          );
-        } catch {}
+        // Mirror to Redis for instant lookup
+        redisCache.set('sys:master-admin-key', keyFromDb, 0).catch(() => {});
         return keyFromDb;
       }
     } catch (e) {
       console.warn('Sync master key with db error:', e);
     }
   }
+
   return getMasterAdminKey();
 }
 
@@ -82,7 +87,34 @@ export async function setMasterAdminKey(newKey: string): Promise<boolean> {
     // 1. Immediately cache in-memory
     cachedAdminKey = trimmed;
 
-    // 2. Persist locally to data/admin-config.json
+    // 2. Persist to Redis (survives container redeploys)
+    try {
+      await redisCache.set('sys:master-admin-key', trimmed, 0);
+    } catch (rErr) {
+      console.warn('Redis key persist notice:', rErr);
+    }
+
+    // 3. Persist permanently to Supabase DB (businesses table)
+    if (isSupabaseConfigured()) {
+      try {
+        await supabase.from('businesses').upsert(
+          [
+            {
+              id: '00000000-0000-4000-a000-000000000001',
+              name: 'Master Admin Key Vault',
+              slug: 'sys-master-admin-key',
+              google_review_link: trimmed,
+              is_active: false,
+            },
+          ],
+          { onConflict: 'slug' }
+        );
+      } catch (dbErr) {
+        console.warn('Supabase key persist notice:', dbErr);
+      }
+    }
+
+    // 4. Persist locally to data/admin-config.json
     try {
       const dir = path.dirname(configFilePath);
       if (!fs.existsSync(dir)) {
@@ -95,25 +127,6 @@ export async function setMasterAdminKey(newKey: string): Promise<boolean> {
       );
     } catch (fsErr) {
       console.warn('Local fs save notice:', fsErr);
-    }
-
-    // 3. Persist permanently to Supabase DB (survives all Render rebuilds / redeploys)
-    if (isSupabaseConfigured()) {
-      try {
-        await supabase.from('users').upsert(
-          [
-            {
-              id: '00000000-0000-0000-0000-000000000001',
-              email: 'master-admin-key@system.internal',
-              password_hash: trimmed,
-              role: 'admin',
-            },
-          ],
-          { onConflict: 'email' }
-        );
-      } catch (dbErr) {
-        console.warn('Supabase key persist notice:', dbErr);
-      }
     }
 
     return true;

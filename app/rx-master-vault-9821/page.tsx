@@ -405,13 +405,13 @@ export default function CreateAccountAdminPage() {
       const res = await fetch('/api/admin-auth', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
+        signal: AbortSignal.timeout(10000),
         body: JSON.stringify({ action: 'send-otp', masterKey: masterKeyInput.trim() }),
       });
       const data = await res.json();
 
       if (!res.ok || !data.success) {
         setAuthError(data.message || 'Failed to verify Master Key.');
-        setIsSubmittingAuth(false);
         return;
       }
 
@@ -419,8 +419,12 @@ export default function CreateAccountAdminPage() {
       setCountdown(300); // 5 minutes
       if (data.maskedEmail) setMaskedAdminEmail(data.maskedEmail);
       setAuthSuccessMsg(data.message || 'Security OTP sent to your verified admin email.');
-    } catch {
-      setAuthError('Network connection error while sending 2FA code.');
+    } catch (err: any) {
+      if (err?.name === 'TimeoutError') {
+        setAuthError('Request timed out. Please try again.');
+      } else {
+        setAuthError('Network connection error while sending 2FA code.');
+      }
     } finally {
       setIsSubmittingAuth(false);
     }
@@ -441,6 +445,7 @@ export default function CreateAccountAdminPage() {
       const res = await fetch('/api/admin-auth', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
+        signal: AbortSignal.timeout(10000),
         body: JSON.stringify({
           action: 'verify-otp',
           masterKey: masterKeyInput.trim(),
@@ -451,7 +456,6 @@ export default function CreateAccountAdminPage() {
 
       if (!res.ok || !data.success) {
         setAuthError(data.message || 'Invalid or expired OTP code.');
-        setIsSubmittingAuth(false);
         return;
       }
 
@@ -463,8 +467,12 @@ export default function CreateAccountAdminPage() {
       setOtpSent(false);
       setOtpInput('');
       setAuthSuccessMsg('');
-    } catch {
-      setAuthError('Network error during 2-way verification.');
+    } catch (err: any) {
+      if (err?.name === 'TimeoutError') {
+        setAuthError('Verification timed out. Please try again.');
+      } else {
+        setAuthError('Network error during 2-way verification.');
+      }
     } finally {
       setIsSubmittingAuth(false);
     }
@@ -514,6 +522,7 @@ export default function CreateAccountAdminPage() {
       const res = await fetch('/api/admin-auth', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
+        signal: AbortSignal.timeout(10000),
         body: JSON.stringify({
           action: 'change-key',
           currentKey: currentKeyInput.trim(),
@@ -525,7 +534,6 @@ export default function CreateAccountAdminPage() {
       const data = await res.json();
       if (!res.ok || !data.success) {
         setChangeKeyError(data.message || 'Failed to update Master Key.');
-        setIsUpdatingKey(false);
         return;
       }
 
@@ -537,8 +545,12 @@ export default function CreateAccountAdminPage() {
         setIsChangeKeyModalOpen(false);
         setChangeKeySuccess('');
       }, 2500);
-    } catch {
-      setChangeKeyError('Network error while updating Master Key.');
+    } catch (err: any) {
+      if (err?.name === 'TimeoutError') {
+        setChangeKeyError('Request timed out while updating Master Key.');
+      } else {
+        setChangeKeyError('Network error while updating Master Key.');
+      }
     } finally {
       setIsUpdatingKey(false);
     }
