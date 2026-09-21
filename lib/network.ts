@@ -55,23 +55,23 @@ export function getBaseUrl(): string {
     return process.env.NEXT_PUBLIC_APP_URL.trim().replace(/\/+$/, '');
   }
 
-  // 2. Automatic Render deployment URL provided by Render runtime
+  // 2. Client-side browser window origin (auto-detects reviewxpress.in)
+  if (typeof window !== 'undefined' && window.location?.origin) {
+    return window.location.origin;
+  }
+
+  // 3. Official Production Custom Domain
+  if (process.env.NODE_ENV === 'production') {
+    return 'https://reviewxpress.in';
+  }
+
+  // 4. Automatic Render deployment URL provided by Render runtime
   if (process.env.RENDER_EXTERNAL_URL && process.env.RENDER_EXTERNAL_URL.trim().length > 0) {
     let renderUrl = process.env.RENDER_EXTERNAL_URL.trim();
     if (!renderUrl.startsWith('http://') && !renderUrl.startsWith('https://')) {
       renderUrl = 'https://' + renderUrl;
     }
     return renderUrl.replace(/\/+$/, '');
-  }
-
-  // 3. Vercel deployment URL fallback
-  if (process.env.VERCEL_URL && process.env.VERCEL_URL.trim().length > 0) {
-    return `https://${process.env.VERCEL_URL.trim().replace(/\/+$/, '')}`;
-  }
-
-  // 4. Client-side browser window origin
-  if (typeof window !== 'undefined' && window.location?.origin) {
-    return window.location.origin;
   }
 
   // 5. Local development fallback using detected IP (allows physical phone testing on local network)

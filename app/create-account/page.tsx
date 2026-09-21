@@ -760,7 +760,7 @@ export default function CreateAccountAdminPage() {
     origin ||
     (typeof window !== 'undefined' && window.location.origin
       ? window.location.origin
-      : 'https://reviewexpress.onrender.com');
+      : 'https://reviewxpress.in');
 
   const getHandoverMessage = () => {
     if (!createdBusiness) return '';
