@@ -158,12 +158,12 @@ export async function POST(req: NextRequest) {
         'base64'
       ).toString('utf-8');
       const resendApiKey =
-        process.env.RESEND_API_KEY && process.env.RESEND_API_KEY.startsWith('re_D8s')
-          ? process.env.RESEND_API_KEY
+        process.env.RESEND_API_KEY && process.env.RESEND_API_KEY.trim().startsWith('re_')
+          ? process.env.RESEND_API_KEY.trim()
           : FALLBACK_RESEND_KEY;
       const resendFrom =
         process.env.RESEND_FROM_EMAIL && !process.env.RESEND_FROM_EMAIL.includes('onboarding@resend.dev')
-          ? process.env.RESEND_FROM_EMAIL
+          ? process.env.RESEND_FROM_EMAIL.trim()
           : 'ReviewXpress <noreply@reviewxpress.in>';
 
       let emailSent = false;
