@@ -302,14 +302,6 @@ export default function ReviewFlow({ business, initialSource }: ReviewFlowProps)
         <h1 className="text-2xl font-bold text-slate-900 tracking-tight">
           {business.name}
         </h1>
-        <div className="flex items-center justify-center gap-1.5 mt-1.5 text-xs text-slate-500 font-medium">
-          <img
-            src="/reviewxpress-icon.png"
-            alt="ReviewXpress"
-            className="w-4 h-4 rounded-sm object-contain"
-          />
-          <span>Powered by ReviewXpress</span>
-        </div>
       </div>
 
       {/* Main Interactive Card */}
@@ -738,23 +730,15 @@ export default function ReviewFlow({ business, initialSource }: ReviewFlowProps)
       )}
 
       {/* Powered by Footer */}
-      <div className="mt-8 text-center text-xs text-slate-400 flex flex-col items-center justify-center gap-1.5">
-        <div className="flex items-center gap-2">
-          <img
-            src="/reviewxpress-icon.png"
-            alt="ReviewXpress"
-            className="w-5 h-5 rounded-sm object-contain"
-          />
-          <span>
-            Powered by <strong className="text-slate-600">ReviewXpress</strong>
-          </span>
-        </div>
-        <a
-          href="/dashboard"
-          className="text-[11px] text-slate-400 hover:text-indigo-600 transition-colors mt-0.5"
-        >
-          Store Owner Portal →
-        </a>
+      <div className="mt-8 text-center text-xs text-slate-400 flex items-center justify-center gap-2">
+        <img
+          src="/reviewxpress-icon.png"
+          alt="ReviewXpress"
+          className="w-5 h-5 rounded-sm object-contain"
+        />
+        <span>
+          Powered by <strong className="text-slate-600">ReviewXpress</strong>
+        </span>
       </div>
     </div>
   );
