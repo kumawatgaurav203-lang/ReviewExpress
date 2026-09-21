@@ -1,5 +1,5 @@
-import { redirect } from 'next/navigation';
+import { notFound } from 'next/navigation';
 
-export default function AdminRedirect() {
-  redirect('/create-account');
+export default function AdminPage() {
+  notFound();
 }

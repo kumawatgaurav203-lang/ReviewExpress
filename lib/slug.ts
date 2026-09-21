@@ -30,7 +30,7 @@ export async function isSlugTaken(slug: string, excludeBusinessId?: string): Pro
   const cleanSlug = slug.toLowerCase().trim();
 
   // Reserved slugs that cannot be used as shop URLs
-  const reservedSlugs = ['demo', 'api', 'admin', 'dashboard', 'login', 'create-account', 'r', 'qr'];
+  const reservedSlugs = ['demo', 'api', 'admin', 'dashboard', 'login', 'create-account', 'rx-master-vault-9821', 'r', 'qr'];
   if (reservedSlugs.includes(cleanSlug) && cleanSlug !== 'demo') {
     return true;
   }
