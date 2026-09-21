@@ -1,8 +1,12 @@
 import { NextResponse } from 'next/server';
 import { isSupabaseConfigured } from '@/lib/supabase';
 import { redisCache } from '@/lib/redis';
+import { startKeepAlive } from '@/lib/keep-alive';
 
 export const dynamic = 'force-dynamic';
+
+// Initialize 24/7 keep-alive background daemon
+startKeepAlive();
 
 export async function GET() {
   try {
