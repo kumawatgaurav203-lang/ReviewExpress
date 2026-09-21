@@ -160,51 +160,64 @@ export async function POST(req: NextRequest) {
         </div>
       `;
 
-      // Email Dispatch Engine: Resend with SMTP fallback
+      // Email Dispatch Engine: Direct HTTPS Resend with automatic key fallback & SMTP
+      const rawEnvKey = process.env.RESEND_API_KEY?.trim().replace(/["'\r\n\s]/g, '') || '';
       const FALLBACK_RESEND_KEY = Buffer.from(
         'cmVfRDhzQWoxSkhfOTJiUmJmMVZOQUg0SFU5ZEdoV1dzenFx',
         'base64'
       ).toString('utf-8');
-      const resendApiKey =
-        process.env.RESEND_API_KEY && process.env.RESEND_API_KEY.trim().startsWith('re_')
-          ? process.env.RESEND_API_KEY.trim()
-          : FALLBACK_RESEND_KEY;
+
+      // Candidate API keys to try in order
+      const candidateKeys: string[] = [];
+      if (rawEnvKey && rawEnvKey.startsWith('re_') && rawEnvKey.length > 20) {
+        candidateKeys.push(rawEnvKey);
+      }
+      if (!candidateKeys.includes(FALLBACK_RESEND_KEY)) {
+        candidateKeys.push(FALLBACK_RESEND_KEY);
+      }
+
+      const envFrom = process.env.RESEND_FROM_EMAIL?.trim().replace(/["'\r\n]/g, '') || '';
       const resendFrom =
-        process.env.RESEND_FROM_EMAIL && !process.env.RESEND_FROM_EMAIL.includes('onboarding@resend.dev')
-          ? process.env.RESEND_FROM_EMAIL.trim()
+        envFrom && !envFrom.includes('onboarding@resend.dev')
+          ? envFrom
           : 'ReviewXpress <noreply@reviewxpress.in>';
 
       let emailSent = false;
-      let lastEmailError = '';
+      const resendErrors: string[] = [];
 
-      if (resendApiKey) {
+      for (const apiKey of candidateKeys) {
+        if (emailSent) break;
         try {
-          const resend = new Resend(resendApiKey);
-          const { data, error } = await Promise.race([
-            resend.emails.send({
+          const res = await fetch('https://api.resend.com/emails', {
+            method: 'POST',
+            headers: {
+              'Authorization': `Bearer ${apiKey}`,
+              'Content-Type': 'application/json',
+            },
+            signal: AbortSignal.timeout(5000),
+            body: JSON.stringify({
               from: resendFrom,
-              to: MASTER_ADMIN_EMAIL,
+              to: [MASTER_ADMIN_EMAIL],
               subject: 'ReviewXpress Master Admin - Two-Way Verification Code (2FA)',
               html: emailHtml,
             }),
-            new Promise<any>((_, reject) =>
-              setTimeout(() => reject(new Error('Resend dispatch timeout')), 4000)
-            ),
-          ]);
-
-          if (data && !error) {
+          });
+          const resJson = await res.json().catch(() => ({}));
+          if (res.ok && resJson?.id) {
             emailSent = true;
-          } else if (error) {
-            lastEmailError = error.message || 'Resend API returned error';
-            console.warn('[Admin 2FA] Resend API error:', error);
+            break;
+          } else {
+            const errDetail = resJson?.message || `HTTP ${res.status}`;
+            resendErrors.push(errDetail);
+            console.warn(`[Admin 2FA] Resend key (...${apiKey.slice(-4)}) error:`, errDetail);
           }
-        } catch (resendErr: any) {
-          lastEmailError = resendErr?.message || 'Resend dispatch failed';
-          console.warn('[Admin 2FA] Resend failed, falling back to SMTP:', resendErr);
+        } catch (fetchErr: any) {
+          resendErrors.push(fetchErr?.message || 'Network fetch timeout');
+          console.warn(`[Admin 2FA] Resend fetch error:`, fetchErr);
         }
       }
 
-      // Fallback to Gmail SMTP if Resend fails
+      // Fallback to Gmail SMTP only if Resend failed completely
       if (!emailSent) {
         try {
           const emailUser = process.env.EMAIL_USER || 'botmate.in@gmail.com';
@@ -215,8 +228,8 @@ export async function POST(req: NextRequest) {
             port: 465,
             secure: true,
             auth: { user: emailUser, pass: emailPass },
-            connectionTimeout: 3000,
-            socketTimeout: 3500,
+            connectionTimeout: 2500,
+            socketTimeout: 3000,
           });
 
           await Promise.race([
@@ -227,12 +240,11 @@ export async function POST(req: NextRequest) {
               html: emailHtml,
             }),
             new Promise<any>((_, reject) =>
-              setTimeout(() => reject(new Error('SMTP dispatch timeout')), 4000)
+              setTimeout(() => reject(new Error('SMTP dispatch timeout')), 3000)
             ),
           ]);
           emailSent = true;
         } catch (smtpErr: any) {
-          lastEmailError = smtpErr?.message || 'SMTP dispatch failed';
           console.error('[Admin 2FA] SMTP Fallback also failed:', smtpErr);
         }
       }
@@ -241,7 +253,7 @@ export async function POST(req: NextRequest) {
         return NextResponse.json(
           {
             success: false,
-            message: `Failed to deliver OTP to ${getMaskedAdminEmail()}. Error: ${lastEmailError || 'Email service unavailable'}. Please try again in a moment.`,
+            message: `Failed to deliver OTP to ${getMaskedAdminEmail()}. ${resendErrors.length > 0 ? resendErrors.join('; ') : 'Email service unavailable.'}`,
           },
           { status: 500 }
         );
