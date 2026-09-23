@@ -1,13 +1,23 @@
 [
   {
-    "id": "c2e5e514-2a92-454c-83fc-ce758b847004",
+    "id": "acc-1790191370984",
     "email": "kumawatgaurav203@gmail.com",
     "password": "Gaur@v27",
-    "businessName": "Photify Studio",
-    "businessSlug": "photify-studio",
-    "category": "General Retail Stores",
+    "businessName": "Studio",
+    "businessSlug": "studio",
+    "category": "Photo and video shoot studio",
     "googleReviewLink": "https://g.page/r/CYa03-0ngD2lEBM/review",
-    "createdAt": "2026-09-23T18:53:55.989Z"
+    "createdAt": "2026-09-23T19:22:50.984Z"
+  },
+  {
+    "id": "acc-1790191925510",
+    "email": "kumawatpriyanshu036@gmail.com",
+    "password": "Gaur@v27",
+    "businessName": "Beauty parlour",
+    "businessSlug": "beauty-parlour",
+    "category": "Women Beauti Parlour",
+    "googleReviewLink": "https://g.page/r/CYa03-0ngD2lEBM/review",
+    "createdAt": "2026-09-23T19:32:05.510Z"
   },
   {
     "id": "acc-1789895170607",
