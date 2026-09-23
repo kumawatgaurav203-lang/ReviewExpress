@@ -70,7 +70,7 @@ export async function isSlugTaken(slug: string, excludeBusinessId?: string): Pro
 
 /**
  * Generates a guaranteed unique slug for a business name:
- * If "Photify Studio" is taken, tries "photify-studio-1", "photify-studio-2", etc.
+ * If "Apex Salon" is taken, tries "apex-salon-1", "apex-salon-2", etc.
  * Never uses sequential raw IDs like "/r/1".
  */
 export async function generateUniqueSlug(businessName: string, excludeBusinessId?: string): Promise<string> {

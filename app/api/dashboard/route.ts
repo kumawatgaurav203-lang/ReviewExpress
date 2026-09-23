@@ -130,14 +130,6 @@ export async function GET(req: NextRequest) {
       matchedBusinessIds.add(safeSlug);
       matchedBusinessIds.add('b-' + safeSlug);
 
-      // Known store UUID aliases for instant lookup
-      if (safeSlug === 'photify-studio' || safeSlug === 'photify-studios') {
-        matchedBusinessIds.add('b1000000-0000-4000-8000-000000000001');
-        matchedBusinessIds.add('photify-studio');
-        matchedBusinessIds.add('photify-studios');
-        matchedBusinessIds.add('b-photify-studio');
-        matchedBusinessIds.add('b-photify-studios');
-      }
       if (safeSlug === 'kumawat-clothing') {
         matchedBusinessIds.add('74b1c17b-062a-4a58-94e5-4306990da9ed');
         matchedBusinessIds.add('kumawat-clothing');

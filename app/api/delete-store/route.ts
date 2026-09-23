@@ -73,8 +73,11 @@ export async function POST(req: NextRequest) {
     const businessId = 'b-' + effectiveSlug;
     if (!storeName) storeName = account?.businessName || effectiveSlug;
 
-    // 1. Delete from persistent storage (accounts.json)
+    // 1. Delete from persistent storage (accounts.json & cloud vault)
     deleteOwnerAccount(cleanEmail);
+    if (effectiveSlug) {
+      deleteOwnerAccount(effectiveSlug);
+    }
 
     // 2. Delete from in-memory businesses
     deleteBusiness(effectiveSlug);
@@ -109,9 +112,14 @@ export async function POST(req: NextRequest) {
       }
     }
 
-    // 5. Invalidate Redis Caches
-    redisCache.del([`store:profile:${businessSlug}`, `store:profile:b-${businessSlug}`]).catch(() => {});
-    redisCache.delPattern(`dashboard:${businessSlug}:*`).catch(() => {});
+    // 5. Invalidate Redis Caches & Tombstones
+    redisCache.del([
+      `store:profile:${effectiveSlug}`,
+      `store:profile:b-${effectiveSlug}`,
+      `account:${effectiveSlug}`,
+      `account:email:${cleanEmail}`,
+    ]).catch(() => {});
+    redisCache.delPattern(`dashboard:${effectiveSlug}:*`).catch(() => {});
     redisCache.delPattern(`dashboard:${businessId}:*`).catch(() => {});
     redisCache.delPattern('dashboard:all:*').catch(() => {});
 

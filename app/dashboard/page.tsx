@@ -131,7 +131,7 @@ export default function OwnerDashboardPage() {
   } | null>(null);
   const [accessDeniedError, setAccessDeniedError] = useState<string | null>(null);
   const [showTermsModal, setShowTermsModal] = useState(false);
-  const currentSlug = ownerSession?.businessSlug || 'photify-studio';
+  const currentSlug = ownerSession?.businessSlug || '';
   const [timePeriod, setTimePeriod] = useState<'day' | 'week' | 'month' | 'year' | 'all'>('month');
   const [channelFilter, setChannelFilter] = useState<'all' | 'nfc' | 'qr'>('all');
 
@@ -156,10 +156,10 @@ export default function OwnerDashboardPage() {
   };
 
   const business = {
-    id: 'b-' + currentSlug,
-    name: dashboardData?.businessInfo?.name || ownerSession?.businessName || DEMO_BUSINESSES[currentSlug]?.name || 'Photify Studio',
+    id: currentSlug ? 'b-' + currentSlug : '',
+    name: dashboardData?.businessInfo?.name || ownerSession?.businessName || (currentSlug && DEMO_BUSINESSES[currentSlug]?.name) || 'Store Dashboard',
     slug: currentSlug,
-    google_review_link: dashboardData?.businessInfo?.googleReviewLink || DEMO_BUSINESSES[currentSlug]?.google_review_link || 'https://g.page/r/CYa03-0ngD2lEAE/review',
+    google_review_link: dashboardData?.businessInfo?.googleReviewLink || (currentSlug && DEMO_BUSINESSES[currentSlug]?.google_review_link) || '',
     tags: [],
     is_active: true,
   };
@@ -372,7 +372,7 @@ export default function OwnerDashboardPage() {
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 pb-2 border-b border-slate-800/60">
           <div>
             <h1 className="text-2xl sm:text-3xl font-black text-white tracking-tight flex items-center gap-2.5">
-              <span>{ownerSession?.businessName || business?.name || 'Photify Studios'} Analytics</span>
+              <span>{ownerSession?.businessName || business?.name || 'Store'} Analytics</span>
               <span className="inline-flex items-center gap-1 text-[11px] font-bold text-emerald-400 bg-emerald-500/10 border border-emerald-500/20 px-2 py-0.5 rounded-full">
                 <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-ping" />
                 Live Sync
@@ -904,7 +904,7 @@ export default function OwnerDashboardPage() {
           <span className="font-semibold text-slate-400">ReviewXpress Owner Panel</span>
         </div>
         <span className="hidden sm:inline text-slate-700">•</span>
-        <span>Business: {business?.name || 'Photify Studios'}</span>
+        <span>Business: {business?.name || 'Store'}</span>
         <span className="hidden sm:inline text-slate-700">•</span>
         <div className="flex items-center gap-2.5">
           <button

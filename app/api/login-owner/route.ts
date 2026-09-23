@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { verifyOwnerLogin, getOwnerAccountByEmail } from '@/lib/accounts-store';
+import { verifyOwnerLogin, getOwnerAccountByEmail, syncAccountsFromCloud } from '@/lib/accounts-store';
 import { supabase, isSupabaseConfigured } from '@/lib/supabase';
 import { createSessionToken, getSessionUserByEmail, logAuditEvent } from '@/lib/auth-server';
 import { checkRateLimit, RATE_LIMITS, checkRequestSize, validateField, hasSQLInjection } from '@/lib/api-guard';
@@ -57,7 +57,8 @@ export async function POST(req: NextRequest) {
       }
     }
 
-    // 2. Fallback to local accounts store
+    // 2. Fallback to local accounts store (sync from cloud vault first)
+    await syncAccountsFromCloud().catch(() => {});
     let localAccount = getOwnerAccountByEmail(cleanEmail);
     if (!isAuthenticated) {
       const authResult = verifyOwnerLogin(cleanEmail, password);

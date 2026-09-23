@@ -1,5 +1,7 @@
 import fs from 'fs';
 import path from 'path';
+import { supabase, isSupabaseConfigured } from '@/lib/supabase';
+import { redisCache } from '@/lib/redis';
 
 export interface OwnerAccount {
   id: string;
@@ -17,8 +19,13 @@ const dataFilePath = path.join(process.cwd(), 'data', 'accounts.json');
 // In-memory cache with TTL to eliminate unnecessary disk I/O
 let accountsCache: OwnerAccount[] | null = null;
 let lastAccountsReadTime = 0;
+let lastCloudSyncTime = 0;
+const CLOUD_SYNC_TTL = 30 * 1000; // 30 seconds
 
-// Read from JSON file
+// Tombstone set of permanently deleted slugs/emails - prevents resurrection across updates/redeploys
+const deletedIdentifiers = new Set<string>(['photify-studio', 'photify-studios', 'botmate.in@gmail.com']);
+
+// Read from JSON file with tombstone filtering
 function readAccountsFromFile(): OwnerAccount[] {
   const now = Date.now();
   if (accountsCache && now - lastAccountsReadTime < 15000) {
@@ -27,9 +34,14 @@ function readAccountsFromFile(): OwnerAccount[] {
   try {
     if (fs.existsSync(dataFilePath)) {
       const content = fs.readFileSync(dataFilePath, 'utf8');
-      accountsCache = JSON.parse(content);
+      const parsed: OwnerAccount[] = JSON.parse(content);
+      accountsCache = (parsed || []).filter(
+        (a) =>
+          !deletedIdentifiers.has(a.businessSlug.toLowerCase()) &&
+          !deletedIdentifiers.has(a.email.toLowerCase())
+      );
       lastAccountsReadTime = now;
-      return accountsCache || [];
+      return accountsCache;
     }
   } catch (err) {
     console.error('Failed to read accounts file:', err);
@@ -45,11 +57,113 @@ function writeAccountsToFile(accounts: OwnerAccount[]) {
     if (!fs.existsSync(dir)) {
       fs.mkdirSync(dir, { recursive: true });
     }
-    accountsCache = accounts;
+    const filtered = accounts.filter(
+      (a) =>
+        !deletedIdentifiers.has(a.businessSlug.toLowerCase()) &&
+        !deletedIdentifiers.has(a.email.toLowerCase())
+    );
+    accountsCache = filtered;
     lastAccountsReadTime = Date.now();
-    fs.writeFileSync(dataFilePath, JSON.stringify(accounts), 'utf8');
+    fs.writeFileSync(dataFilePath, JSON.stringify(filtered, null, 2), 'utf8');
   } catch (err) {
     console.error('Failed to write accounts file:', err);
+  }
+}
+
+// Asynchronously sync the accounts store from Supabase vault and Redis
+export async function syncAccountsFromCloud(force = false): Promise<OwnerAccount[]> {
+  const now = Date.now();
+  if (!force && accountsCache && now - lastCloudSyncTime < CLOUD_SYNC_TTL) {
+    return accountsCache;
+  }
+
+  try {
+    // 1. Try Redis first (fastest, <2ms)
+    try {
+      const fromRedis = await redisCache.get<string>('sys:accounts-vault');
+      if (fromRedis && typeof fromRedis === 'string') {
+        const parsed: OwnerAccount[] = JSON.parse(fromRedis);
+        if (Array.isArray(parsed) && parsed.length > 0) {
+          const valid = parsed.filter(
+            (a) =>
+              !deletedIdentifiers.has(a.businessSlug.toLowerCase()) &&
+              !deletedIdentifiers.has(a.email.toLowerCase())
+          );
+          accountsCache = valid;
+          lastCloudSyncTime = now;
+          writeAccountsToFile(valid);
+          return valid;
+        }
+      }
+    } catch {}
+
+    // 2. Try Supabase sys-accounts-vault row
+    if (isSupabaseConfigured()) {
+      const { data, error } = await supabase
+        .from('businesses')
+        .select('google_review_link')
+        .eq('slug', 'sys-accounts-vault')
+        .maybeSingle();
+
+      if (!error && data?.google_review_link) {
+        const parsed: OwnerAccount[] = JSON.parse(data.google_review_link);
+        if (Array.isArray(parsed) && parsed.length > 0) {
+          const valid = parsed.filter(
+            (a) =>
+              !deletedIdentifiers.has(a.businessSlug.toLowerCase()) &&
+              !deletedIdentifiers.has(a.email.toLowerCase())
+          );
+          accountsCache = valid;
+          lastCloudSyncTime = now;
+          writeAccountsToFile(valid);
+          // Mirror to Redis
+          redisCache.set('sys:accounts-vault', JSON.stringify(valid), 0).catch(() => {});
+          return valid;
+        }
+      }
+    }
+  } catch (syncErr) {
+    console.warn('Sync accounts from cloud notice:', syncErr);
+  }
+
+  const fallback = readAccountsFromFile();
+  lastCloudSyncTime = now;
+  return fallback;
+}
+
+// Asynchronously persist all accounts to Cloud (Supabase + Redis)
+export async function persistAccountsToCloud(accounts: OwnerAccount[]): Promise<void> {
+  const filtered = accounts.filter(
+    (a) =>
+      !deletedIdentifiers.has(a.businessSlug.toLowerCase()) &&
+      !deletedIdentifiers.has(a.email.toLowerCase())
+  );
+
+  const serialized = JSON.stringify(filtered);
+
+  // 1. Mirror to Redis
+  try {
+    await redisCache.set('sys:accounts-vault', serialized, 0);
+  } catch {}
+
+  // 2. Persist permanently to Supabase businesses vault
+  if (isSupabaseConfigured()) {
+    try {
+      await supabase.from('businesses').upsert(
+        [
+          {
+            id: '00000000-0000-4000-a000-000000000002',
+            name: 'Merchant Accounts Vault',
+            slug: 'sys-accounts-vault',
+            google_review_link: serialized,
+            is_active: false,
+          },
+        ],
+        { onConflict: 'slug' }
+      );
+    } catch (e) {
+      console.warn('Supabase persist accounts notice:', e);
+    }
   }
 }
 
@@ -57,7 +171,7 @@ export function saveOwnerAccount(account: Omit<OwnerAccount, 'id' | 'createdAt'>
   accountsCache = readAccountsFromFile();
   
   const existingIdx = accountsCache.findIndex(
-    (a) => a.email.toLowerCase() === account.email.toLowerCase()
+    (a) => a.email.toLowerCase() === account.email.toLowerCase() || a.businessSlug.toLowerCase() === account.businessSlug.toLowerCase()
   );
 
   const newAccount: OwnerAccount = {
@@ -74,6 +188,7 @@ export function saveOwnerAccount(account: Omit<OwnerAccount, 'id' | 'createdAt'>
   }
 
   writeAccountsToFile(accountsCache);
+  persistAccountsToCloud(accountsCache).catch(() => {});
   return newAccount;
 }
 
@@ -84,12 +199,17 @@ export function getAllOwnerAccounts(): OwnerAccount[] {
 
 export function getOwnerAccountByEmail(email: string): OwnerAccount | undefined {
   accountsCache = readAccountsFromFile();
-  return accountsCache.find((a) => a.email.toLowerCase() === email.toLowerCase().trim());
+  const cleanEmail = email.toLowerCase().trim();
+  if (deletedIdentifiers.has(cleanEmail)) return undefined;
+  return accountsCache.find((a) => a.email.toLowerCase() === cleanEmail);
 }
 
 export function verifyOwnerLogin(email: string, password: string): { success: boolean; account?: OwnerAccount; message?: string } {
   accountsCache = readAccountsFromFile();
   const cleanEmail = email.toLowerCase().trim();
+  if (deletedIdentifiers.has(cleanEmail)) {
+    return { success: false, message: 'This store account has been permanently deleted.' };
+  }
   const account = accountsCache.find((a) => a.email.toLowerCase() === cleanEmail);
 
   if (!account) {
@@ -105,7 +225,9 @@ export function verifyOwnerLogin(email: string, password: string): { success: bo
 
 export function getAccountBySlug(slug: string): OwnerAccount | undefined {
   accountsCache = readAccountsFromFile();
-  return accountsCache.find((a) => a.businessSlug === slug);
+  const cleanSlug = slug.toLowerCase().trim();
+  if (deletedIdentifiers.has(cleanSlug)) return undefined;
+  return accountsCache.find((a) => a.businessSlug.toLowerCase() === cleanSlug);
 }
 
 export function updateOwnerPassword(email: string, newPassword: string): boolean {
@@ -117,22 +239,31 @@ export function updateOwnerPassword(email: string, newPassword: string): boolean
   if (existingIdx >= 0) {
     accountsCache[existingIdx].password = newPassword;
     writeAccountsToFile(accountsCache);
+    persistAccountsToCloud(accountsCache).catch(() => {});
     return true;
   }
   return false;
 }
 
-export function deleteOwnerAccount(email: string): boolean {
+export function deleteOwnerAccount(emailOrSlug: string): boolean {
+  const target = emailOrSlug.toLowerCase().trim();
+  deletedIdentifiers.add(target);
+
   accountsCache = readAccountsFromFile();
   const initialLength = accountsCache.length;
   accountsCache = accountsCache.filter(
-    (a) => a.email.toLowerCase() !== email.toLowerCase().trim()
+    (a) => a.email.toLowerCase() !== target && a.businessSlug.toLowerCase() !== target
   );
-  if (accountsCache.length < initialLength) {
-    writeAccountsToFile(accountsCache);
-    return true;
-  }
-  return false;
+  
+  writeAccountsToFile(accountsCache);
+  persistAccountsToCloud(accountsCache).catch(() => {});
+
+  // Clean individual keys in Redis
+  try {
+    redisCache.del([`account:${target}`, `account:email:${target}`]).catch(() => {});
+  } catch {}
+
+  return accountsCache.length < initialLength;
 }
 
 export function updateOwnerAccount(
@@ -156,6 +287,7 @@ export function updateOwnerAccount(
       accountsCache[existingIdx].businessName = updates.businessName;
     }
     writeAccountsToFile(accountsCache);
+    persistAccountsToCloud(accountsCache).catch(() => {});
     return accountsCache[existingIdx];
   }
   return null;

@@ -375,10 +375,6 @@ export async function resolveBusinessUuid(idOrSlug: string): Promise<string> {
     return 'b0000000-0000-4000-8000-000000000000';
   }
 
-  if (rawSlug === 'photify-studio' || rawSlug === 'photify-studios') {
-    return 'b1000000-0000-4000-8000-000000000001';
-  }
-
   if (isSupabaseConfigured()) {
     try {
       const { data } = await supabase

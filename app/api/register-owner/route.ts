@@ -1,7 +1,7 @@
 import crypto from 'crypto';
 import { NextRequest, NextResponse } from 'next/server';
 import { registerNewBusiness } from '@/lib/demo-data';
-import { saveOwnerAccount, getAllOwnerAccounts, updateOwnerAccount } from '@/lib/accounts-store';
+import { saveOwnerAccount, getAllOwnerAccounts, updateOwnerAccount, syncAccountsFromCloud } from '@/lib/accounts-store';
 import { supabase, isSupabaseConfigured } from '@/lib/supabase';
 import { getShuffledCategoryTags } from '@/lib/tags-data';
 import { Business } from '@/lib/types';
@@ -21,55 +21,59 @@ export async function GET(req: NextRequest) {
         { status: 401 }
       );
     }
-    // 1. Populate from local accounts store
+
+    // Sync cloud accounts vault from Supabase and Redis
+    await syncAccountsFromCloud().catch(() => {});
     const accounts = getAllOwnerAccounts();
     const storesMap = new Map<string, any>();
 
-    for (const acc of accounts) {
-      if (!acc.businessSlug || acc.businessSlug.startsWith('sys-') || acc.businessSlug === 'demo') continue;
-      storesMap.set(acc.businessSlug, {
-        id: acc.id,
-        name: acc.businessName,
-        slug: acc.businessSlug,
-        email: acc.email,
-        password: acc.password,
-        category: acc.category || 'general',
-        googleReviewLink: acc.googleReviewLink || '',
-        status: 'active',
-        createdAt: acc.createdAt,
-      });
-    }
-
-    // 2. Query Supabase businesses (source of truth across all redeploys)
+    // 1. Supabase businesses is the absolute single source of truth across all redeploys
     if (isSupabaseConfigured()) {
       try {
         const { data: dbStores, error } = await supabase
           .from('businesses')
           .select('id, name, slug, google_review_link, tags, created_at, is_active')
           .neq('slug', 'sys-master-admin-key')
+          .neq('slug', 'sys-accounts-vault')
           .neq('slug', 'demo')
           .order('created_at', { ascending: false });
 
-        if (!error && dbStores && dbStores.length > 0) {
+        if (!error && dbStores) {
           for (const b of dbStores) {
-            if (b.slug === 'sys-master-admin-key' || b.slug.startsWith('sys-') || b.slug === 'demo') continue;
-            const existing = storesMap.get(b.slug);
-            const acc = accounts.find((a) => a.businessSlug === b.slug || a.id === b.id);
+            if (b.slug.startsWith('sys-') || b.slug === 'demo') continue;
+            // Lookup matching account credentials
+            const acc = accounts.find((a) => a.businessSlug.toLowerCase() === b.slug.toLowerCase() || a.id === b.id);
             storesMap.set(b.slug, {
               id: b.id,
               name: b.name,
               slug: b.slug,
-              email: acc?.email || existing?.email || 'owner@' + b.slug + '.com',
-              password: acc?.password || existing?.password || '••••••••',
-              category: acc?.category || existing?.category || 'general',
-              googleReviewLink: b.google_review_link || acc?.googleReviewLink || existing?.googleReviewLink || '',
+              email: acc?.email || 'owner@' + b.slug + '.com',
+              password: acc?.password || '••••••••',
+              category: acc?.category || 'general',
+              googleReviewLink: b.google_review_link || acc?.googleReviewLink || '',
               status: b.is_active ? 'active' : 'inactive',
-              createdAt: b.created_at || existing?.createdAt,
+              createdAt: b.created_at || acc?.createdAt,
             });
           }
         }
       } catch (err) {
         console.warn('Supabase stores fetch note:', err);
+      }
+    } else {
+      // Local dev offline fallback only when Supabase is not configured
+      for (const acc of accounts) {
+        if (!acc.businessSlug || acc.businessSlug.startsWith('sys-') || acc.businessSlug === 'demo') continue;
+        storesMap.set(acc.businessSlug, {
+          id: acc.id,
+          name: acc.businessName,
+          slug: acc.businessSlug,
+          email: acc.email,
+          password: acc.password,
+          category: acc.category || 'general',
+          googleReviewLink: acc.googleReviewLink || '',
+          status: 'active',
+          createdAt: acc.createdAt,
+        });
       }
     }
 
