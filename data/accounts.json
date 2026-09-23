@@ -1,35 +1,5 @@
 [
   {
-    "id": "acc-1789895170607",
-    "email": "kumawatpriyanshu036@gmail.com",
-    "password": "1234567@",
-    "businessName": "kumawat clothing",
-    "businessSlug": "kumawat-clothing",
-    "category": "Men Clothing",
-    "googleReviewLink": "https://www.google.com/maps",
-    "createdAt": "2026-09-20T09:06:10.607Z"
-  },
-  {
-    "id": "acc-1789884320576",
-    "email": "owner-b@jaipurgems.com",
-    "password": "Gems#002",
-    "businessName": "Jaipur Gems & Jewels",
-    "businessSlug": "jaipur-gems-jewels-3",
-    "category": "clothing",
-    "googleReviewLink": "https://g.page/r/jaipur-gems/review",
-    "createdAt": "2026-09-20T06:05:20.576Z"
-  },
-  {
-    "id": "acc-1789884319203",
-    "email": "owner-a@royalspice.com",
-    "password": "Spice@01",
-    "businessName": "Royal Spice Cafe",
-    "businessSlug": "royal-spice-cafe-3",
-    "category": "cafe",
-    "googleReviewLink": "https://g.page/r/royal-spice/review",
-    "createdAt": "2026-09-20T06:05:19.203Z"
-  },
-  {
     "id": "acc-1789809069368",
     "email": "botmate.in@gmail.com",
     "password": "Gaur@v27",
@@ -38,5 +8,15 @@
     "category": "Studio for Photo and Video Shoot",
     "googleReviewLink": "https://g.page/r/CYa03-0ngD2lEAE/review",
     "createdAt": "2026-09-19T09:11:09.368Z"
+  },
+  {
+    "id": "acc-1789895170607",
+    "email": "kumawatpriyanshu036@gmail.com",
+    "password": "1234567@",
+    "businessName": "kumawat clothing",
+    "businessSlug": "kumawat-clothing",
+    "category": "Men Clothing",
+    "googleReviewLink": "https://www.google.com/maps",
+    "createdAt": "2026-09-20T09:06:10.607Z"
   }
 ]

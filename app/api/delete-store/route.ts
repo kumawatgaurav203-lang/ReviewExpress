@@ -33,55 +33,77 @@ export async function POST(req: NextRequest) {
     }
 
     const cleanEmail = email.toLowerCase().trim();
-    const account = getOwnerAccountByEmail(cleanEmail);
+    let account = getOwnerAccountByEmail(cleanEmail);
+    let businessSlug = account?.businessSlug || '';
+    let storeName = account?.businessName || '';
 
-    if (!account) {
+    // If account not in local memory, check Supabase businesses table
+    if (!account && isSupabaseConfigured()) {
+      try {
+        const potentialSlug = cleanEmail.split('@')[0].replace(/^owner-|^owner@/, '').replace(/\.com$/, '');
+        const { data: matchedBiz } = await supabase
+          .from('businesses')
+          .select('id, name, slug')
+          .or(`slug.eq.${potentialSlug},slug.eq.${cleanEmail}`)
+          .maybeSingle();
+
+        if (matchedBiz) {
+          businessSlug = matchedBiz.slug;
+          storeName = matchedBiz.name;
+        }
+      } catch {}
+    }
+
+    if (!account && !businessSlug) {
       return NextResponse.json({
         success: false,
         message: 'No store account found for this email address.',
       }, { status: 404 });
     }
 
-    // Verify current account password
-    if (account.password !== password) {
+    // Verify current account password if password is set on account
+    if (account && account.password && account.password !== password) {
       return NextResponse.json({ 
         success: false, 
         message: 'Incorrect current password. You must enter the exact current password for this account.' 
       }, { status: 400 });
     }
 
-    const businessSlug = account.businessSlug;
-    const businessId = 'b-' + businessSlug;
-    const storeName = account.businessName;
+    const effectiveSlug = businessSlug || account?.businessSlug || '';
+    const businessId = 'b-' + effectiveSlug;
+    if (!storeName) storeName = account?.businessName || effectiveSlug;
 
     // 1. Delete from persistent storage (accounts.json)
     deleteOwnerAccount(cleanEmail);
 
     // 2. Delete from in-memory businesses
-    deleteBusiness(businessSlug);
+    deleteBusiness(effectiveSlug);
 
     // 3. Delete all feedback/complaints data locally
     deleteBusinessData(businessId);
-    deleteBusinessData(businessSlug);
+    deleteBusinessData(effectiveSlug);
 
-    // 4. Delete from Supabase if configured
-    if (isSupabaseConfigured()) {
+    // 4. Delete permanently from Supabase businesses and review_logs
+    if (isSupabaseConfigured() && effectiveSlug) {
       try {
         // Find business UUID
         const { data: dbBiz } = await supabase
           .from('businesses')
           .select('id')
-          .eq('slug', businessSlug)
-          .single();
+          .eq('slug', effectiveSlug)
+          .maybeSingle();
 
-        const targets = [businessId, businessSlug];
+        const targets = [businessId, effectiveSlug];
         if (dbBiz?.id) targets.push(dbBiz.id);
 
-        await Promise.all([
-          supabase.from('review_logs').delete().in('business_id', targets),
-          supabase.from('businesses').delete().eq('slug', businessSlug),
-          supabase.from('users').delete().eq('email', cleanEmail),
-        ]);
+        // Delete review logs first
+        await supabase.from('review_logs').delete().in('business_id', targets);
+
+        // Delete business from businesses table
+        await supabase.from('businesses').delete().eq('slug', effectiveSlug);
+        if (dbBiz?.id) {
+          await supabase.from('businesses').delete().eq('id', dbBiz.id);
+        }
       } catch (dbErr) {
         console.error('Supabase delete error in delete-store:', dbErr);
       }
