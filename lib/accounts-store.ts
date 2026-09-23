@@ -22,8 +22,8 @@ let lastAccountsReadTime = 0;
 let lastCloudSyncTime = 0;
 const CLOUD_SYNC_TTL = 30 * 1000; // 30 seconds
 
-// Tombstone set of permanently deleted slugs/emails - prevents resurrection across updates/redeploys
-const deletedIdentifiers = new Set<string>(['photify-studio', 'photify-studios', 'botmate.in@gmail.com']);
+// Tombstone set of deleted slugs/emails - populated dynamically when stores are deleted via delete-store
+const deletedIdentifiers = new Set<string>();
 
 // Read from JSON file with tombstone filtering
 function readAccountsFromFile(): OwnerAccount[] {
@@ -168,16 +168,22 @@ export async function persistAccountsToCloud(accounts: OwnerAccount[]): Promise<
 }
 
 export function saveOwnerAccount(account: Omit<OwnerAccount, 'id' | 'createdAt'>): OwnerAccount {
+  const cleanEmail = account.email.toLowerCase().trim();
+  const cleanSlug = account.businessSlug.toLowerCase().trim();
+  deletedIdentifiers.delete(cleanEmail);
+  deletedIdentifiers.delete(cleanSlug);
+
   accountsCache = readAccountsFromFile();
   
   const existingIdx = accountsCache.findIndex(
-    (a) => a.email.toLowerCase() === account.email.toLowerCase() || a.businessSlug.toLowerCase() === account.businessSlug.toLowerCase()
+    (a) => a.email.toLowerCase() === cleanEmail || a.businessSlug.toLowerCase() === cleanSlug
   );
 
   const newAccount: OwnerAccount = {
     id: 'acc-' + Date.now(),
     ...account,
-    email: account.email.toLowerCase().trim(),
+    email: cleanEmail,
+    businessSlug: cleanSlug,
     createdAt: new Date().toISOString(),
   };
 

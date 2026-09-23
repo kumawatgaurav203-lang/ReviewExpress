@@ -2050,12 +2050,26 @@ export default function CreateAccountAdminPage() {
                                   <Mail className="w-3 h-3 text-slate-500" />
                                   <span>Client ID:</span>
                                 </span>
-                                <span
-                                  className="text-white font-mono font-medium truncate max-w-[140px]"
-                                  title={store.email}
-                                >
-                                  {store.email}
-                                </span>
+                                <div className="flex items-center gap-1.5 min-w-0">
+                                  <span
+                                    className="text-white font-mono font-medium truncate max-w-[140px] select-all"
+                                    title={store.email}
+                                  >
+                                    {store.email}
+                                  </span>
+                                  <button
+                                    type="button"
+                                    onClick={() => handleCopy(store.email || '', `email-${store.slug}`)}
+                                    className="p-1 rounded bg-slate-900 hover:bg-slate-800 text-slate-400 hover:text-white transition-colors cursor-pointer shrink-0"
+                                    title="Copy Client ID / Email"
+                                  >
+                                    {copiedField === `email-${store.slug}` ? (
+                                      <Check className="w-2.5 h-2.5 text-emerald-400" />
+                                    ) : (
+                                      <Copy className="w-2.5 h-2.5" />
+                                    )}
+                                  </button>
+                                </div>
                               </div>
                               <div className="flex items-center justify-between text-[11px]">
                                 <span className="text-slate-400 flex items-center gap-1">
@@ -2063,22 +2077,50 @@ export default function CreateAccountAdminPage() {
                                   <span>Password:</span>
                                 </span>
                                 <div className="flex items-center gap-1.5 font-mono">
-                                  <span className="text-emerald-400 font-bold tracking-wider">
-                                    {visiblePasswords[store.email] ? store.password || '••••••••' : '••••••••'}
+                                  <span className="text-emerald-400 font-bold tracking-wider select-all">
+                                    {visiblePasswords[store.email] || visiblePasswords[store.slug]
+                                      ? store.password || '••••••••'
+                                      : '••••••••'}
                                   </span>
                                   <button
                                     type="button"
                                     onClick={() =>
-                                      setVisiblePasswords((prev) => ({
-                                        ...prev,
-                                        [store.email]: !prev[store.email],
-                                      }))
+                                      setVisiblePasswords((prev) => {
+                                        const isCurrentlyVisible = Boolean(prev[store.email] || prev[store.slug]);
+                                        return {
+                                          ...prev,
+                                          [store.email]: !isCurrentlyVisible,
+                                          [store.slug]: !isCurrentlyVisible,
+                                        };
+                                      })
                                     }
                                     className="text-slate-500 hover:text-slate-300 p-0.5 transition-colors cursor-pointer"
-                                    title={visiblePasswords[store.email] ? 'Hide password' : 'Show current password'}
+                                    title={
+                                      visiblePasswords[store.email] || visiblePasswords[store.slug]
+                                        ? 'Hide password'
+                                        : 'Show current password'
+                                    }
                                   >
-                                    {visiblePasswords[store.email] ? <EyeOff className="w-3 h-3" /> : <Eye className="w-3 h-3" />}
+                                    {visiblePasswords[store.email] || visiblePasswords[store.slug] ? (
+                                      <EyeOff className="w-3 h-3" />
+                                    ) : (
+                                      <Eye className="w-3 h-3" />
+                                    )}
                                   </button>
+                                  {store.password && store.password !== '••••••••' && (
+                                    <button
+                                      type="button"
+                                      onClick={() => handleCopy(store.password || '', `pass-${store.slug}`)}
+                                      className="p-1 rounded bg-slate-900 hover:bg-slate-800 text-slate-400 hover:text-emerald-400 transition-colors cursor-pointer shrink-0"
+                                      title="Copy Password"
+                                    >
+                                      {copiedField === `pass-${store.slug}` ? (
+                                        <Check className="w-2.5 h-2.5 text-emerald-400" />
+                                      ) : (
+                                        <Copy className="w-2.5 h-2.5" />
+                                      )}
+                                    </button>
+                                  )}
                                 </div>
                               </div>
 

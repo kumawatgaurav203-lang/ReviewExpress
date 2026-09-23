@@ -1,5 +1,15 @@
 [
   {
+    "id": "c2e5e514-2a92-454c-83fc-ce758b847004",
+    "email": "kumawatgaurav203@gmail.com",
+    "password": "Gaur@v27",
+    "businessName": "Photify Studio",
+    "businessSlug": "photify-studio",
+    "category": "General Retail Stores",
+    "googleReviewLink": "https://g.page/r/CYa03-0ngD2lEBM/review",
+    "createdAt": "2026-09-23T18:53:55.989Z"
+  },
+  {
     "id": "acc-1789895170607",
     "email": "kumawatpriyanshu036@gmail.com",
     "password": "1234567@",
