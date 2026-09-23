@@ -1559,148 +1559,141 @@ export default function CreateAccountAdminPage() {
             {/* ------------------------------------------------------------- */}
             {/* 🔗 PERMANENT NFC REVIEW LINK & HIGH-RES QR STANDEE HUB        */}
             {/* ------------------------------------------------------------- */}
-            <div className="p-5 rounded-2xl bg-gradient-to-r from-indigo-950/60 via-slate-900 to-indigo-950/40 border border-indigo-500/30 space-y-4 shadow-xl relative overflow-hidden">
-              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
-                <div className="flex items-center gap-2.5">
-                  <div className="p-2 rounded-xl bg-indigo-500/20 text-indigo-400 border border-indigo-500/30">
+            <div className="p-4 sm:p-5 rounded-2xl bg-gradient-to-r from-indigo-950/60 via-slate-900 to-indigo-950/40 border border-indigo-500/30 space-y-4 shadow-xl relative overflow-hidden">
+              {/* Header: Title + Hub Badge */}
+              <div className="flex items-center justify-between gap-2.5 flex-wrap">
+                <div className="flex items-center gap-2.5 min-w-0">
+                  <div className="p-2 rounded-xl bg-indigo-500/20 text-indigo-400 border border-indigo-500/30 shrink-0">
                     <Smartphone className="w-5 h-5" />
                   </div>
-                  <div>
-                    <h3 className="text-sm font-bold text-white flex items-center gap-2">
-                      <span>Permanent NFC Review Link & High-Res QR</span>
-                      <span className="text-[10px] font-semibold text-emerald-400 bg-emerald-500/10 border border-emerald-500/20 px-2 py-0.5 rounded-full">
-                        Admin NFC Hub
-                      </span>
+                  <div className="min-w-0">
+                    <h3 className="text-sm font-bold text-white leading-tight">
+                      Permanent Review Links & QR
                     </h3>
-                    <p className="text-[11px] text-slate-400">
-                      Program NFC cards or print QR standees for {createdBusiness.name}
+                    <p className="text-[11px] text-slate-400 truncate">
+                      NFC Chip & Standee for <span className="text-indigo-300 font-semibold">{createdBusiness.name}</span>
                     </p>
                   </div>
                 </div>
+                <span className="text-[10px] font-semibold text-emerald-400 bg-emerald-500/10 border border-emerald-500/20 px-2.5 py-0.5 rounded-full whitespace-nowrap shrink-0">
+                  Admin NFC Hub
+                </span>
               </div>
 
-              <div className="grid grid-cols-1 md:grid-cols-12 gap-4 items-center bg-slate-950/70 p-4 rounded-xl border border-slate-800/80">
+              <div className="grid grid-cols-1 md:grid-cols-12 gap-4 items-center bg-slate-950/70 p-3.5 sm:p-4 rounded-xl border border-slate-800/80">
                 {/* QR Display */}
-                <div className="md:col-span-4 flex flex-col items-center justify-center p-3 bg-white rounded-xl shadow-md space-y-2">
-                  {createdQrDataUrl ? (
-                    <img
-                      src={createdQrDataUrl}
-                      alt={`${createdBusiness.name} Review QR`}
-                      className="w-36 h-36 object-contain"
-                    />
-                  ) : (
-                    <div className="w-36 h-36 flex items-center justify-center text-slate-400 text-xs">
-                      Generating QR...
-                    </div>
-                  )}
+                <div className="md:col-span-4 flex flex-col items-center justify-center p-3 sm:p-4 bg-slate-900/90 rounded-xl border border-slate-800 space-y-3">
+                  <div className="p-2.5 bg-white rounded-xl shadow-lg ring-1 ring-slate-700/50">
+                    {createdQrDataUrl ? (
+                      <img
+                        src={createdQrDataUrl}
+                        alt={`${createdBusiness.name} Review QR`}
+                        className="w-36 h-36 sm:w-40 sm:h-40 object-contain"
+                      />
+                    ) : (
+                      <div className="w-36 h-36 sm:w-40 sm:h-40 flex items-center justify-center text-slate-600 text-xs">
+                        Generating QR...
+                      </div>
+                    )}
+                  </div>
                   <button
                     type="button"
                     onClick={() => handleDownloadQr(createdBusiness.slug, createdBusiness.name)}
-                    className="w-full py-1.5 px-3 rounded-lg bg-slate-900 hover:bg-slate-800 text-white text-[11px] font-bold flex items-center justify-center gap-1.5 transition-colors shadow cursor-pointer"
+                    className="w-full py-2 px-3 rounded-lg bg-indigo-600 hover:bg-indigo-500 active:scale-95 text-white text-[11px] font-bold flex items-center justify-center gap-1.5 transition-all shadow cursor-pointer"
                   >
-                    <Download className="w-3.5 h-3.5 text-indigo-400" />
+                    <Download className="w-3.5 h-3.5" />
                     <span>Download QR (PNG)</span>
                   </button>
                 </div>
 
                 {/* NFC & QR Details & Copy Actions */}
-                <div className="md:col-span-8 space-y-4">
+                <div className="md:col-span-8 space-y-3 sm:space-y-4">
                   {/* BOX 1: Permanent QR Code URL */}
                   <div className="p-3 sm:p-3.5 rounded-xl bg-indigo-950/40 border border-indigo-500/30 space-y-2">
-                    <div className="flex items-center justify-between">
-                      <label className="text-xs font-bold text-indigo-300 flex items-center gap-1.5">
-                        <QrCode className="w-4 h-4 text-indigo-400" />
-                        <span>Permanent QR Review URL (Standee Print)</span>
-                      </label>
+                    <div className="flex items-center justify-between gap-2">
+                      <span className="text-xs font-bold text-indigo-300 flex items-center gap-1.5 min-w-0">
+                        <QrCode className="w-4 h-4 text-indigo-400 shrink-0" />
+                        <span className="truncate">Permanent QR URL (Standee)</span>
+                      </span>
                       <a
                         href={`${liveOrigin}/r/${createdBusiness.slug}?source=qr`}
                         target="_blank"
                         rel="noopener noreferrer"
-                        className="text-[11px] text-indigo-400 hover:text-indigo-200 font-semibold flex items-center gap-1 transition-colors"
+                        className="px-2 py-0.5 rounded-md bg-indigo-500/10 hover:bg-indigo-500/20 border border-indigo-500/30 text-[10px] text-indigo-300 font-semibold flex items-center gap-1 shrink-0 transition-colors"
                       >
-                        <span>Test QR Flow</span>
-                        <ExternalLink className="w-3 h-3" />
+                        <span>Test QR</span>
+                        <ExternalLink className="w-2.5 h-2.5" />
                       </a>
                     </div>
-                    <div className="flex items-center gap-2 bg-slate-950 border border-indigo-500/30 rounded-xl p-1.5 focus-within:border-indigo-400">
-                      <input
-                        type="text"
-                        readOnly
-                        value={`${liveOrigin}/r/${createdBusiness.slug}?source=qr`}
-                        className="flex-1 bg-transparent px-2.5 text-xs font-mono text-indigo-300 focus:outline-none select-all truncate"
-                      />
-                      <button
-                        type="button"
-                        onClick={() =>
-                          handleCopy(
-                            `${liveOrigin}/r/${createdBusiness.slug}?source=qr`,
-                            'qr-permanent'
-                          )
-                        }
-                        className="px-3.5 py-2 rounded-lg bg-indigo-600 hover:bg-indigo-500 active:scale-95 text-white text-xs font-bold flex items-center gap-1.5 shrink-0 transition-all shadow-sm cursor-pointer"
-                      >
-                        {copiedField === 'qr-permanent' ? (
-                          <>
-                            <Check className="w-3.5 h-3.5 text-emerald-300" />
-                            <span className="text-emerald-300">Copied!</span>
-                          </>
-                        ) : (
-                          <>
-                            <Copy className="w-3.5 h-3.5" />
-                            <span>Copy</span>
-                          </>
-                        )}
-                      </button>
+                    <div className="bg-slate-950/90 border border-slate-800 rounded-xl px-2.5 py-2 text-xs font-mono text-indigo-300 break-all select-all leading-relaxed">
+                      {liveOrigin}/r/<span className="text-white font-bold">{createdBusiness.slug}</span>?source=qr
                     </div>
+                    <button
+                      type="button"
+                      onClick={() =>
+                        handleCopy(
+                          `${liveOrigin}/r/${createdBusiness.slug}?source=qr`,
+                          'qr-permanent'
+                        )
+                      }
+                      className="w-full py-2.5 px-3 rounded-xl bg-indigo-600 hover:bg-indigo-500 active:scale-[0.98] text-white text-xs font-bold flex items-center justify-center gap-1.5 transition-all shadow-md cursor-pointer"
+                    >
+                      {copiedField === 'qr-permanent' ? (
+                        <>
+                          <Check className="w-3.5 h-3.5 text-emerald-300" />
+                          <span className="text-emerald-300">Copied QR Link to Clipboard!</span>
+                        </>
+                      ) : (
+                        <>
+                          <Copy className="w-3.5 h-3.5" />
+                          <span>Copy QR Review Link</span>
+                        </>
+                      )}
+                    </button>
                   </div>
 
                   {/* BOX 2: Permanent NFC Review URL */}
                   <div className="p-3 sm:p-3.5 rounded-xl bg-amber-950/30 border border-amber-500/30 space-y-2">
-                    <div className="flex items-center justify-between">
-                      <label className="text-xs font-bold text-amber-300 flex items-center gap-1.5">
-                        <Smartphone className="w-4 h-4 text-amber-400" />
-                        <span>Permanent NFC Tag URL (Write to NFC Chip)</span>
-                      </label>
+                    <div className="flex items-center justify-between gap-2">
+                      <span className="text-xs font-bold text-amber-300 flex items-center gap-1.5 min-w-0">
+                        <Smartphone className="w-4 h-4 text-amber-400 shrink-0" />
+                        <span className="truncate">Permanent NFC URL (Write to Chip)</span>
+                      </span>
                       <a
                         href={`${liveOrigin}/r/${createdBusiness.slug}?source=nfc`}
                         target="_blank"
                         rel="noopener noreferrer"
-                        className="text-[11px] text-amber-400 hover:text-amber-200 font-semibold flex items-center gap-1 transition-colors"
+                        className="px-2 py-0.5 rounded-md bg-amber-500/10 hover:bg-amber-500/20 border border-amber-500/30 text-[10px] text-amber-300 font-semibold flex items-center gap-1 shrink-0 transition-colors"
                       >
-                        <span>Test NFC Flow</span>
-                        <ExternalLink className="w-3 h-3" />
+                        <span>Test NFC</span>
+                        <ExternalLink className="w-2.5 h-2.5" />
                       </a>
                     </div>
-                    <div className="flex items-center gap-2 bg-slate-950 border border-amber-500/30 rounded-xl p-1.5 focus-within:border-amber-400">
-                      <input
-                        type="text"
-                        readOnly
-                        value={`${liveOrigin}/r/${createdBusiness.slug}?source=nfc`}
-                        className="flex-1 bg-transparent px-2.5 text-xs font-mono text-amber-300 focus:outline-none select-all truncate"
-                      />
-                      <button
-                        type="button"
-                        onClick={() =>
-                          handleCopy(
-                            `${liveOrigin}/r/${createdBusiness.slug}?source=nfc`,
-                            'nfc-permanent'
-                          )
-                        }
-                        className="px-3.5 py-2 rounded-lg bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-600 hover:to-amber-700 active:scale-95 text-slate-950 text-xs font-black flex items-center gap-1.5 shrink-0 transition-all shadow-sm cursor-pointer"
-                      >
-                        {copiedField === 'nfc-permanent' ? (
-                          <>
-                            <Check className="w-3.5 h-3.5 text-slate-950" />
-                            <span>Copied!</span>
-                          </>
-                        ) : (
-                          <>
-                            <Copy className="w-3.5 h-3.5 text-slate-950" />
-                            <span>Copy</span>
-                          </>
-                        )}
-                      </button>
+                    <div className="bg-slate-950/90 border border-slate-800 rounded-xl px-2.5 py-2 text-xs font-mono text-amber-300 break-all select-all leading-relaxed">
+                      {liveOrigin}/r/<span className="text-white font-bold">{createdBusiness.slug}</span>?source=nfc
                     </div>
+                    <button
+                      type="button"
+                      onClick={() =>
+                        handleCopy(
+                          `${liveOrigin}/r/${createdBusiness.slug}?source=nfc`,
+                          'nfc-permanent'
+                        )
+                      }
+                      className="w-full py-2.5 px-3 rounded-xl bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-600 active:scale-[0.98] text-slate-950 text-xs font-black flex items-center justify-center gap-1.5 transition-all shadow-md cursor-pointer"
+                    >
+                      {copiedField === 'nfc-permanent' ? (
+                        <>
+                          <Check className="w-3.5 h-3.5 text-slate-950" />
+                          <span className="text-slate-950">Copied NFC Link to Clipboard!</span>
+                        </>
+                      ) : (
+                        <>
+                          <Copy className="w-3.5 h-3.5 text-slate-950" />
+                          <span>Copy NFC Tag Link</span>
+                        </>
+                      )}
+                    </button>
                   </div>
 
                   {/* NFC Re-write explanation */}
