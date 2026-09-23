@@ -20,49 +20,59 @@ export async function GET(req: NextRequest) {
         { status: 401 }
       );
     }
-    // Check in Supabase first
+    // 1. Populate from local accounts store
+    const accounts = getAllOwnerAccounts();
+    const storesMap = new Map<string, any>();
+
+    for (const acc of accounts) {
+      if (!acc.businessSlug || acc.businessSlug.startsWith('sys-')) continue;
+      storesMap.set(acc.businessSlug, {
+        id: acc.id,
+        name: acc.businessName,
+        slug: acc.businessSlug,
+        email: acc.email,
+        password: acc.password,
+        category: acc.category || 'general',
+        status: 'active',
+        createdAt: acc.createdAt,
+      });
+    }
+
+    // 2. Query Supabase businesses (source of truth across all redeploys)
     if (isSupabaseConfigured()) {
       try {
         const { data: dbStores, error } = await supabase
           .from('businesses')
-          .select('id, name, slug, category, created_at, is_active, status')
+          .select('id, name, slug, google_review_link, tags, created_at, is_active')
           .neq('slug', 'sys-master-admin-key')
           .order('created_at', { ascending: false });
 
         if (!error && dbStores && dbStores.length > 0) {
-          const accounts = getAllOwnerAccounts();
-          const stores = dbStores
-            .filter((b) => b.slug !== 'sys-master-admin-key' && !b.slug.startsWith('sys-'))
-            .map((b) => {
-            const acc = accounts.find((a) => a.businessSlug === b.slug);
-            return {
+          for (const b of dbStores) {
+            if (b.slug === 'sys-master-admin-key' || b.slug.startsWith('sys-')) continue;
+            const existing = storesMap.get(b.slug);
+            const acc = accounts.find((a) => a.businessSlug === b.slug || a.id === b.id);
+            storesMap.set(b.slug, {
               id: b.id,
               name: b.name,
               slug: b.slug,
-              email: acc?.email || 'owner@' + b.slug + '.com',
-              password: acc?.password || '••••••••',
-              category: b.category || 'general',
-              status: b.status || 'active',
-              createdAt: b.created_at,
-            };
-          });
-          return NextResponse.json({ success: true, stores });
+              email: acc?.email || existing?.email || 'owner@' + b.slug + '.com',
+              password: acc?.password || existing?.password || '••••••••',
+              category: acc?.category || existing?.category || 'general',
+              status: b.is_active ? 'active' : 'inactive',
+              createdAt: b.created_at || existing?.createdAt,
+            });
+          }
         }
       } catch (err) {
-        // Fallback to local accounts
+        console.warn('Supabase stores fetch note:', err);
       }
     }
 
-    const accounts = getAllOwnerAccounts();
-    const stores = accounts.map((a) => ({
-      id: a.id,
-      name: a.businessName,
-      slug: a.businessSlug,
-      email: a.email,
-      password: a.password,
-      category: a.category || 'general',
-      createdAt: a.createdAt,
-    }));
+    const stores = Array.from(storesMap.values()).sort(
+      (a, b) => new Date(b.createdAt || 0).getTime() - new Date(a.createdAt || 0).getTime()
+    );
+
     return NextResponse.json({ success: true, stores });
   } catch (err: any) {
     console.error('Error in register-owner GET:', err);

@@ -158,8 +158,8 @@ const SIGNING_SECRET =
   'rx_ultra_secure_master_signing_secret_2026';
 
 export const COOKIE_NAME = 'rx_master_admin_session';
-// Session auto-locks after exactly 15 minutes as requested by user
-export const SESSION_MAX_AGE_SECONDS = 15 * 60; // 15 minutes
+// Session auto-locks after exactly 30 minutes as requested by user
+export const SESSION_MAX_AGE_SECONDS = 30 * 60; // 30 minutes
 
 
 // ============================================================================

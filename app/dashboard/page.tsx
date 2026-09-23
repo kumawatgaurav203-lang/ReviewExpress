@@ -888,7 +888,7 @@ export default function OwnerDashboardPage() {
             {/* Storage preservation tip */}
             <div className="p-3 bg-slate-950/60 border border-slate-800/80 rounded-2xl flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2 text-[11px] text-slate-400">
               <span className="leading-relaxed">
-                💡 <strong>Storage Cleanup:</strong> Solved customer complaints can be cleared anytime above, and are auto-purged after 7 days to preserve database storage and keep your dashboard fast.
+                💡 <strong>Storage Cleanup:</strong> Solved customer complaints can be cleared anytime above, and are auto-purged 10 days after being marked as resolved to preserve database storage and keep your dashboard fast.
               </span>
               <span className="text-emerald-400 font-semibold shrink-0 bg-emerald-500/10 border border-emerald-500/20 px-2.5 py-0.5 rounded-full">
                 ✓ Auto-Pruning Active

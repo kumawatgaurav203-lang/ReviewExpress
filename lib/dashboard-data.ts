@@ -110,7 +110,7 @@ export function getAllLogs(): Array<ReviewLog & { id: string; is_resolved?: bool
   if (now - lastPruneTime > 60 * 60 * 1000) {
     lastPruneTime = now;
     try {
-      autoPruneResolvedComplaints(7);
+      autoPruneResolvedComplaints(10);
     } catch (e) {
       // ignore
     }
@@ -288,6 +288,11 @@ export function toggleComplaintStatus(complaintId: string): boolean {
   const log = currentLogs.find((l) => l.id === complaintId);
   if (log) {
     log.is_resolved = !log.is_resolved;
+    if (log.is_resolved) {
+      (log as any).resolved_at = new Date().toISOString();
+    } else {
+      delete (log as any).resolved_at;
+    }
     writeReviewsToFile(currentLogs);
     return Boolean(log.is_resolved);
   }
@@ -360,19 +365,24 @@ export function clearResolvedComplaints(businessId: string): number {
   return deletedCount;
 }
 
-/** Automatically prune resolved complaints older than specified days (default: 7 days) */
-export function autoPruneResolvedComplaints(olderThanDays = 7): number {
+/** Automatically prune resolved complaints strictly 10 days after being marked as resolved. Unresolved complaints are NEVER deleted. */
+export function autoPruneResolvedComplaints(olderThanDays = 10): number {
   const currentLogs = readReviewsFromFile();
   const cutoffTime = Date.now() - olderThanDays * 24 * 60 * 60 * 1000;
   const toDeleteIds: string[] = [];
 
   const kept = currentLogs.filter((l) => {
-    if (l.is_resolved) {
-      const itemTime = new Date(l.created_at || 0).getTime();
-      if (itemTime < cutoffTime) {
-        toDeleteIds.push(l.id);
-        return false;
-      }
+    // Unresolved complaints must NEVER be auto-deleted
+    if (!l.is_resolved) {
+      return true;
+    }
+    // Only auto-prune resolved complaints 10 days after being marked resolved
+    const resolvedTimestamp = (l as any).resolved_at
+      ? new Date((l as any).resolved_at).getTime()
+      : new Date(l.created_at || 0).getTime();
+    if (resolvedTimestamp < cutoffTime) {
+      toDeleteIds.push(l.id);
+      return false;
     }
     return true;
   });

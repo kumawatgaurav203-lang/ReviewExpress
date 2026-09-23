@@ -335,8 +335,8 @@ export default function CreateAccountAdminPage() {
     return () => clearInterval(timer);
   }, [storeOtpCountdown]);
 
-  // Master Admin Auto-Lock Timer (15 minutes = 900 seconds)
-  const [sessionRemaining, setSessionRemaining] = useState<number>(15 * 60);
+  // Master Admin Auto-Lock Timer (30 minutes = 1800 seconds)
+  const [sessionRemaining, setSessionRemaining] = useState<number>(30 * 60);
 
   // Check existing 2FA session on mount
   useEffect(() => {
@@ -345,12 +345,12 @@ export default function CreateAccountAdminPage() {
         const res = await fetch('/api/admin-auth', { signal: AbortSignal.timeout(5000) });
         const data = await res.json();
         if (data?.success && data?.verified) {
-          // Check if session start time in sessionStorage has exceeded 15 minutes
+          // Check if session start time in sessionStorage has exceeded 30 minutes
           const storedStart = typeof window !== 'undefined' ? sessionStorage.getItem('rx_admin_session_start') : null;
           if (storedStart) {
             const elapsed = Math.floor((Date.now() - parseInt(storedStart, 10)) / 1000);
-            if (elapsed >= 15 * 60) {
-              // 15 minutes expired! Force lock
+            if (elapsed >= 30 * 60) {
+              // 30 minutes expired! Force lock
               await fetch('/api/admin-auth', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
@@ -362,7 +362,7 @@ export default function CreateAccountAdminPage() {
               setIsMasterVerified(false);
               return;
             } else {
-              setSessionRemaining(Math.max(0, 15 * 60 - elapsed));
+              setSessionRemaining(Math.max(0, 30 * 60 - elapsed));
             }
           }
           setIsMasterVerified(true);
@@ -381,7 +381,7 @@ export default function CreateAccountAdminPage() {
     checkSession();
   }, []);
 
-  // 15-minute Active auto-lock countdown timer
+  // 30-minute Active auto-lock countdown timer
   useEffect(() => {
     if (!isMasterVerified) return;
 
@@ -474,7 +474,7 @@ export default function CreateAccountAdminPage() {
       if (typeof window !== 'undefined') {
         sessionStorage.setItem('rx_admin_session_start', Date.now().toString());
       }
-      setSessionRemaining(15 * 60);
+      setSessionRemaining(30 * 60);
       setOtpSent(false);
       setOtpInput('');
       setAuthSuccessMsg('');

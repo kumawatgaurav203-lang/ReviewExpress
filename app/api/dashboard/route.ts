@@ -9,7 +9,7 @@ import {
 } from '@/lib/dashboard-data';
 import { DEMO_BUSINESSES } from '@/lib/demo-data';
 import { getAllOwnerAccounts, getAccountBySlug } from '@/lib/accounts-store';
-import { getSessionUser, authorizeBusinessAccess, logAuditEvent } from '@/lib/auth-server';
+import { getSessionUser, authorizeBusinessAccess, logAuditEvent, resolveBusinessUuid } from '@/lib/auth-server';
 import { supabase, isSupabaseConfigured } from '@/lib/supabase';
 import { sanitizeBusinessId, isValidBusinessId } from '@/lib/api-guard';
 import { redisCache } from '@/lib/redis';
@@ -118,21 +118,64 @@ export async function GET(req: NextRequest) {
     // 3. Fetch & Filter Logs for the Authorized Business
     // --------------------------------------------------------------------------
     let allLogs = getAllLogs();
+    const matchedBusinessIds = new Set<string>();
+
+    if (businessId !== 'all') {
+      const cleanTarget = businessId.trim();
+      const rawSlug = cleanTarget.startsWith('b-') ? cleanTarget.slice(2) : cleanTarget;
+      const safeSlug = sanitizeBusinessId(rawSlug);
+
+      matchedBusinessIds.add(cleanTarget);
+      matchedBusinessIds.add(rawSlug);
+      matchedBusinessIds.add(safeSlug);
+      matchedBusinessIds.add('b-' + safeSlug);
+
+      // Known store UUID aliases for instant lookup
+      if (safeSlug === 'photify-studio' || safeSlug === 'photify-studios') {
+        matchedBusinessIds.add('b1000000-0000-4000-8000-000000000001');
+        matchedBusinessIds.add('photify-studio');
+        matchedBusinessIds.add('photify-studios');
+        matchedBusinessIds.add('b-photify-studio');
+        matchedBusinessIds.add('b-photify-studios');
+      }
+      if (safeSlug === 'kumawat-clothing') {
+        matchedBusinessIds.add('74b1c17b-062a-4a58-94e5-4306990da9ed');
+        matchedBusinessIds.add('kumawat-clothing');
+        matchedBusinessIds.add('b-kumawat-clothing');
+      }
+
+      // Canonical UUID resolution
+      try {
+        const canonicalUuid = await resolveBusinessUuid(cleanTarget);
+        if (canonicalUuid) matchedBusinessIds.add(canonicalUuid);
+      } catch {}
+
+      // Supabase businesses table lookup for UUID matching
+      if (isSupabaseConfigured()) {
+        try {
+          const { data: dbBiz } = await supabase
+            .from('businesses')
+            .select('id, slug')
+            .or(`slug.eq.${safeSlug},id.eq.${cleanTarget}`)
+            .maybeSingle();
+          if (dbBiz?.id) matchedBusinessIds.add(dbBiz.id);
+          if (dbBiz?.slug) {
+            matchedBusinessIds.add(dbBiz.slug);
+            matchedBusinessIds.add('b-' + dbBiz.slug);
+          }
+        } catch {}
+      }
+    }
 
     // If Supabase is connected, merge real-time review logs
     if (isSupabaseConfigured()) {
       try {
         let query = supabase.from('review_logs').select('*');
-        if (businessId !== 'all') {
-          // ── Safe parameterized query — no string interpolation in filter values ──
-          const rawSlug = businessId.startsWith('b-') ? businessId.slice(2) : businessId;
-          // Supabase JS client uses parameterized queries internally;
-          // but .or() with template literals is injection-safe because each
-          // value is passed as a typed filter, not raw SQL.
-          // We additionally sanitize rawSlug for extra safety.
-          const safeSlug = sanitizeBusinessId(rawSlug);
-          const safePrefixed = 'b-' + safeSlug;
-          query = query.or(`business_id.eq.${businessId},business_id.eq.${safePrefixed},business_id.eq.${safeSlug}`);
+        if (businessId !== 'all' && matchedBusinessIds.size > 0) {
+          const orFilter = Array.from(matchedBusinessIds)
+            .map((id) => `business_id.eq.${id}`)
+            .join(',');
+          query = query.or(orFilter);
         }
         const { data: dbLogs, error: dbErr } = await query;
         if (!dbErr && dbLogs && dbLogs.length > 0) {
@@ -151,17 +194,7 @@ export async function GET(req: NextRequest) {
 
     // Filter by business if not 'all'
     if (businessId !== 'all') {
-      const cleanTarget = businessId.trim();
-      const slugTarget = cleanTarget.startsWith('b-') ? cleanTarget.slice(2) : cleanTarget;
-      const prefixedTarget = 'b-' + slugTarget;
-
-      allLogs = allLogs.filter((l) => {
-        return (
-          l.business_id === cleanTarget ||
-          l.business_id === slugTarget ||
-          l.business_id === prefixedTarget
-        );
-      });
+      allLogs = allLogs.filter((l) => matchedBusinessIds.has(l.business_id));
     }
 
     // Filter by selected time period

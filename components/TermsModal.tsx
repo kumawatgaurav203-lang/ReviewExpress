@@ -245,6 +245,17 @@ export default function TermsModal({ isOpen, onClose }: TermsModalProps) {
     },
     {
       num: 16,
+      title: 'CUSTOMER COMPLAINTS RETENTION & AUTO-PURGE POLICY',
+      icon: ShieldCheck,
+      color: 'text-rose-400 bg-rose-500/10 border-rose-500/20',
+      paragraphs: [
+        'Intercepted private customer complaints (1–3 star ratings) submitted through the NFC/QR card remain securely stored in the merchant dashboard until actively marked as resolved.',
+        'Unresolved complaints are never automatically deleted and will remain visible indefinitely for merchant review and customer follow-up.',
+        'Once a complaint is actively marked as resolved by the business owner, it is retained for strictly 10 calendar days for verification and audit purposes, after which it is automatically and permanently purged from the database to optimize system performance and data privacy.',
+      ],
+    },
+    {
+      num: 17,
       title: 'ACCEPTANCE',
       icon: CheckCircle2,
       color: 'text-emerald-400 bg-emerald-500/10 border-emerald-500/20',
@@ -300,7 +311,7 @@ export default function TermsModal({ isOpen, onClose }: TermsModalProps) {
             </div>
           </div>
 
-          {/* 16 Sections */}
+          {/* 17 Sections */}
           <div className="space-y-3.5">
             {sections.map((sec) => {
               const IconComp = sec.icon;
