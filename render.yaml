@@ -21,10 +21,10 @@ services:
         sync: false
       - key: RESEND_FROM_EMAIL
         value: "ReviewXpress <noreply@reviewxpress.in>"
+      - key: SENDER_EMAIL
+        value: "noreply@reviewxpress.in"
       - key: EMAIL_USER
-        value: botmate.in@gmail.com
-      - key: EMAIL_PASS
-        value: wcvmiginkraahyxj
+        value: "reviewxpressindia@gmail.com"
       - key: NEXT_PUBLIC_TURNSTILE_SITE_KEY
         sync: false
       - key: TURNSTILE_SECRET_KEY

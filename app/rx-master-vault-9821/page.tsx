@@ -316,7 +316,7 @@ export default function CreateAccountAdminPage() {
   // Active stores list (Starts completely empty - Zero fake data)
   const [activeStores, setActiveStores] = useState<StoreItem[]>([]);
 
-  // 5-minute countdown for 2FA OTP
+  // 10-minute countdown for 2FA OTP
   useEffect(() => {
     if (countdown <= 0) return;
     const timer = setInterval(() => {
@@ -324,6 +324,16 @@ export default function CreateAccountAdminPage() {
     }, 1000);
     return () => clearInterval(timer);
   }, [countdown]);
+
+  // 10-minute countdown for Store Onboarding OTP
+  const [storeOtpCountdown, setStoreOtpCountdown] = useState<number>(0);
+  useEffect(() => {
+    if (storeOtpCountdown <= 0) return;
+    const timer = setInterval(() => {
+      setStoreOtpCountdown((prev) => (prev > 0 ? prev - 1 : 0));
+    }, 1000);
+    return () => clearInterval(timer);
+  }, [storeOtpCountdown]);
 
   // Master Admin Auto-Lock Timer (15 minutes = 900 seconds)
   const [sessionRemaining, setSessionRemaining] = useState<number>(15 * 60);
@@ -416,7 +426,7 @@ export default function CreateAccountAdminPage() {
       }
 
       setOtpSent(true);
-      setCountdown(300); // 5 minutes
+      setCountdown(600); // Strictly 10 minutes
       if (data.maskedEmail) setMaskedAdminEmail(data.maskedEmail);
       setAuthSuccessMsg(data.message || 'Security OTP sent to your verified admin email.');
     } catch (err: any) {
@@ -633,6 +643,32 @@ export default function CreateAccountAdminPage() {
     setTimeout(() => setCopiedField(null), 2500);
   };
 
+  // Resend OTP for Store Onboarding with 30s cooldown & fresh 10-min validity
+  const handleResendStoreOtp = async () => {
+    if (!email.trim() || isSendingOtp || storeOtpCountdown > 570) return;
+    setIsSendingOtp(true);
+    setErrorMsg('');
+    try {
+      const res = await fetch('/api/send-otp', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        signal: AbortSignal.timeout(15000),
+        body: JSON.stringify({ email: email.trim(), resend: true }),
+      });
+      const data = await res.json();
+      if (!data.success) {
+        setErrorMsg(data.message || 'Failed to resend OTP.');
+      } else {
+        setStoreOtpCountdown(600);
+        setOtp('');
+      }
+    } catch {
+      setErrorMsg('Network error while resending verification code.');
+    } finally {
+      setIsSendingOtp(false);
+    }
+  };
+
   // Handle Form Submission
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -702,6 +738,7 @@ export default function CreateAccountAdminPage() {
 
         setOtp('');
         setShowOtpField(true);
+        setStoreOtpCountdown(600); // Strictly 10 minutes
         setErrorMsg(''); // Clear errors
       } catch (err: any) {
         console.error('OTP send error:', err);
@@ -1047,14 +1084,23 @@ export default function CreateAccountAdminPage() {
                     >
                       ← Re-enter Master Key
                     </button>
-                    <button
-                      type="button"
-                      onClick={() => handleSend2FAOtp()}
-                      disabled={isSubmittingAuth || countdown > 240}
-                      className="text-indigo-400 hover:text-indigo-300 disabled:opacity-40 transition-colors font-medium cursor-pointer"
-                    >
-                      Resend Code {countdown > 240 ? `(${countdown - 240}s)` : ''}
-                    </button>
+                    <div className="flex items-center gap-3">
+                      <span className="text-[11px] text-slate-400">
+                        {countdown > 0 ? (
+                          <span>Valid: <strong className="text-indigo-400 font-mono">{Math.floor(countdown / 60)}:{String(countdown % 60).padStart(2, '0')}</strong></span>
+                        ) : (
+                          <span className="text-rose-400 font-bold">Expired</span>
+                        )}
+                      </span>
+                      <button
+                        type="button"
+                        onClick={() => handleSend2FAOtp()}
+                        disabled={isSubmittingAuth || countdown > 570}
+                        className="text-indigo-400 hover:text-indigo-300 disabled:opacity-40 transition-colors font-semibold cursor-pointer"
+                      >
+                        Resend Code {countdown > 570 ? `(${countdown - 570}s)` : ''}
+                      </button>
+                    </div>
                   </div>
                 </form>
               )}
@@ -1289,6 +1335,23 @@ export default function CreateAccountAdminPage() {
                       placeholder="Enter 6-digit verification code"
                       className="w-full text-sm bg-slate-950/70 border border-slate-800 rounded-xl pl-10 pr-3 py-2.5 text-white placeholder:text-slate-500 focus:outline-none focus:border-indigo-500 transition-colors font-mono tracking-wider font-bold text-center tracking-widest text-lg"
                     />
+                  </div>
+                  <div className="flex items-center justify-between text-[11px] pt-1.5 border-t border-slate-800/80">
+                    <span className="text-slate-400">
+                      {storeOtpCountdown > 0 ? (
+                        <span>Valid: <strong className="text-indigo-400 font-mono">{Math.floor(storeOtpCountdown / 60)}:{String(storeOtpCountdown % 60).padStart(2, '0')}</strong></span>
+                      ) : (
+                        <span className="text-rose-400 font-bold">OTP Expired! Click Resend Code.</span>
+                      )}
+                    </span>
+                    <button
+                      type="button"
+                      onClick={handleResendStoreOtp}
+                      disabled={isSendingOtp || storeOtpCountdown > 570}
+                      className="text-indigo-400 hover:text-indigo-300 disabled:opacity-40 transition-colors font-semibold cursor-pointer"
+                    >
+                      Resend Code {storeOtpCountdown > 570 ? `(${storeOtpCountdown - 570}s)` : ''}
+                    </button>
                   </div>
                   <p className="text-[11px] text-slate-400">
                     📧 Please check your client's email inbox for the 6-digit verification code from <span className="text-indigo-400 font-medium">noreply@reviewxpress.in</span>.

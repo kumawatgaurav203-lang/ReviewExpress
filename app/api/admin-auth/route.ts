@@ -150,7 +150,7 @@ export async function POST(req: NextRequest) {
           </div>
 
           <div style="background: rgba(15, 23, 42, 0.8); border: 1px solid rgba(51, 65, 85, 0.6); border-radius: 12px; padding: 14px 18px; margin-bottom: 24px; font-size: 12px; color: #94a3b8; line-height: 1.5;">
-            🔒 <strong>Strict Security Policy:</strong> This OTP is strictly valid for <strong>5 minutes</strong>. If you did not initiate this login, someone may have obtained your Master Key. Please update it immediately.
+            🔒 <strong>Strict Security Policy:</strong> This OTP is strictly valid for <strong>10 minutes</strong>. If you did not initiate this login, someone may have obtained your Master Key. Please update it immediately.
           </div>
 
           <hr style="border: none; border-top: 1px solid #1e293b; margin: 0 0 16px 0;" />

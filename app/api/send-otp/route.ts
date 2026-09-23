@@ -14,7 +14,7 @@ export async function POST(req: NextRequest) {
     if (!rateCheck.allowed) return rateCheck.response;
 
     const body = await req.json();
-    const { email } = body;
+    const { email, resend: isResend } = body;
 
     // ── Input Validation + SQL Injection Guard ─────────────────────
     const emailError = validateField(email, 'Email', { isEmail: true, maxLength: 254 });
@@ -22,18 +22,17 @@ export async function POST(req: NextRequest) {
 
     const cleanEmail = (email as string).toLowerCase().trim();
 
-    // 1. Generate or reuse active OTP within 2-minute freshness window
-    // This prevents race conditions when retrying or clicking rapidly,
-    // ensuring the code already sent to user's inbox remains 100% valid!
+    // 1. Generate fresh OTP with strictly 10 minutes validity
+    // If user clicked Resend, or if no active OTP exists, generate a brand new code
     const existing = otpStore.get(cleanEmail);
     let otp: string;
-    if (existing && existing.expiresAt - Date.now() > 8 * 60 * 1000) {
+    if (!isResend && existing && Date.now() < existing.expiresAt && (existing.expiresAt - Date.now() > 9 * 60 * 1000)) {
       otp = existing.otp;
     } else {
       otp = Math.floor(100000 + Math.random() * 900000).toString();
       otpStore.set(cleanEmail, {
         otp,
-        expiresAt: Date.now() + 10 * 60 * 1000,
+        expiresAt: Date.now() + 10 * 60 * 1000, // Strictly 10 minutes
       });
     }
 
@@ -50,7 +49,7 @@ export async function POST(req: NextRequest) {
           <span style="font-family: monospace; font-size: 40px; font-weight: 800; letter-spacing: 8px; color: #4338ca;">${otp}</span>
         </div>
         <p style="color: #64748b; font-size: 12px; margin: 0 0 24px 0;">
-          ⏱️ This code is valid for strictly <strong>10 minutes</strong>. If you did not initiate this request, you can safely ignore this email.
+          ⏱️ This code is strictly valid for <strong>10 minutes</strong>. After 10 minutes, it will expire and become invalid. You can request a fresh code anytime using the Resend option.
         </p>
         <hr style="border: none; border-top: 1px solid #f1f5f9; margin: 0 0 16px 0;" />
         <p style="color: #94a3b8; font-size: 11px; text-align: center; margin: 0;">

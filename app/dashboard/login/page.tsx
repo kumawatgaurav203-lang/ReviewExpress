@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import {
@@ -45,6 +45,16 @@ export default function OwnerLoginPage() {
   const [confirmNewPassword, setConfirmNewPassword] = useState('');
   const [showNewPassword, setShowNewPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+  const [forgotOtpCountdown, setForgotOtpCountdown] = useState<number>(0);
+
+  // 10-minute countdown for Forgot Password OTP
+  useEffect(() => {
+    if (forgotOtpCountdown <= 0) return;
+    const timer = setInterval(() => {
+      setForgotOtpCountdown((prev) => (prev > 0 ? prev - 1 : 0));
+    }, 1000);
+    return () => clearInterval(timer);
+  }, [forgotOtpCountdown]);
 
   // Validate password (strictly 8 characters)
   const validate8CharPassword = (pwd: string): boolean => {
@@ -120,6 +130,33 @@ export default function OwnerLoginPage() {
     }
   };
 
+  // Resend OTP for Forgot Password with 30s cooldown & fresh 10-min validity
+  const handleResendForgotOtp = async () => {
+    if (!email.trim() || isLoading || forgotOtpCountdown > 570) return;
+    setIsLoading(true);
+    setErrorMsg('');
+    try {
+      const res = await fetch('/api/send-otp', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        signal: AbortSignal.timeout(15000),
+        body: JSON.stringify({ email: email.trim(), resend: true }),
+      });
+      const data = await res.json();
+      if (!data.success) {
+        setErrorMsg(data.message || 'Failed to resend OTP.');
+      } else {
+        setForgotOtpCountdown(600);
+        setForgotOtp('');
+        setErrorMsg('');
+      }
+    } catch {
+      setErrorMsg('Network error while resending verification code.');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   // Handle Forgot Password submission
   const handleForgotPasswordSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -164,6 +201,7 @@ export default function OwnerLoginPage() {
         }
 
         setForgotStep(2);
+        setForgotOtpCountdown(600); // Strictly 10 minutes
         setIsLoading(false);
       } catch (err: any) {
         setErrorMsg(err.name === 'TimeoutError' ? 'OTP delivery timed out. Please try again.' : 'Network error. Please try again.');
@@ -461,21 +499,38 @@ export default function OwnerLoginPage() {
               )}
 
               {forgotStep === 2 && (
-                <div>
-                  <label className="block text-xs font-semibold text-slate-300 mb-1.5">
+                <div className="space-y-2">
+                  <label className="block text-xs font-semibold text-slate-300">
                     Enter OTP sent to {email}
                   </label>
                   <div className="relative">
-                    <ShieldCheck className="w-4 h-4 text-slate-500 absolute left-3.5 top-1/2 -translate-y-1/2" />
+                    <ShieldCheck className="w-4 h-4 text-indigo-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
                     <input
                       type="text"
                       required
                       maxLength={6}
                       value={forgotOtp}
-                      onChange={(e) => setForgotOtp(e.target.value)}
+                      onChange={(e) => setForgotOtp(e.target.value.replace(/\D/g, ''))}
                       placeholder="6-digit OTP"
-                      className="w-full text-sm bg-slate-950/60 border border-slate-800 rounded-xl pl-10 pr-3 py-2.5 text-white placeholder:text-slate-500 focus:outline-none focus:border-indigo-500 transition-colors font-mono tracking-widest"
+                      className="w-full text-sm bg-slate-950/60 border border-slate-800 rounded-xl pl-10 pr-3 py-2.5 text-white placeholder:text-slate-500 focus:outline-none focus:border-indigo-500 transition-colors font-mono tracking-widest text-center text-lg font-bold"
                     />
+                  </div>
+                  <div className="flex items-center justify-between text-[11px] pt-1">
+                    <span className="text-slate-400">
+                      {forgotOtpCountdown > 0 ? (
+                        <span>Valid: <strong className="text-indigo-400 font-mono">{Math.floor(forgotOtpCountdown / 60)}:{String(forgotOtpCountdown % 60).padStart(2, '0')}</strong></span>
+                      ) : (
+                        <span className="text-rose-400 font-bold">OTP Expired! Click Resend.</span>
+                      )}
+                    </span>
+                    <button
+                      type="button"
+                      onClick={handleResendForgotOtp}
+                      disabled={isLoading || forgotOtpCountdown > 570}
+                      className="text-indigo-400 hover:text-indigo-300 disabled:opacity-40 transition-colors font-semibold cursor-pointer"
+                    >
+                      Resend Code {forgotOtpCountdown > 570 ? `(${forgotOtpCountdown - 570}s)` : ''}
+                    </button>
                   </div>
                 </div>
               )}

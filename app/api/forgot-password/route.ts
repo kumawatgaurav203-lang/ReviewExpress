@@ -63,7 +63,7 @@ export async function POST(req: NextRequest) {
 
       if (Date.now() > storedOtpData.expiresAt) {
         otpStore.delete(cleanEmail);
-        return NextResponse.json({ success: false, message: 'OTP has expired. Please request a new one.' }, { status: 400 });
+        return NextResponse.json({ success: false, message: 'OTP has expired (10 minute limit). Please click Resend Code to receive a fresh verification code.' }, { status: 400 });
       }
 
       if (storedOtpData.otp !== String(otp).trim()) {
@@ -85,7 +85,7 @@ export async function POST(req: NextRequest) {
 
       if (Date.now() > storedOtpData.expiresAt) {
         otpStore.delete(cleanEmail);
-        return NextResponse.json({ success: false, message: 'OTP has expired.' }, { status: 400 });
+        return NextResponse.json({ success: false, message: 'OTP has expired (10 minute limit). Please click Resend Code to receive a fresh verification code.' }, { status: 400 });
       }
 
       if (storedOtpData.otp !== String(otp).trim()) {

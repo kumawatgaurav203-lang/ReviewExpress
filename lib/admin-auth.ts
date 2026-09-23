@@ -251,7 +251,7 @@ export function generateAdminOtp(): string {
   const otp = crypto.randomInt(100000, 1000000).toString();
   adminOtpStore.set(MASTER_ADMIN_EMAIL, {
     otp,
-    expiresAt: Date.now() + 5 * 60 * 1000, // 5 minutes
+    expiresAt: Date.now() + 10 * 60 * 1000, // Strictly 10 minutes
     attempts: 0,
   });
   return otp;
@@ -265,7 +265,7 @@ export function verifyAdminOtp(inputOtp: string): { success: boolean; message: s
 
   if (Date.now() > entry.expiresAt) {
     adminOtpStore.delete(MASTER_ADMIN_EMAIL);
-    return { success: false, message: 'Verification OTP has expired (5 minute limit). Please request a new code.' };
+    return { success: false, message: 'Verification OTP has expired (10 minute limit). Please click Resend Code to receive a new OTP.' };
   }
 
   entry.attempts += 1;
