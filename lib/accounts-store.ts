@@ -134,3 +134,29 @@ export function deleteOwnerAccount(email: string): boolean {
   }
   return false;
 }
+
+export function updateOwnerAccount(
+  slugOrEmail: string,
+  updates: Partial<Pick<OwnerAccount, 'category' | 'googleReviewLink' | 'businessName'>>
+): OwnerAccount | null {
+  accountsCache = readAccountsFromFile();
+  const cleanTarget = slugOrEmail.toLowerCase().trim();
+  const existingIdx = accountsCache.findIndex(
+    (a) => a.businessSlug.toLowerCase() === cleanTarget || a.email.toLowerCase() === cleanTarget
+  );
+
+  if (existingIdx >= 0) {
+    if (updates.category !== undefined) {
+      accountsCache[existingIdx].category = updates.category;
+    }
+    if (updates.googleReviewLink !== undefined) {
+      accountsCache[existingIdx].googleReviewLink = updates.googleReviewLink;
+    }
+    if (updates.businessName !== undefined) {
+      accountsCache[existingIdx].businessName = updates.businessName;
+    }
+    writeAccountsToFile(accountsCache);
+    return accountsCache[existingIdx];
+  }
+  return null;
+}

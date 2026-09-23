@@ -21,6 +21,7 @@ import {
   Search,
   Lock,
   Scale,
+  MessageSquare,
 } from 'lucide-react';
 import TermsModal from '@/components/TermsModal';
 import SocialContactBar from '@/components/SocialContactBar';
@@ -31,44 +32,65 @@ export default function HomePage() {
     {
       icon: Zap,
       color: 'text-amber-400 bg-amber-400/10 border-amber-400/20',
-      title: '10x Faster Reviews via AI',
+      title: '10x Faster AI Reviews',
       description:
-        'Customers hate writing long reviews. Our AI writes high-converting, 2-sentence natural reviews in 3 seconds based on 1-click tag selections.',
+        'AI crafts authentic 2-sentence 5-star customer reviews from 1-click tags in 3 seconds.',
     },
     {
       icon: ShieldAlert,
       color: 'text-rose-400 bg-rose-400/10 border-rose-400/20',
-      title: 'Smart Negative Review Shield',
+      title: 'Negative Review Shield',
       description:
-        '1 & 2-star ratings are intercepted privately. Unhappy customers get a direct feedback channel to management, keeping bad ratings off Google Maps.',
+        '1-3 star ratings are intercepted privately, keeping bad feedback completely off Google Maps.',
+    },
+    {
+      icon: QrCode,
+      color: 'text-violet-400 bg-violet-400/10 border-violet-400/20',
+      title: '1-Tap NFC & Dynamic QR',
+      description:
+        'Customers tap counter standees or scan high-res QR codes without typing long links.',
     },
     {
       icon: Smartphone,
       color: 'text-blue-400 bg-blue-400/10 border-blue-400/20',
-      title: 'Zero App Installation Needed',
+      title: 'Zero App Installation',
       description:
-        'Customers simply tap the NFC standee or scan the high-resolution QR code. Works natively in Safari and Chrome on both iPhone and Android.',
+        'Opens natively on Safari and Chrome across iPhone & Android devices with zero downloads.',
     },
     {
       icon: Search,
       color: 'text-emerald-400 bg-emerald-400/10 border-emerald-400/20',
-      title: 'Dominates Local Google Maps SEO',
+      title: 'Dominates Google Maps SEO',
       description:
-        'Fresh, frequent, keyword-rich 5-star customer reviews trigger Google’s local ranking algorithm to rank your store at the very top of Google Maps search.',
+        'Fresh, keyword-rich reviews rapidly rank your business at the top of local Google search.',
     },
     {
       icon: BarChart3,
       color: 'text-indigo-400 bg-indigo-400/10 border-indigo-500/20',
-      title: 'Real-Time Owner Analytics CRM',
+      title: 'Real-Time Owner CRM',
       description:
-        'Track review count daily, weekly, monthly, and yearly. Review intercepted 1-2 star customer feedback privately to resolve issues immediately.',
+        'Live dashboard tracking daily scan traffic, conversion rates, and verified review growth.',
+    },
+    {
+      icon: MessageSquare,
+      color: 'text-cyan-400 bg-cyan-400/10 border-cyan-400/20',
+      title: 'Private Grievance Resolver',
+      description:
+        'Resolve unhappy customer issues directly with safe 10-day retention after resolution.',
+    },
+    {
+      icon: Award,
+      color: 'text-orange-400 bg-orange-400/10 border-orange-400/20',
+      title: 'Instant WhatsApp Sharing',
+      description:
+        'One-click WhatsApp summaries of account credentials, review links, and scan performance.',
     },
     {
       icon: ShieldCheck,
       color: 'text-teal-400 bg-teal-400/10 border-teal-400/20',
-      title: '100% Google Guidelines Compliant',
+      title: '100% Google Compliant',
       description:
-        'Fully compliant with Google Business Profile terms. No bot automation, no fake reviews—every review is organically generated and customer-approved.',
+        'Organic, customer-approved reviews fully adhering to Google Business Profile terms.',
     },
   ];
 

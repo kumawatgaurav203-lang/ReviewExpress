@@ -1,8 +1,9 @@
 import crypto from 'crypto';
 import { NextRequest, NextResponse } from 'next/server';
 import { registerNewBusiness } from '@/lib/demo-data';
-import { saveOwnerAccount, getAllOwnerAccounts } from '@/lib/accounts-store';
+import { saveOwnerAccount, getAllOwnerAccounts, updateOwnerAccount } from '@/lib/accounts-store';
 import { supabase, isSupabaseConfigured } from '@/lib/supabase';
+import { getShuffledCategoryTags } from '@/lib/tags-data';
 import { Business } from '@/lib/types';
 import { otpStore } from '@/lib/otp-store';
 import { generateUniqueSlug } from '@/lib/slug';
@@ -33,6 +34,7 @@ export async function GET(req: NextRequest) {
         email: acc.email,
         password: acc.password,
         category: acc.category || 'general',
+        googleReviewLink: acc.googleReviewLink || '',
         status: 'active',
         createdAt: acc.createdAt,
       });
@@ -60,6 +62,7 @@ export async function GET(req: NextRequest) {
               email: acc?.email || existing?.email || 'owner@' + b.slug + '.com',
               password: acc?.password || existing?.password || '••••••••',
               category: acc?.category || existing?.category || 'general',
+              googleReviewLink: b.google_review_link || acc?.googleReviewLink || existing?.googleReviewLink || '',
               status: b.is_active ? 'active' : 'inactive',
               createdAt: b.created_at || existing?.createdAt,
             });
@@ -338,6 +341,96 @@ export async function POST(req: NextRequest) {
     console.error('Error in register-owner route:', err);
     return NextResponse.json(
       { success: false, message: err.message || 'Internal registration error.' },
+      { status: 500 }
+    );
+  }
+}
+
+export async function PATCH(req: NextRequest) {
+  try {
+    // 2FA Security Check: Master Admin only
+    if (!verifyMasterAdminRequest(req)) {
+      return NextResponse.json(
+        { success: false, message: 'Access Denied: Master Admin Two-Way Verification required.' },
+        { status: 401 }
+      );
+    }
+
+    const body = await req.json();
+    const { slug, category, googleReviewLink } = body;
+
+    if (!slug || typeof slug !== 'string') {
+      return NextResponse.json(
+        { success: false, message: 'Store slug is required for updating store details.' },
+        { status: 400 }
+      );
+    }
+
+    const cleanSlug = slug.toLowerCase().trim();
+    const cleanCategory = typeof category === 'string' ? category.trim() : undefined;
+    const cleanLink = typeof googleReviewLink === 'string' ? googleReviewLink.trim() : undefined;
+
+    if (cleanLink && !cleanLink.startsWith('http://') && !cleanLink.startsWith('https://')) {
+      return NextResponse.json(
+        { success: false, message: 'Google Review Link must start with http:// or https://' },
+        { status: 400 }
+      );
+    }
+
+    // 1. Update local accounts.json
+    const updatedAccount = updateOwnerAccount(cleanSlug, {
+      category: cleanCategory,
+      googleReviewLink: cleanLink,
+    });
+
+    // 2. Update Supabase businesses table
+    if (isSupabaseConfigured()) {
+      try {
+        const updatePayload: Record<string, any> = {};
+        if (cleanCategory !== undefined) {
+          updatePayload.category = cleanCategory;
+          const storeName = updatedAccount?.businessName || cleanSlug;
+          updatePayload.tags = getShuffledCategoryTags(storeName, cleanCategory);
+        }
+        if (cleanLink !== undefined) {
+          updatePayload.google_review_link = cleanLink;
+        }
+
+        if (Object.keys(updatePayload).length > 0) {
+          const { error: dbErr } = await supabase
+            .from('businesses')
+            .update(updatePayload)
+            .eq('slug', cleanSlug);
+
+          if (dbErr) {
+            console.warn('Supabase update store note:', dbErr);
+          }
+        }
+      } catch (err) {
+        console.warn('Failed to update store in Supabase:', err);
+      }
+    }
+
+    // 3. Invalidate Redis caches so review terminals instantly use the updated link and tags
+    redisCache.del([
+      `store:profile:${cleanSlug}`,
+      `store:profile:b-${cleanSlug}`,
+    ]).catch(() => {});
+    redisCache.delPattern('dashboard:*').catch(() => {});
+
+    return NextResponse.json({
+      success: true,
+      message: 'Store details updated successfully!',
+      store: {
+        slug: cleanSlug,
+        category: cleanCategory || updatedAccount?.category || 'general',
+        googleReviewLink: cleanLink || updatedAccount?.googleReviewLink || '',
+      },
+    });
+  } catch (err: any) {
+    console.error('Error in register-owner PATCH:', err);
+    return NextResponse.json(
+      { success: false, message: err.message || 'Failed to update store details.' },
       { status: 500 }
     );
   }

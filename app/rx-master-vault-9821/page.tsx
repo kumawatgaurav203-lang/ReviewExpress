@@ -32,17 +32,21 @@ import {
   Download,
   RefreshCw,
   Clock,
+  Pencil,
+  X,
 } from 'lucide-react';
 import QRCode from 'qrcode';
 import { detectCategory } from '@/lib/tags-data';
 import SocialContactBar from '@/components/SocialContactBar';
 
 interface StoreItem {
+  id?: string;
   name: string;
   slug: string;
   email: string;
   password?: string;
   category?: string;
+  googleReviewLink?: string;
   createdAt?: string;
 }
 
@@ -259,6 +263,95 @@ export default function CreateAccountAdminPage() {
         isDeleting: false,
         errorMsg: 'Network error while deleting store.',
       }));
+    }
+  };
+
+  // Edit Store Modal State
+  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+  const [editingStore, setEditingStore] = useState<StoreItem | null>(null);
+  const [editCategory, setEditCategory] = useState('');
+  const [editGoogleReviewLink, setEditGoogleReviewLink] = useState('');
+  const [isSavingEdit, setIsSavingEdit] = useState(false);
+  const [editError, setEditError] = useState('');
+  const [editSuccess, setEditSuccess] = useState('');
+
+  const openEditModal = (store: StoreItem) => {
+    setEditingStore(store);
+    setEditCategory(store.category || '');
+    setEditGoogleReviewLink(store.googleReviewLink || '');
+    setEditError('');
+    setEditSuccess('');
+    setIsEditModalOpen(true);
+  };
+
+  const closeEditModal = () => {
+    setIsEditModalOpen(false);
+    setEditingStore(null);
+    setEditError('');
+    setEditSuccess('');
+  };
+
+  const handleSaveEdit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!editingStore) return;
+    setEditError('');
+    setEditSuccess('');
+
+    if (
+      editGoogleReviewLink &&
+      !editGoogleReviewLink.startsWith('http://') &&
+      !editGoogleReviewLink.startsWith('https://')
+    ) {
+      setEditError('Google Review Link must start with https:// or http://');
+      return;
+    }
+
+    setIsSavingEdit(true);
+    try {
+      const res = await fetch('/api/register-owner', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        signal: AbortSignal.timeout(10000),
+        body: JSON.stringify({
+          slug: editingStore.slug,
+          category: editCategory.trim(),
+          googleReviewLink: editGoogleReviewLink.trim(),
+        }),
+      });
+
+      const data = await res.json();
+      if (!res.ok || !data.success) {
+        setEditError(data.message || 'Failed to update store details.');
+        return;
+      }
+
+      // Update in activeStores list immediately
+      setActiveStores((prev) =>
+        prev.map((s) => {
+          if (s.slug === editingStore.slug) {
+            return {
+              ...s,
+              category: editCategory.trim(),
+              googleReviewLink: editGoogleReviewLink.trim(),
+            };
+          }
+          return s;
+        })
+      );
+
+      setEditSuccess('Store category & review link updated successfully!');
+      setTimeout(() => {
+        setIsEditModalOpen(false);
+        setEditSuccess('');
+      }, 1500);
+    } catch (err: any) {
+      setEditError(
+        err?.name === 'TimeoutError'
+          ? 'Request timed out.'
+          : 'Network error while updating store.'
+      );
+    } finally {
+      setIsSavingEdit(false);
     }
   };
 
@@ -1126,7 +1219,7 @@ export default function CreateAccountAdminPage() {
             Client Store Onboarding & Scanner Creator
           </h1>
           <p className="text-sm text-slate-400">
-            Create client accounts in under 2 minutes. Automatically generates the store's unique review URL, printable QR standee, and owner analytics credentials.
+            Enterprise setup portal for configuring verified merchant review profiles, NFC & QR terminals, and owner analytics credentials.
           </p>
         </div>
 
@@ -1150,7 +1243,7 @@ export default function CreateAccountAdminPage() {
                 </div>
                 <div className="min-w-0">
                   <h2 className="text-base font-bold text-white truncate">New Store Information</h2>
-                  <p className="text-[11px] text-slate-400 truncate">Enter client store details to generate account & scanner</p>
+                  <p className="text-[11px] text-slate-400 truncate">Enter client store details to generate account</p>
                 </div>
               </div>
               <span className="text-[11px] font-bold text-emerald-400 bg-emerald-500/10 border border-emerald-500/20 px-2.5 py-1 rounded-full shrink-0 whitespace-nowrap">
@@ -1844,6 +1937,15 @@ export default function CreateAccountAdminPage() {
                                 </span>
                                 <button
                                   type="button"
+                                  onClick={() => openEditModal(store)}
+                                  title="Edit Store Category & Review Link"
+                                  className="inline-flex items-center gap-1 text-[9px] font-semibold text-amber-400 hover:text-amber-200 bg-amber-500/10 hover:bg-amber-500/25 border border-amber-500/25 px-2 py-0.5 rounded-full transition-colors cursor-pointer"
+                                >
+                                  <Pencil className="w-2.5 h-2.5" />
+                                  <span>Edit</span>
+                                </button>
+                                <button
+                                  type="button"
                                   onClick={() => openDeleteModal(store)}
                                   title="Delete store account"
                                   className="inline-flex items-center gap-1 text-[9px] font-semibold text-rose-400 hover:text-rose-200 bg-rose-500/10 hover:bg-rose-500/25 border border-rose-500/25 px-2 py-0.5 rounded-full transition-colors cursor-pointer"
@@ -2421,6 +2523,123 @@ export default function CreateAccountAdminPage() {
                       <>
                         <KeyRound className="w-3.5 h-3.5" />
                         <span>Save New Key</span>
+                      </>
+                    )}
+                  </button>
+                </div>
+              </form>
+            </div>
+          </div>
+        )}
+
+        {/* ================================================================= */}
+        {/* EDIT STORE DETAILS MODAL (Category & Google Review Link)           */}
+        {/* ================================================================= */}
+        {isEditModalOpen && editingStore && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-md animate-fade-in">
+            <div className="bg-slate-900 border border-slate-800 rounded-3xl p-6 sm:p-7 max-w-md w-full shadow-2xl space-y-5 relative">
+              {/* Header */}
+              <div className="flex items-center justify-between pb-3 border-b border-slate-800">
+                <div className="flex items-center gap-2.5">
+                  <div className="p-2 rounded-xl bg-amber-500/10 text-amber-400 border border-amber-500/20">
+                    <Pencil className="w-4 h-4" />
+                  </div>
+                  <div>
+                    <h3 className="text-base font-bold text-white">Edit Store Details</h3>
+                    <p className="text-[11px] text-slate-400">Update category & Google review link</p>
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  onClick={closeEditModal}
+                  className="p-1 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800 transition-colors cursor-pointer"
+                >
+                  <X className="w-4 h-4" />
+                </button>
+              </div>
+
+              {/* Notification Badges */}
+              {editError && (
+                <div className="p-3 rounded-xl bg-rose-500/10 border border-rose-500/20 text-rose-300 text-xs flex items-center gap-2">
+                  <AlertTriangle className="w-3.5 h-3.5 shrink-0 text-rose-400" />
+                  <span>{editError}</span>
+                </div>
+              )}
+              {editSuccess && (
+                <div className="p-3 rounded-xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-300 text-xs flex items-center gap-2">
+                  <CheckCircle2 className="w-3.5 h-3.5 shrink-0 text-emerald-400" />
+                  <span>{editSuccess}</span>
+                </div>
+              )}
+
+              {/* Store Identity Summary */}
+              <div className="p-3 rounded-xl bg-slate-950/70 border border-slate-800/80 space-y-1">
+                <div className="text-xs font-bold text-white">{editingStore.name}</div>
+                <div className="text-[11px] text-slate-400 font-mono truncate">{editingStore.email}</div>
+              </div>
+
+              <form onSubmit={handleSaveEdit} className="space-y-4">
+                {/* Field 1: Category */}
+                <div className="space-y-1.5">
+                  <label className="text-xs font-semibold text-slate-300 flex items-center gap-1.5">
+                    <Tag className="w-3.5 h-3.5 text-indigo-400" />
+                    <span>Business Category</span>
+                  </label>
+                  <input
+                    type="text"
+                    required
+                    value={editCategory}
+                    onChange={(e) => setEditCategory(e.target.value)}
+                    placeholder="e.g. Studio for photo and video shoot, Men clothing, Cafe..."
+                    className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3.5 py-2.5 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-indigo-500 transition-all"
+                  />
+                  <p className="text-[10px] text-slate-500">
+                    Review tags on the terminal will automatically adapt to this category.
+                  </p>
+                </div>
+
+                {/* Field 2: Google Review Link */}
+                <div className="space-y-1.5">
+                  <label className="text-xs font-semibold text-slate-300 flex items-center gap-1.5">
+                    <LinkIcon className="w-3.5 h-3.5 text-indigo-400" />
+                    <span>Google Maps Review Link</span>
+                  </label>
+                  <input
+                    type="url"
+                    required
+                    value={editGoogleReviewLink}
+                    onChange={(e) => setEditGoogleReviewLink(e.target.value)}
+                    placeholder="https://g.page/r/.../review or https://www.google.com/maps..."
+                    className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3.5 py-2.5 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-indigo-500 font-mono transition-all"
+                  />
+                  <p className="text-[10px] text-slate-500">
+                    5-star reviews will be directed to this Google Maps review URL.
+                  </p>
+                </div>
+
+                {/* Action Buttons */}
+                <div className="grid grid-cols-2 gap-3 pt-2">
+                  <button
+                    type="button"
+                    onClick={closeEditModal}
+                    className="py-2.5 px-4 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 font-bold text-xs transition-colors cursor-pointer"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="submit"
+                    disabled={isSavingEdit || !editCategory.trim() || !editGoogleReviewLink.trim()}
+                    className="py-2.5 px-4 rounded-xl bg-gradient-to-r from-amber-600 to-amber-700 hover:from-amber-500 hover:to-amber-600 disabled:opacity-50 text-white font-bold text-xs shadow-md shadow-amber-600/20 transition-all flex items-center justify-center gap-1.5 cursor-pointer"
+                  >
+                    {isSavingEdit ? (
+                      <>
+                        <RefreshCw className="w-3.5 h-3.5 animate-spin" />
+                        <span>Saving...</span>
+                      </>
+                    ) : (
+                      <>
+                        <Check className="w-3.5 h-3.5" />
+                        <span>Save Changes</span>
                       </>
                     )}
                   </button>
