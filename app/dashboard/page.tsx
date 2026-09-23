@@ -386,7 +386,7 @@ export default function OwnerDashboardPage() {
           {/* Time Filter Controls: Today, 1 Week, 1 Month, 1 Year, All Time */}
           <div className="flex items-center gap-1 p-1 bg-slate-900 border border-slate-800 rounded-2xl overflow-x-auto scrollbar-none w-full sm:w-auto">
             {[
-              { label: 'Today (24h)', shortLabel: 'Today', value: 'day' },
+              { label: 'Today', shortLabel: 'Today', value: 'day' },
               { label: '1 Week', shortLabel: '1 Week', value: 'week' },
               { label: '1 Month', shortLabel: '1 Month', value: 'month' },
               { label: '1 Year', shortLabel: '1 Year', value: 'year' },

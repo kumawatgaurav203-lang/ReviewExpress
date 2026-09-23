@@ -118,26 +118,44 @@ export function getAllLogs(): Array<ReviewLog & { id: string; is_resolved?: bool
   return readReviewsFromFile();
 }
 
+/**
+ * Calculates start of the current day (00:00:00.000) in Indian Standard Time (IST, UTC+5:30).
+ * At 12:00:00 AM midnight in India, this timestamp advances, cleanly resetting 'Today' metrics to 0.
+ */
+export function getIstStartOfDay(refDate: Date = new Date()): number {
+  const istDateString = new Intl.DateTimeFormat('en-CA', {
+    timeZone: 'Asia/Kolkata',
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+  }).format(refDate);
+
+  return new Date(`${istDateString}T00:00:00.000+05:30`).getTime();
+}
+
 export function filterLogsByPeriod(
   logs: Array<ReviewLog & { id: string; is_resolved?: boolean }>,
   period: 'day' | 'week' | 'month' | 'year' | 'all'
 ): Array<ReviewLog & { id: string; is_resolved?: boolean }> {
   const now = new Date();
+  const istMidnightToday = getIstStartOfDay(now);
 
   return logs.filter((log) => {
-    const logDate = new Date(log.created_at || Date.now());
-    const diffMs = now.getTime() - logDate.getTime();
-    const diffHours = diffMs / (1000 * 60 * 60);
+    const logTime = new Date(log.created_at || Date.now()).getTime();
 
     switch (period) {
       case 'day':
-        return diffHours <= 24;
+        // Strictly events that occurred TODAY from 12:00 AM midnight IST onwards
+        return logTime >= istMidnightToday;
       case 'week':
-        return diffHours <= 24 * 7;
+        // Last 7 calendar days (including today and previous 6 days)
+        return logTime >= (istMidnightToday - 6 * 24 * 60 * 60 * 1000);
       case 'month':
-        return diffHours <= 24 * 30;
+        // Last 30 calendar days
+        return logTime >= (istMidnightToday - 29 * 24 * 60 * 60 * 1000);
       case 'year':
-        return diffHours <= 24 * 365;
+        // Last 365 calendar days
+        return logTime >= (istMidnightToday - 364 * 24 * 60 * 60 * 1000);
       case 'all':
       default:
         return true;

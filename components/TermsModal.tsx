@@ -95,12 +95,15 @@ export default function TermsModal({ isOpen, onClose }: TermsModalProps) {
     },
     {
       num: 5,
-      title: 'PRICING & PAYMENT',
+      title: 'PRICING, PAYMENT & STRICT 100% NO-REFUND POLICY',
       icon: CreditCard,
       color: 'text-emerald-400 bg-emerald-500/10 border-emerald-500/20',
       paragraphs: [
         'The applicable service fee will be communicated and confirmed before the account is created/activated.',
         'Once the customer confirms the price and the account/service is created, the agreed price for that service period cannot be renegotiated.',
+        'STRICT NO-REFUND / NO MONEY-RETURN POLICY: Once our service is availed, payment is submitted, and the merchant account is activated or the customized NFC & QR smart review card is programmed/dispatched, all payments and fees are strictly 100% Non-Refundable under all circumstances.',
+        'Under no circumstances will any demand for money return, refund, chargeback, or partial fee reversal be entertained or fulfilled once the service has been ordered or activated.',
+        'No refund or money return requests based on change of mind, business closure, personal circumstances, third-party Google review policy changes, or temporary beta glitches will be accepted.',
         'Applicable service and maintenance charges must be paid according to the agreed terms.',
       ],
     },
@@ -207,14 +210,17 @@ export default function TermsModal({ isOpen, onClose }: TermsModalProps) {
     },
     {
       num: 13,
-      title: 'SERVICE AVAILABILITY & LIABILITY',
+      title: 'BETA VERSION, SERVICE AVAILABILITY & CONTINUOUS IMPROVEMENTS',
       icon: Server,
-      color: 'text-slate-300 bg-slate-800 border-slate-700',
+      color: 'text-amber-400 bg-amber-500/10 border-amber-500/20',
       paragraphs: [
-        'The provider will make reasonable efforts to keep the SaaS available but does not guarantee uninterrupted service.',
+        'BETA VERSION NOTICE: The ReviewXpress SaaS platform is currently operating in an active Beta release. While the core system is fully functional, users may occasionally experience minor technical glitches, visual anomalies, or temporary interruptions.',
+        'GLITCH LOGGING & RESOLUTION: Any glitches, bugs, or performance issues reported by merchants or detected by our monitoring systems will be logged, prioritized, and resolved in scheduled future platform updates and maintenance cycles.',
+        'NO REFUND FOR BETA GLITCHES: The presence of temporary glitches or minor technical defects in this Beta version shall under no circumstances serve as grounds for any refund, money-back claim, fee reduction, or cancellation demand.',
+        'The provider will make reasonable efforts to keep the SaaS available and maintain reliable service, but does not guarantee 100% uninterrupted uptime.',
         'Temporary interruptions may occur because of maintenance, hosting, database, internet, security, or third-party service issues.',
-        'The provider does not guarantee business results, sales, profits, Google ranking, rating increases, or a specific number of published reviews.',
-        'Nothing in these Terms excludes liability that cannot legally be excluded.',
+        'The provider does not guarantee specific business results, sales, profits, Google ranking, rating increases, or a specific number of published reviews.',
+        'Nothing in these Terms excludes liability that cannot legally be excluded under applicable Indian laws.',
       ],
     },
     {
@@ -284,12 +290,12 @@ export default function TermsModal({ isOpen, onClose }: TermsModalProps) {
         <div className="p-4 sm:p-6 overflow-y-auto space-y-4 sm:space-y-5 text-xs sm:text-sm text-slate-300 leading-relaxed custom-scrollbar">
           
           {/* Important Notice Alert */}
-          <div className="p-3.5 sm:p-4 rounded-xl sm:rounded-2xl bg-gradient-to-r from-amber-500/10 to-orange-500/10 border border-amber-500/30 flex items-start gap-2.5 sm:gap-3 text-amber-200">
+          <div className="p-3.5 sm:p-4 rounded-xl sm:rounded-2xl bg-gradient-to-r from-amber-500/15 via-orange-500/10 to-red-500/10 border border-amber-500/40 flex items-start gap-2.5 sm:gap-3 text-amber-200">
             <AlertTriangle className="w-4 h-4 sm:w-5 sm:h-5 text-amber-400 shrink-0 mt-0.5" />
             <div className="text-[11px] sm:text-xs space-y-1">
-              <span className="font-bold text-amber-300">Mandatory Merchant Acceptance</span>
+              <span className="font-bold text-amber-300">Mandatory Agreement: Beta Version & Strict 100% No-Refund Policy</span>
               <p className="text-amber-200/90 leading-normal">
-                By creating, logging into, or maintaining an active store account on ReviewXpress, you confirm that you have read, understood, and agreed to all 16 terms outlined below.
+                ReviewXpress is currently in active <strong>Beta</strong>. Minor glitches will be recorded and resolved in future updates. By availing this service or activating an account, you strictly agree that once service is initiated or cards are customized, all fees are <strong>100% Non-Refundable</strong> and no money-return demands will be entertained under any circumstances.
               </p>
             </div>
           </div>
