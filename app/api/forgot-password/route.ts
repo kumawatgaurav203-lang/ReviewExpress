@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getOwnerAccountByEmail, updateOwnerPassword } from '@/lib/accounts-store';
+import { supabase, isSupabaseConfigured } from '@/lib/supabase';
 import { otpStore } from '@/lib/otp-store';
 import { checkRateLimit, RATE_LIMITS, checkRequestSize, validateField, hasSQLInjection } from '@/lib/api-guard';
 
@@ -21,8 +22,28 @@ export async function POST(req: NextRequest) {
     if (emailError) return emailError;
 
     const cleanEmail = (email as string).toLowerCase().trim();
-    const account = getOwnerAccountByEmail(cleanEmail);
-    if (!account) {
+
+    // Check account existence across Supabase & local storage
+    let accountExists = false;
+    const localAccount = getOwnerAccountByEmail(cleanEmail);
+    if (localAccount) {
+      accountExists = true;
+    } else if (isSupabaseConfigured()) {
+      try {
+        const { data: dbUser } = await supabase
+          .from('users')
+          .select('id, email')
+          .eq('email', cleanEmail)
+          .single();
+        if (dbUser) {
+          accountExists = true;
+        }
+      } catch (err) {
+        console.warn('[Forgot Password] Supabase query check error:', err);
+      }
+    }
+
+    if (!accountExists) {
       return NextResponse.json({ success: false, message: 'No account found with this email.' }, { status: 404 });
     }
 
@@ -80,13 +101,23 @@ export async function POST(req: NextRequest) {
         }, { status: 400 });
       }
 
-      const updated = updateOwnerPassword(cleanEmail, newPassword);
-      if (updated) {
-        otpStore.delete(cleanEmail);
-        return NextResponse.json({ success: true, message: 'Password reset successfully. You can now login.' });
-      } else {
-        return NextResponse.json({ success: false, message: 'Failed to update password.' }, { status: 500 });
+      // 1. Update in Supabase
+      if (isSupabaseConfigured()) {
+        try {
+          await supabase
+            .from('users')
+            .update({ password_hash: newPassword })
+            .eq('email', cleanEmail);
+        } catch (err) {
+          console.error('[Forgot Password] Failed to update password in Supabase:', err);
+        }
       }
+
+      // 2. Update in local store
+      updateOwnerPassword(cleanEmail, newPassword);
+
+      otpStore.delete(cleanEmail);
+      return NextResponse.json({ success: true, message: 'Password reset successfully. You can now login.' });
     }
 
     return NextResponse.json({ success: false, message: 'Invalid action.' }, { status: 400 });

@@ -217,7 +217,8 @@ export async function POST(req: NextRequest) {
       // Fallback to Gmail SMTP only if Resend failed completely
       if (!emailSent) {
         try {
-          const emailUser = process.env.EMAIL_USER || 'botmate.in@gmail.com';
+          const rawEmailUser = (process.env.EMAIL_USER || '').trim();
+          const emailUser = rawEmailUser.endsWith('@gmail.com') ? rawEmailUser : 'botmate.in@gmail.com';
           const emailPass = (process.env.EMAIL_PASS || 'wcvmiginkraahyxj').replace(/\s+/g, '');
 
           const transporter = nodemailer.createTransport({

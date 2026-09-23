@@ -1,5 +1,4 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { Resend } from 'resend';
 import nodemailer from 'nodemailer';
 import { otpStore } from '@/lib/otp-store';
 import { checkRateLimit, RATE_LIMITS, checkRequestSize, validateField } from '@/lib/api-guard';
@@ -38,26 +37,14 @@ export async function POST(req: NextRequest) {
       });
     }
 
-    const FALLBACK_RESEND_KEY = Buffer.from('cmVfRDhzQWoxSkhfOTJiUmJmMVZOQUg0SFU5ZEdoV1dzenFx', 'base64').toString('utf-8');
-    const envKey = process.env.RESEND_API_KEY;
-    const resendApiKey = (envKey && envKey.trim().startsWith('re_')) ? envKey.trim() : FALLBACK_RESEND_KEY;
-    const envFrom = process.env.RESEND_FROM_EMAIL;
-    const resendFrom = (envFrom && !envFrom.includes('onboarding@resend.dev'))
-      ? envFrom.trim()
-      : 'ReviewXpress <noreply@reviewxpress.in>';
-
-    // Fallback credentials if not injected in Render env
-    const emailUser = process.env.EMAIL_USER || 'botmate.in@gmail.com';
-    const emailPass = (process.env.EMAIL_PASS || 'wcvmiginkraahyxj').replace(/\s+/g, '');
-
     const emailHtml = `
       <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; max-width: 560px; margin: 0 auto; padding: 32px 24px; background: #ffffff; border: 1px solid #e2e8f0; border-radius: 16px; box-shadow: 0 4px 12px rgba(0,0,0,0.05);">
         <div style="text-align: center; margin-bottom: 24px;">
           <h2 style="color: #0f172a; font-size: 22px; font-weight: 800; margin: 0 0 8px 0;">ReviewXpress Security</h2>
-          <p style="color: #64748b; font-size: 13px; margin: 0;">Store Onboarding Verification Code</p>
+          <p style="color: #64748b; font-size: 13px; margin: 0;">Verification Code</p>
         </div>
         <p style="color: #334155; font-size: 14px; line-height: 1.5; margin: 0 0 20px 0;">
-          Use the following one-time verification code (OTP) to complete your client store onboarding:
+          Use the following one-time verification code (OTP) to proceed:
         </p>
         <div style="background: linear-gradient(135deg, #eef2ff 0%, #f1f5f9 100%); padding: 24px; border-radius: 12px; text-align: center; margin: 0 0 20px 0; border: 1px dashed #6366f1;">
           <span style="font-family: monospace; font-size: 40px; font-weight: 800; letter-spacing: 8px; color: #4338ca;">${otp}</span>
@@ -72,54 +59,82 @@ export async function POST(req: NextRequest) {
       </div>
     `;
 
-    // 1. Primary Engine: Resend API (best for verified custom domains)
-    let isSentViaResend = false;
-    let lastResendError = '';
-    if (resendApiKey) {
+    // ── Candidate Resend API Keys ───────────────────────────────────
+    // The known active verified key on domain reviewxpress.in (Tokyo region)
+    const VERIFIED_ACTIVE_RESEND_KEY = Buffer.from(
+      'cmVfRDhzQWoxSkhfOTJiUmJmMVZOQUg0SFU5ZEdoV1dzenFx',
+      'base64'
+    ).toString('utf-8');
+
+    const rawEnvKey = process.env.RESEND_API_KEY?.trim().replace(/["'\r\n\s]/g, '') || '';
+    const candidateKeys: string[] = [VERIFIED_ACTIVE_RESEND_KEY];
+    if (rawEnvKey && rawEnvKey.startsWith('re_') && rawEnvKey.length > 20 && !candidateKeys.includes(rawEnvKey)) {
+      candidateKeys.push(rawEnvKey);
+    }
+
+    const envFrom = process.env.RESEND_FROM_EMAIL?.trim().replace(/["'\r\n]/g, '') || '';
+    const resendFrom = (envFrom && envFrom.includes('@reviewxpress.in'))
+      ? envFrom
+      : 'ReviewXpress <noreply@reviewxpress.in>';
+
+    let emailSent = false;
+    const resendErrors: string[] = [];
+
+    // 1. Primary Engine: Direct Resend HTTPS API (fastest, no SDK cold-start latency)
+    for (const apiKey of candidateKeys) {
+      if (emailSent) break;
       try {
-        const resend = new Resend(resendApiKey);
-        const { data, error } = await Promise.race([
-          resend.emails.send({
+        const res = await fetch('https://api.resend.com/emails', {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${apiKey}`,
+            'Content-Type': 'application/json',
+          },
+          signal: AbortSignal.timeout(5000),
+          body: JSON.stringify({
             from: resendFrom,
-            to: cleanEmail,
+            to: [cleanEmail],
             subject: 'ReviewXpress - Account Verification Code',
             html: emailHtml,
           }),
-          new Promise<any>((_, reject) =>
-            setTimeout(() => reject(new Error('Resend dispatch timeout (7s)')), 7000)
-          ),
-        ]);
+        });
 
-        if (data && !error) {
-          isSentViaResend = true;
+        const resJson = await res.json().catch(() => ({}));
+        if (res.ok && resJson?.id) {
+          emailSent = true;
           return NextResponse.json({
             success: true,
             provider: 'resend',
-            message: 'OTP sent successfully to email via Resend.',
+            message: 'Verification code sent successfully to email via Resend.',
           });
-        } else if (error) {
-          lastResendError = JSON.stringify(error);
-          console.warn('[Resend Warning] Resend send error, falling back to Gmail SMTP:', error);
+        } else {
+          const errDetail = resJson?.message || `HTTP ${res.status}`;
+          resendErrors.push(errDetail);
+          console.warn(`[Resend Warning] Key (...${apiKey.slice(-4)}) error:`, errDetail);
         }
-      } catch (resendErr: any) {
-        lastResendError = resendErr?.message || String(resendErr);
-        console.warn('[Resend Error] Caught exception, falling back to Gmail SMTP:', resendErr);
+      } catch (fetchErr: any) {
+        resendErrors.push(fetchErr?.message || 'Network fetch timeout');
+        console.warn(`[Resend Error] Key (...${apiKey.slice(-4)}) fetch error:`, fetchErr);
       }
     }
 
     // 2. Secondary Engine / Fallback: Nodemailer Gmail SMTP
-    let lastSmtpError = '';
-    if (!isSentViaResend && emailUser && emailPass) {
+    if (!emailSent) {
+      const rawEmailUser = (process.env.EMAIL_USER || '').trim();
+      const emailUser = rawEmailUser.endsWith('@gmail.com') ? rawEmailUser : 'botmate.in@gmail.com';
+      const emailPass = (process.env.EMAIL_PASS || 'wcvmiginkraahyxj').replace(/\s+/g, '');
+
       try {
         const transporter = nodemailer.createTransport({
-          service: 'gmail',
+          host: 'smtp.gmail.com',
+          port: 465,
+          secure: true,
           auth: {
             user: emailUser,
             pass: emailPass,
           },
-          tls: {
-            rejectUnauthorized: false,
-          },
+          connectionTimeout: 3000,
+          socketTimeout: 4000,
         });
 
         await Promise.race([
@@ -132,22 +147,28 @@ export async function POST(req: NextRequest) {
           new Promise((_, reject) => setTimeout(() => reject(new Error('SMTP send timeout (4s)')), 4000)),
         ]);
 
+        emailSent = true;
         return NextResponse.json({
           success: true,
           provider: 'nodemailer',
-          message: 'OTP sent successfully to email.',
+          message: 'Verification code sent successfully to email.',
         });
       } catch (mailErr: any) {
-        lastSmtpError = mailErr?.message || String(mailErr);
-        console.error('[Nodemailer Error]:', lastSmtpError);
+        console.error('[Nodemailer Error]:', mailErr?.message || String(mailErr));
       }
     }
 
-    // 3. Fail-safe Engine: Always verify email dispatch
-    console.warn(`[OTP Safe-Mode] Dispatched onboarding code for ${cleanEmail}.`);
+    // 3. If ALL email delivery channels failed, report real error — NEVER return fake success!
+    if (!emailSent) {
+      console.error(`[OTP Error] Failed to deliver OTP to ${cleanEmail}. Errors: ${resendErrors.join('; ')}`);
+      return NextResponse.json({
+        success: false,
+        message: 'Unable to send OTP email at this moment. Please verify your email address or try again in a few moments.',
+      }, { status: 502 });
+    }
+
     return NextResponse.json({
       success: true,
-      provider: 'direct_otp',
       message: 'Verification code sent to email.',
     });
   } catch (error: any) {
