@@ -30,6 +30,7 @@ import {
 import { DEMO_BUSINESSES } from '@/lib/demo-data';
 import TermsModal from '@/components/TermsModal';
 import SocialContactBar from '@/components/SocialContactBar';
+import ThemeToggle from '@/components/ThemeToggle';
 
 interface ComplaintItem {
   id: string;
@@ -348,6 +349,8 @@ export default function OwnerDashboardPage() {
               <QrCode className="w-3.5 h-3.5 text-indigo-400" />
               <span>Store QR Standee</span>
             </Link>
+
+            <ThemeToggle />
 
             <button
               onClick={handleSignOut}

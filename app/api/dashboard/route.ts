@@ -182,8 +182,22 @@ export async function GET(req: NextRequest) {
           // Merge unique logs from db
           const existingIds = new Set(allLogs.map((l) => l.id));
           dbLogs.forEach((dbLog: any) => {
+            // Restore resolved status stored in database
+            if (dbLog.rating > 0 && dbLog.rating <= 3) {
+              if (dbLog.review_text && typeof dbLog.review_text === 'string' && dbLog.review_text.startsWith('RESOLVED:')) {
+                dbLog.is_resolved = true;
+                dbLog.resolved_at = dbLog.review_text.slice(9);
+              }
+            }
             if (!existingIds.has(dbLog.id)) {
               allLogs.push(dbLog);
+            } else {
+              // Keep database resolution status in sync with local cache
+              const localLog = allLogs.find((l) => l.id === dbLog.id);
+              if (localLog && dbLog.is_resolved) {
+                localLog.is_resolved = true;
+                (localLog as any).resolved_at = dbLog.resolved_at;
+              }
             }
           });
         }
@@ -402,6 +416,19 @@ export async function PATCH(req: NextRequest) {
     }
 
     const newStatus = toggleComplaintStatus(complaintId);
+
+    // Also persist complaint resolved status to Supabase review_logs table
+    if (isSupabaseConfigured()) {
+      try {
+        const resolvedTag = newStatus ? `RESOLVED:${new Date().toISOString()}` : '';
+        await supabase
+          .from('review_logs')
+          .update({ review_text: resolvedTag })
+          .eq('id', complaintId);
+      } catch (err) {
+        console.warn('Supabase complaint resolution sync notice:', err);
+      }
+    }
 
     // Invalidate dashboard cache for this business
     if (businessId) {

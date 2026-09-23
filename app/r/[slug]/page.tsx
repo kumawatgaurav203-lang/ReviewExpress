@@ -129,7 +129,7 @@ export default async function NFCReviewPage({ params, searchParams }: PageProps)
   const initialSource: 'nfc' | 'qr' = searchParams?.source === 'nfc' ? 'nfc' : 'qr';
 
   return (
-    <main className="min-h-screen flex flex-col justify-center items-center bg-gradient-to-b from-slate-50 via-slate-100 to-slate-200 px-4 py-6">
+    <main className="min-h-screen flex flex-col justify-center items-center bg-slate-100 dark:bg-slate-950 px-4 py-6 transition-colors">
       <ReviewFlow business={business} initialSource={initialSource} />
     </main>
   );

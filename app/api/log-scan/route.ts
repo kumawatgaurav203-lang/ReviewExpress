@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from 'next/server';
 import { recordLiveReview } from '@/lib/dashboard-data';
 import { checkRateLimit, RATE_LIMITS, checkRequestSize, sanitizeBusinessId, isValidBusinessId, getClientIP } from '@/lib/api-guard';
 import { redisCache } from '@/lib/redis';
+import { supabase, isSupabaseConfigured } from '@/lib/supabase';
+import { resolveBusinessUuid } from '@/lib/auth-server';
 
 // In-memory cache to deduplicate rapid scans from same IP/client within 60s
 const recentScans = new Map<string, number>();
@@ -53,6 +55,27 @@ export async function POST(req: NextRequest) {
       review_text: channel === 'nfc' ? 'NFC Chip Tapped' : 'QR Standee Scanned',
       source: channel,
     });
+
+    // Also persist scan visit to Supabase review_logs so scan counts never reset on redeploy
+    if (isSupabaseConfigured()) {
+      try {
+        const canonicalBusinessId = await resolveBusinessUuid(safeBusinessId);
+        supabase
+          .from('review_logs')
+          .insert([
+            {
+              business_id: canonicalBusinessId,
+              rating: 0,
+              posted_to_google: false,
+              review_text: channel === 'nfc' ? 'NFC Chip Tapped' : 'QR Standee Scanned',
+              source: channel,
+            },
+          ])
+          .then(() => {});
+      } catch (dbErr) {
+        // non-blocking
+      }
+    }
 
     // Invalidate dashboard metrics cache so owner sees real-time visit
     redisCache.delPattern(`dashboard:${safeBusinessId}:*`).catch(() => {});

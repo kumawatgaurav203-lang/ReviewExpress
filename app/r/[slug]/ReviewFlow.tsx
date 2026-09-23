@@ -17,6 +17,7 @@ import {
   Lock,
 } from "lucide-react";
 import HumanVerification from "@/components/HumanVerification";
+import ThemeToggle from "@/components/ThemeToggle";
 
 interface ReviewFlowProps {
   business: Business;
@@ -292,7 +293,13 @@ export default function ReviewFlow({ business, initialSource }: ReviewFlowProps)
 
   return (
     <div className="w-full max-w-md mx-auto p-4 sm:p-6 pb-12 flex flex-col items-center">
-      {/* Business Header Card */}
+      {/* Top Header Bar */}
+      <div className="w-full flex items-center justify-between mb-2">
+        <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider">
+          Smart Review Terminal
+        </span>
+        <ThemeToggle />
+      </div>
       <div className="w-full text-center mb-6 pt-2">
         <div className="inline-flex items-center justify-center w-20 h-20 rounded-2xl bg-gradient-to-tr from-blue-600 via-indigo-600 to-violet-600 text-white shadow-lg shadow-blue-500/20 mb-3 border-2 border-white">
           <span className="text-2xl font-black tracking-wider">

@@ -1,17 +1,8 @@
 import { Business } from './types';
 import { getShuffledCategoryTags } from './tags-data';
 
-// Real registry of businesses (starts with demo for client sales pitch)
-export const DEMO_BUSINESSES: Record<string, Business> = {
-  'demo': {
-    id: 'b0000000-0000-4000-8000-000000000000',
-    name: 'ReviewXpress Client Demo',
-    slug: 'demo',
-    google_review_link: 'https://www.google.com/maps',
-    tags: getShuffledCategoryTags('ReviewXpress Client Demo'),
-    is_active: true,
-  },
-};
+// Real registry of businesses
+export const DEMO_BUSINESSES: Record<string, Business> = {};
 
 export function getFallbackBusiness(slug: string): Business {
   // 1. Check in-memory DEMO_BUSINESSES

@@ -25,7 +25,7 @@ export async function GET(req: NextRequest) {
     const storesMap = new Map<string, any>();
 
     for (const acc of accounts) {
-      if (!acc.businessSlug || acc.businessSlug.startsWith('sys-')) continue;
+      if (!acc.businessSlug || acc.businessSlug.startsWith('sys-') || acc.businessSlug === 'demo') continue;
       storesMap.set(acc.businessSlug, {
         id: acc.id,
         name: acc.businessName,
@@ -45,11 +45,12 @@ export async function GET(req: NextRequest) {
           .from('businesses')
           .select('id, name, slug, google_review_link, tags, created_at, is_active')
           .neq('slug', 'sys-master-admin-key')
+          .neq('slug', 'demo')
           .order('created_at', { ascending: false });
 
         if (!error && dbStores && dbStores.length > 0) {
           for (const b of dbStores) {
-            if (b.slug === 'sys-master-admin-key' || b.slug.startsWith('sys-')) continue;
+            if (b.slug === 'sys-master-admin-key' || b.slug.startsWith('sys-') || b.slug === 'demo') continue;
             const existing = storesMap.get(b.slug);
             const acc = accounts.find((a) => a.businessSlug === b.slug || a.id === b.id);
             storesMap.set(b.slug, {

@@ -128,6 +128,7 @@ export async function POST(req: NextRequest) {
               customer_phone: safeCustomerPhone,
               customer_feedback: safeCustomerFeedback,
               posted_to_google: Boolean(postedToGoogle),
+              source: safeSource,
             },
           ])
           .select('id')

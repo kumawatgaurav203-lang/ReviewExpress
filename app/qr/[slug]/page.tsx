@@ -10,6 +10,7 @@ import { Business } from '@/lib/types';
 import { getBaseUrl } from '@/lib/network';
 import { Star, QrCode } from 'lucide-react';
 import BackButton from '@/components/BackButton';
+import ThemeToggle from '@/components/ThemeToggle';
 
 import { redisCache } from '@/lib/redis';
 
@@ -132,9 +133,12 @@ export default async function QRStandeePage({ params }: PageProps) {
       {/* Top Controls */}
       <div className="w-full max-w-md flex items-center justify-between mb-4 print:hidden">
         <BackButton fallback="/dashboard" />
-        <span className="text-xs text-emerald-400 font-medium bg-emerald-500/10 border border-emerald-500/20 px-2.5 py-0.5 rounded-full">
-          Ready to Scan
-        </span>
+        <div className="flex items-center gap-2">
+          <span className="text-xs text-emerald-400 font-medium bg-emerald-500/10 border border-emerald-500/20 px-2.5 py-0.5 rounded-full">
+            Ready to Scan
+          </span>
+          <ThemeToggle />
+        </div>
       </div>
 
       {/* Printable Counter Standee Card */}

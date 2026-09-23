@@ -1,22 +1,5 @@
 [
   {
-    "business_id": "1aa78474-cdf5-448e-95af-8e0a83b2b9e0",
-    "rating": 5,
-    "posted_to_google": true,
-    "is_scan": false,
-    "review_text": "Amazing food at Royal Spice Cafe!",
-    "source": "nfc",
-    "id": "5c84955d-39bb-4ded-8af1-e8252ce97854",
-    "is_resolved": false,
-    "created_at": "2026-09-20T06:05:23.062Z",
-    "selected_tags": [
-      "Fast Service",
-      "Polite Staff"
-    ],
-    "customer_phone": "",
-    "customer_feedback": ""
-  },
-  {
     "business_id": "b-photify-studio",
     "rating": 4,
     "selected_tags": [
@@ -33,85 +16,6 @@
     "created_at": "2026-09-19T09:25:54.094Z"
   },
   {
-    "business_id": "b0000000-0000-4000-8000-000000000000",
-    "rating": 0,
-    "posted_to_google": false,
-    "is_scan": true,
-    "review_text": "QR Standee Scanned",
-    "source": "qr",
-    "id": "log-1789809653671-w4es",
-    "is_resolved": false,
-    "created_at": "2026-09-19T09:20:53.671Z"
-  },
-  {
-    "business_id": "b0000000-0000-4000-8000-000000000000",
-    "rating": 0,
-    "posted_to_google": false,
-    "is_scan": true,
-    "review_text": "QR Standee Scanned",
-    "source": "qr",
-    "id": "log-1789809608988-7ayu",
-    "is_resolved": false,
-    "created_at": "2026-09-19T09:20:08.988Z"
-  },
-  {
-    "business_id": "b0000000-0000-4000-8000-000000000000",
-    "rating": 5,
-    "posted_to_google": true,
-    "is_scan": false,
-    "review_text": "One of the best places in town! ReviewXpress Client Demo really excels when it comes to Hassle-Free Experience, Highly Recommended, Super Fast Service, 5/5 stars from my side.",
-    "source": "qr",
-    "id": "de64de49-7f6b-4298-a829-68b7c3831859",
-    "is_resolved": false,
-    "created_at": "2026-09-19T09:18:57.052Z",
-    "selected_tags": [
-      "Highly Recommended",
-      "Hassle-Free Experience",
-      "Super Fast Service"
-    ],
-    "customer_phone": "",
-    "customer_feedback": ""
-  },
-  {
-    "business_id": "b0000000-0000-4000-8000-000000000000",
-    "rating": 0,
-    "posted_to_google": false,
-    "is_scan": true,
-    "review_text": "QR Standee Scanned",
-    "source": "qr",
-    "id": "log-1789754918787-55g0",
-    "is_resolved": false,
-    "created_at": "2026-09-18T18:08:38.787Z"
-  },
-  {
-    "business_id": "b0000000-0000-4000-8000-000000000000",
-    "rating": 2,
-    "posted_to_google": false,
-    "is_scan": false,
-    "review_text": "",
-    "source": "qr",
-    "id": "01c11126-f552-4acf-8ade-340786f68277",
-    "is_resolved": false,
-    "created_at": "2026-09-18T18:07:11.454Z",
-    "selected_tags": [],
-    "customer_phone": "",
-    "customer_feedback": "Hh"
-  },
-  {
-    "business_id": "b0000000-0000-4000-8000-000000000000",
-    "rating": 2,
-    "posted_to_google": false,
-    "is_scan": false,
-    "review_text": "",
-    "source": "qr",
-    "id": "72e423ff-e15a-4076-bf36-b7dd7af43003",
-    "is_resolved": false,
-    "created_at": "2026-09-18T18:06:59.219Z",
-    "selected_tags": [],
-    "customer_phone": "",
-    "customer_feedback": "Hi"
-  },
-  {
     "business_id": "b-photify-studios",
     "rating": 0,
     "posted_to_google": false,
@@ -121,28 +25,6 @@
     "id": "log-1789750021059-zcqo",
     "is_resolved": false,
     "created_at": "2026-09-18T16:47:01.059Z"
-  },
-  {
-    "business_id": "b0000000-0000-4000-8000-000000000000",
-    "rating": 0,
-    "posted_to_google": false,
-    "is_scan": true,
-    "review_text": "QR Standee Scanned",
-    "source": "qr",
-    "id": "log-1789750021057-1th3",
-    "is_resolved": false,
-    "created_at": "2026-09-18T16:47:01.057Z"
-  },
-  {
-    "business_id": "b0000000-0000-4000-8000-000000000000",
-    "rating": 0,
-    "posted_to_google": false,
-    "is_scan": true,
-    "review_text": "QR Standee Scanned",
-    "source": "qr",
-    "id": "log-1789749808141-ef7g",
-    "is_resolved": false,
-    "created_at": "2026-09-18T16:43:28.141Z"
   },
   {
     "business_id": "b-photify-studios",
@@ -156,63 +38,6 @@
     "created_at": "2026-09-18T16:43:16.266Z"
   },
   {
-    "business_id": "b0000000-0000-4000-8000-000000000000",
-    "rating": 2,
-    "posted_to_google": false,
-    "is_scan": false,
-    "review_text": "",
-    "source": "qr",
-    "id": "7946ee51-6db1-4d20-a4ab-62f32d62d222",
-    "is_resolved": false,
-    "created_at": "2026-09-18T16:13:34.316Z",
-    "selected_tags": [],
-    "customer_phone": "",
-    "customer_feedback": "ji"
-  },
-  {
-    "business_id": "b0000000-0000-4000-8000-000000000000",
-    "rating": 4,
-    "selected_tags": [
-      "Super Fast Service",
-      "Top-Notch Quality",
-      "Honest & Transparent"
-    ],
-    "review_text": "I was really impressed by their super fast service and top-notch quality on my order. Plus, I loved how honest and transparent they were with the pricing and process throughout.",
-    "customer_phone": "",
-    "customer_feedback": "",
-    "posted_to_google": true,
-    "source": "qr",
-    "is_scan": false,
-    "id": "c6a35fcb-9018-4844-bc44-78187298eb91",
-    "is_resolved": false,
-    "created_at": "2026-09-18T16:12:48.939Z"
-  },
-  {
-    "business_id": "b0000000-0000-4000-8000-000000000000",
-    "rating": 2,
-    "posted_to_google": false,
-    "is_scan": false,
-    "review_text": "",
-    "source": "qr",
-    "id": "a3fa9f34-7359-4c9d-a732-d90f394353fc",
-    "is_resolved": false,
-    "created_at": "2026-09-18T16:12:11.922Z",
-    "selected_tags": [],
-    "customer_phone": "",
-    "customer_feedback": "Hi"
-  },
-  {
-    "business_id": "b0000000-0000-4000-8000-000000000000",
-    "rating": 0,
-    "posted_to_google": false,
-    "is_scan": true,
-    "review_text": "QR Standee Scanned",
-    "source": "qr",
-    "id": "log-1789747870963-xqvd",
-    "is_resolved": false,
-    "created_at": "2026-09-18T16:11:10.963Z"
-  },
-  {
     "business_id": "b-photify-studios",
     "rating": 0,
     "posted_to_google": false,
@@ -222,17 +47,6 @@
     "id": "log-1789747202521-7ftw",
     "is_resolved": false,
     "created_at": "2026-09-18T16:00:02.521Z"
-  },
-  {
-    "business_id": "b0000000-0000-4000-8000-000000000000",
-    "rating": 0,
-    "posted_to_google": false,
-    "is_scan": true,
-    "review_text": "QR Standee Scanned",
-    "source": "qr",
-    "id": "log-1789747014008-4peo",
-    "is_resolved": false,
-    "created_at": "2026-09-18T15:56:54.008Z"
   },
   {
     "business_id": "b-photify-studios",
@@ -294,83 +108,5 @@
     "id": "log-1789746673193-o54c",
     "is_resolved": false,
     "created_at": "2026-09-18T15:51:13.193Z"
-  },
-  {
-    "business_id": "b-looters",
-    "rating": 0,
-    "posted_to_google": false,
-    "is_scan": true,
-    "review_text": "QR Standee Scanned",
-    "source": "qr",
-    "id": "log-1789322651198-sbbe",
-    "is_resolved": false,
-    "created_at": "2026-09-13T18:04:11.198Z"
-  },
-  {
-    "business_id": "b0000000-0000-4000-8000-000000000000",
-    "rating": 0,
-    "posted_to_google": false,
-    "is_scan": true,
-    "review_text": "QR Standee Scanned",
-    "id": "log-1789242418281-tum5",
-    "is_resolved": false,
-    "created_at": "2026-09-12T19:46:58.281Z",
-    "source": "qr"
-  },
-  {
-    "business_id": "b0000000-0000-4000-8000-000000000000",
-    "rating": 4,
-    "selected_tags": [
-      "Friendly & Polite Staff"
-    ],
-    "review_text": "Had a wonderful experience at ReviewXpress Client Demo. Really appreciated the Friendly & Polite Staff, definitely visiting again!",
-    "customer_phone": "",
-    "customer_feedback": "",
-    "posted_to_google": true,
-    "id": "log-1789238222755-d1nn",
-    "is_resolved": false,
-    "created_at": "2026-09-12T18:37:02.755Z",
-    "source": "qr"
-  },
-  {
-    "business_id": "b0000000-0000-4000-8000-000000000000",
-    "rating": 2,
-    "selected_tags": [],
-    "review_text": "",
-    "customer_phone": "",
-    "customer_feedback": "Lights are very bad",
-    "posted_to_google": false,
-    "id": "log-1789238181626-yoh0",
-    "is_resolved": false,
-    "created_at": "2026-09-12T18:36:21.626Z",
-    "source": "qr"
-  },
-  {
-    "business_id": "b0000000-0000-4000-8000-000000000000",
-    "rating": 4,
-    "selected_tags": [
-      "Hassle-Free Experience"
-    ],
-    "review_text": "Outstanding quality and vibe at ReviewXpress Client Demo! The Hassle-Free Experience stood out the most, keep up the great work.",
-    "customer_phone": "",
-    "customer_feedback": "",
-    "posted_to_google": true,
-    "id": "log-1789238130852-0yhc",
-    "is_resolved": false,
-    "created_at": "2026-09-12T18:35:30.852Z",
-    "source": "qr"
-  },
-  {
-    "business_id": "b0000000-0000-4000-8000-000000000000",
-    "rating": 2,
-    "selected_tags": [],
-    "review_text": "",
-    "customer_phone": "",
-    "customer_feedback": "Studio faculties are not good",
-    "posted_to_google": false,
-    "id": "log-1789238114244-44kw",
-    "is_resolved": false,
-    "created_at": "2026-09-12T18:35:14.244Z",
-    "source": "qr"
   }
 ]

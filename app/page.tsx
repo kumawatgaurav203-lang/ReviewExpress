@@ -24,6 +24,7 @@ import {
 } from 'lucide-react';
 import TermsModal from '@/components/TermsModal';
 import SocialContactBar from '@/components/SocialContactBar';
+import ThemeToggle from '@/components/ThemeToggle';
 
 export default function HomePage() {
   const [showTermsModal, setShowTermsModal] = useState(false);
@@ -91,6 +92,7 @@ export default function HomePage() {
 
           {/* Action Buttons */}
           <div className="flex items-center gap-1.5 sm:gap-2.5 shrink-0">
+            <ThemeToggle />
 
             {/* Owner Login Link */}
             <Link

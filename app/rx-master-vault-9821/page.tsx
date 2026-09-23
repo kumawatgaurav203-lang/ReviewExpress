@@ -36,6 +36,7 @@ import {
 import QRCode from 'qrcode';
 import { detectCategory } from '@/lib/tags-data';
 import SocialContactBar from '@/components/SocialContactBar';
+import ThemeToggle from '@/components/ThemeToggle';
 
 interface StoreItem {
   name: string;
@@ -335,8 +336,8 @@ export default function CreateAccountAdminPage() {
     return () => clearInterval(timer);
   }, [storeOtpCountdown]);
 
-  // Master Admin Auto-Lock Timer (30 minutes = 1800 seconds)
-  const [sessionRemaining, setSessionRemaining] = useState<number>(30 * 60);
+  // Master Admin Auto-Lock Timer (20 minutes = 1200 seconds)
+  const [sessionRemaining, setSessionRemaining] = useState<number>(20 * 60);
 
   // Check existing 2FA session on mount
   useEffect(() => {
@@ -345,12 +346,12 @@ export default function CreateAccountAdminPage() {
         const res = await fetch('/api/admin-auth', { signal: AbortSignal.timeout(5000) });
         const data = await res.json();
         if (data?.success && data?.verified) {
-          // Check if session start time in sessionStorage has exceeded 30 minutes
+          // Check if session start time in sessionStorage has exceeded 20 minutes
           const storedStart = typeof window !== 'undefined' ? sessionStorage.getItem('rx_admin_session_start') : null;
           if (storedStart) {
             const elapsed = Math.floor((Date.now() - parseInt(storedStart, 10)) / 1000);
-            if (elapsed >= 30 * 60) {
-              // 30 minutes expired! Force lock
+            if (elapsed >= 20 * 60) {
+              // 20 minutes expired! Force lock
               await fetch('/api/admin-auth', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
@@ -362,7 +363,7 @@ export default function CreateAccountAdminPage() {
               setIsMasterVerified(false);
               return;
             } else {
-              setSessionRemaining(Math.max(0, 30 * 60 - elapsed));
+              setSessionRemaining(Math.max(0, 20 * 60 - elapsed));
             }
           }
           setIsMasterVerified(true);
@@ -381,7 +382,7 @@ export default function CreateAccountAdminPage() {
     checkSession();
   }, []);
 
-  // 30-minute Active auto-lock countdown timer
+  // 20-minute Active auto-lock countdown timer
   useEffect(() => {
     if (!isMasterVerified) return;
 
@@ -474,7 +475,7 @@ export default function CreateAccountAdminPage() {
       if (typeof window !== 'undefined') {
         sessionStorage.setItem('rx_admin_session_start', Date.now().toString());
       }
-      setSessionRemaining(30 * 60);
+      setSessionRemaining(20 * 60);
       setOtpSent(false);
       setOtpInput('');
       setAuthSuccessMsg('');
@@ -896,6 +897,7 @@ export default function CreateAccountAdminPage() {
                 </button>
               </>
             )}
+            <ThemeToggle />
           </div>
         </div>
       </header>
