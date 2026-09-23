@@ -17,7 +17,6 @@ import {
 } from 'lucide-react';
 import TermsModal from '@/components/TermsModal';
 import HumanVerification from '@/components/HumanVerification';
-import ThemeToggle from '@/components/ThemeToggle';
 
 export default function OwnerLoginPage() {
   const router = useRouter();
@@ -308,12 +307,9 @@ export default function OwnerLoginPage() {
             <ArrowLeft className="w-3.5 h-3.5" />
             <span>Back to Home</span>
           </Link>
-          <div className="flex items-center gap-2">
-            <span className="text-[11px] font-semibold text-indigo-400 bg-indigo-500/10 border border-indigo-500/20 px-2.5 py-0.5 rounded-full">
-              Store Owner Portal
-            </span>
-            <ThemeToggle />
-          </div>
+          <span className="text-[11px] font-semibold text-indigo-400 bg-indigo-500/10 border border-indigo-500/20 px-2.5 py-0.5 rounded-full">
+            Store Owner Portal
+          </span>
         </div>
 
         {/* Card Container */}

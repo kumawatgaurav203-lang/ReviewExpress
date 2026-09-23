@@ -36,7 +36,6 @@ import {
 import QRCode from 'qrcode';
 import { detectCategory } from '@/lib/tags-data';
 import SocialContactBar from '@/components/SocialContactBar';
-import ThemeToggle from '@/components/ThemeToggle';
 
 interface StoreItem {
   name: string;
@@ -897,7 +896,6 @@ export default function CreateAccountAdminPage() {
                 </button>
               </>
             )}
-            <ThemeToggle />
           </div>
         </div>
       </header>
