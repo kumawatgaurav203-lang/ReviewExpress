@@ -429,7 +429,18 @@ export default function CreateAccountAdminPage() {
   }, [storeOtpCountdown]);
 
   // Master Admin Auto-Lock Timer (20 minutes = 1200 seconds)
-  const [sessionRemaining, setSessionRemaining] = useState<number>(20 * 60);
+  // Initializes with stored session remaining time so page refresh NEVER resets back to 20:00
+  const [sessionRemaining, setSessionRemaining] = useState<number>(() => {
+    if (typeof window !== 'undefined') {
+      const stored = sessionStorage.getItem('rx_admin_session_start') || localStorage.getItem('rx_admin_session_start');
+      if (stored) {
+        const elapsed = Math.floor((Date.now() - parseInt(stored, 10)) / 1000);
+        const rem = 20 * 60 - elapsed;
+        if (rem > 0 && rem <= 20 * 60) return rem;
+      }
+    }
+    return 20 * 60;
+  });
 
   // Check existing 2FA session on mount
   useEffect(() => {
@@ -438,24 +449,37 @@ export default function CreateAccountAdminPage() {
         const res = await fetch('/api/admin-auth', { signal: AbortSignal.timeout(5000) });
         const data = await res.json();
         if (data?.success && data?.verified) {
-          // Check if session start time in sessionStorage has exceeded 20 minutes
-          const storedStart = typeof window !== 'undefined' ? sessionStorage.getItem('rx_admin_session_start') : null;
-          if (storedStart) {
-            const elapsed = Math.floor((Date.now() - parseInt(storedStart, 10)) / 1000);
-            if (elapsed >= 20 * 60) {
-              // 20 minutes expired! Force lock
-              await fetch('/api/admin-auth', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ action: 'lock' }),
-              });
-              if (typeof window !== 'undefined') {
-                sessionStorage.removeItem('rx_admin_session_start');
+          // If server returns exact remaining seconds calculated from token exp
+          if (typeof data.remainingSeconds === 'number' && data.remainingSeconds > 0) {
+            setSessionRemaining(data.remainingSeconds);
+            const calculatedStart = Date.now() - (20 * 60 - data.remainingSeconds) * 1000;
+            if (typeof window !== 'undefined') {
+              sessionStorage.setItem('rx_admin_session_start', calculatedStart.toString());
+              localStorage.setItem('rx_admin_session_start', calculatedStart.toString());
+            }
+          } else {
+            // Storage fallback
+            const storedStart = typeof window !== 'undefined' 
+              ? (sessionStorage.getItem('rx_admin_session_start') || localStorage.getItem('rx_admin_session_start'))
+              : null;
+            if (storedStart) {
+              const elapsed = Math.floor((Date.now() - parseInt(storedStart, 10)) / 1000);
+              if (elapsed >= 20 * 60) {
+                // 20 minutes expired! Force lock
+                await fetch('/api/admin-auth', {
+                  method: 'POST',
+                  headers: { 'Content-Type': 'application/json' },
+                  body: JSON.stringify({ action: 'lock' }),
+                });
+                if (typeof window !== 'undefined') {
+                  sessionStorage.removeItem('rx_admin_session_start');
+                  localStorage.removeItem('rx_admin_session_start');
+                }
+                setIsMasterVerified(false);
+                return;
+              } else {
+                setSessionRemaining(Math.max(0, 20 * 60 - elapsed));
               }
-              setIsMasterVerified(false);
-              return;
-            } else {
-              setSessionRemaining(Math.max(0, 20 * 60 - elapsed));
             }
           }
           setIsMasterVerified(true);
@@ -474,22 +498,46 @@ export default function CreateAccountAdminPage() {
     checkSession();
   }, []);
 
-  // 20-minute Active auto-lock countdown timer
+  // 20-minute Active auto-lock countdown timer (resilient to page refresh & background tab sleep)
   useEffect(() => {
     if (!isMasterVerified) return;
 
-    const timer = setInterval(() => {
-      setSessionRemaining((prev) => {
-        if (prev <= 1) {
-          clearInterval(timer);
+    const syncRemaining = () => {
+      const stored = typeof window !== 'undefined' 
+        ? (sessionStorage.getItem('rx_admin_session_start') || localStorage.getItem('rx_admin_session_start'))
+        : null;
+      if (stored) {
+        const elapsed = Math.floor((Date.now() - parseInt(stored, 10)) / 1000);
+        const rem = 20 * 60 - elapsed;
+        if (rem <= 0) {
           handleLockPanel();
-          return 0;
+        } else {
+          setSessionRemaining(rem);
         }
-        return prev - 1;
-      });
-    }, 1000);
+      } else {
+        setSessionRemaining((prev) => {
+          if (prev <= 1) {
+            handleLockPanel();
+            return 0;
+          }
+          return prev - 1;
+        });
+      }
+    };
 
-    return () => clearInterval(timer);
+    const timer = setInterval(syncRemaining, 1000);
+
+    const handleVisibilityChange = () => {
+      if (!document.hidden) {
+        syncRemaining();
+      }
+    };
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+
+    return () => {
+      clearInterval(timer);
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+    };
   }, [isMasterVerified]);
 
 
@@ -564,10 +612,13 @@ export default function CreateAccountAdminPage() {
       }
 
       setIsMasterVerified(true);
+      const remainingSecs = typeof data.remainingSeconds === 'number' ? data.remainingSeconds : 20 * 60;
+      setSessionRemaining(remainingSecs);
       if (typeof window !== 'undefined') {
-        sessionStorage.setItem('rx_admin_session_start', Date.now().toString());
+        const calculatedStart = Date.now() - (20 * 60 - remainingSecs) * 1000;
+        sessionStorage.setItem('rx_admin_session_start', calculatedStart.toString());
+        localStorage.setItem('rx_admin_session_start', calculatedStart.toString());
       }
-      setSessionRemaining(20 * 60);
       setOtpSent(false);
       setOtpInput('');
       setAuthSuccessMsg('');
@@ -592,6 +643,7 @@ export default function CreateAccountAdminPage() {
     } catch {}
     if (typeof window !== 'undefined') {
       sessionStorage.removeItem('rx_admin_session_start');
+      localStorage.removeItem('rx_admin_session_start');
     }
     setIsMasterVerified(false);
     setOtpSent(false);
@@ -927,43 +979,49 @@ export default function CreateAccountAdminPage() {
     <div className="min-h-screen bg-slate-950 text-white flex flex-col selection:bg-indigo-500 selection:text-white">
       {/* Top Navbar - Mobile Responsive Without Overlap */}
       <header className="border-b border-slate-800 bg-slate-900/70 backdrop-blur-md sticky top-0 z-50">
-        <div className="max-w-6xl mx-auto px-3 sm:px-6 h-14 sm:h-16 flex items-center justify-between gap-2">
-          <div className="flex items-center gap-2 sm:gap-3 shrink-0">
-            <div className="flex items-center gap-2 select-none cursor-default">
+        <div className="max-w-6xl mx-auto px-2.5 sm:px-6 h-14 sm:h-16 flex items-center justify-between gap-1 sm:gap-2">
+          {/* Brand Logo & Name */}
+          <div className="flex items-center gap-1.5 sm:gap-3 shrink-0">
+            <div className="flex items-center gap-1.5 sm:gap-2 select-none cursor-default">
               <img
                 src="/reviewxpress-icon.png"
                 alt="ReviewXpress"
-                className="w-7 h-7 sm:w-8 sm:h-8 object-contain"
+                className="w-6 h-6 sm:w-8 sm:h-8 object-contain shrink-0"
               />
-              <span className="font-extrabold text-base sm:text-lg tracking-tight text-white">
+              <span className="font-extrabold text-sm sm:text-lg tracking-tight text-white whitespace-nowrap">
                 Review<span className="text-indigo-400">Xpress</span>
               </span>
             </div>
-            <span className="text-[10px] sm:text-[11px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full bg-amber-500/10 text-amber-300 border border-amber-500/20 shrink-0">
+            <span className="hidden min-[480px]:inline-flex text-[9px] sm:text-[11px] font-bold uppercase tracking-wider px-1.5 sm:px-2 py-0.5 rounded-full bg-amber-500/10 text-amber-300 border border-amber-500/20 shrink-0">
               <span className="sm:hidden">Admin</span>
               <span className="hidden sm:inline">Agency Master Admin</span>
             </span>
           </div>
 
-          <div className="flex items-center gap-2 sm:gap-3 shrink-0">
+          {/* Action Controls: Auto-Lock Timer, Change Key, Lock Panel */}
+          <div className="flex items-center gap-1 sm:gap-2.5 shrink-0">
             <span className="text-[11px] sm:text-xs text-slate-400 font-medium hidden lg:inline">
               Client Account Creation Portal
             </span>
             {isMasterVerified && (
               <>
+                {/* 20-min Auto-Lock Countdown Badge */}
                 <div 
-                  className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-xl text-[11px] sm:text-xs font-semibold border ${
+                  className={`inline-flex items-center gap-1 sm:gap-1.5 px-2 sm:px-2.5 py-1 rounded-xl text-[11px] sm:text-xs font-semibold border shrink-0 ${
                     sessionRemaining < 120 
                       ? 'bg-rose-500/10 text-rose-300 border-rose-500/30 animate-pulse' 
                       : 'bg-emerald-500/10 text-emerald-300 border-emerald-500/20'
                   }`}
-                  title="Session locks automatically when timer expires"
+                  title="Session auto-locks in real-time when timer reaches 00:00"
                 >
-                  <Clock className="w-3.5 h-3.5" />
-                  <span>
-                    Auto-Lock: {Math.floor(sessionRemaining / 60)}:{String(sessionRemaining % 60).padStart(2, '0')}
+                  <Clock className="w-3 h-3 sm:w-3.5 sm:h-3.5 text-emerald-400 shrink-0" />
+                  <span className="hidden sm:inline">Auto-Lock: </span>
+                  <span className="font-mono font-bold tracking-tight">
+                    {Math.floor(sessionRemaining / 60)}:{String(sessionRemaining % 60).padStart(2, '0')}
                   </span>
                 </div>
+
+                {/* Change Master Key Button */}
                 <button
                   type="button"
                   onClick={() => {
@@ -971,21 +1029,26 @@ export default function CreateAccountAdminPage() {
                     setChangeKeyError('');
                     setChangeKeySuccess('');
                   }}
-                  className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 text-xs font-bold transition-all shadow-sm cursor-pointer active:scale-95"
+                  className="inline-flex items-center gap-1 sm:gap-1.5 px-2 sm:px-3 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 text-xs font-bold transition-all shadow-sm cursor-pointer active:scale-95 shrink-0"
                   title="Change Master Admin Secret Key"
+                  aria-label="Change Master Key"
                 >
-                  <KeyRound className="w-3.5 h-3.5 text-indigo-400" />
+                  <KeyRound className="w-3.5 h-3.5 text-indigo-400 shrink-0" />
                   <span className="hidden sm:inline">Change Key</span>
-                  <span className="sm:hidden">Key</span>
+                  <span className="sm:hidden hidden min-[380px]:inline">Key</span>
                 </button>
+
+                {/* Lock Panel Button - ALWAYS CLEARLY VISIBLE ON ALL MOBILE DEVICES */}
                 <button
                   type="button"
                   onClick={handleLockPanel}
-                  className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-rose-500/10 hover:bg-rose-500/20 text-rose-300 hover:text-rose-200 border border-rose-500/25 text-xs font-bold transition-all shadow-sm cursor-pointer active:scale-95"
+                  className="inline-flex items-center gap-1 sm:gap-1.5 px-2.5 sm:px-3 py-1.5 rounded-xl bg-rose-500/15 hover:bg-rose-500/25 text-rose-300 hover:text-rose-200 border border-rose-500/30 text-xs font-bold transition-all shadow-sm cursor-pointer active:scale-95 shrink-0"
                   title="Lock Master Admin Panel Immediately"
+                  aria-label="Lock Panel"
                 >
-                  <Lock className="w-3.5 h-3.5 text-rose-400" />
-                  <span>Lock Panel</span>
+                  <Lock className="w-3.5 h-3.5 text-rose-400 shrink-0" />
+                  <span>Lock</span>
+                  <span className="hidden sm:inline"> Panel</span>
                 </button>
               </>
             )}

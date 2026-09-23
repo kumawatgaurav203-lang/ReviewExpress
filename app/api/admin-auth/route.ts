@@ -16,6 +16,7 @@ import {
   getMaskedAdminEmail,
   createMasterAdminToken,
   verifyMasterAdminRequest,
+  getMasterAdminSessionRemaining,
 } from '@/lib/admin-auth';
 
 function getClientIp(req: NextRequest): string {
@@ -37,9 +38,11 @@ export async function GET(req: NextRequest) {
   }
   const isValid = verifyMasterAdminRequest(req);
   if (isValid) {
+    const remainingSeconds = getMasterAdminSessionRemaining(req);
     return NextResponse.json({
       success: true,
       verified: true,
+      remainingSeconds,
       maskedEmail: getMaskedAdminEmail(),
     });
   }
@@ -47,6 +50,7 @@ export async function GET(req: NextRequest) {
   return NextResponse.json({
     success: false,
     verified: false,
+    remainingSeconds: 0,
     maskedEmail: getMaskedAdminEmail(),
   });
 }
@@ -302,6 +306,7 @@ export async function POST(req: NextRequest) {
         success: true,
         message: 'Two-Way Security Handshake verified! Access granted.',
         token: sessionToken,
+        remainingSeconds: SESSION_MAX_AGE_SECONDS,
       });
 
       response.cookies.set(COOKIE_NAME, sessionToken, {

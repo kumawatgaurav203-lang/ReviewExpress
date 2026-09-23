@@ -388,3 +388,26 @@ export function verifyMasterAdminRequest(req: NextRequest): boolean {
 
   return false;
 }
+
+// Helper to get remaining session seconds directly from NextRequest token (guarantees 0-drift across page refreshes)
+export function getMasterAdminSessionRemaining(req: NextRequest): number {
+  const cookieToken = req.cookies.get(COOKIE_NAME)?.value;
+  const authHeader = req.headers.get('Authorization') || req.headers.get('authorization');
+  const headerToken = authHeader?.startsWith('Bearer ') ? authHeader.substring(7).trim() : null;
+  const customHeader = req.headers.get('x-master-admin-token');
+  const token = cookieToken || headerToken || customHeader;
+  if (!token) return 0;
+
+  if (!verifyMasterAdminToken(token)) return 0;
+
+  try {
+    const parts = token.split('.');
+    const payloadJson = Buffer.from(parts[0], 'base64url').toString('utf-8');
+    const payload: TokenPayload = JSON.parse(payloadJson);
+    const now = Math.floor(Date.now() / 1000);
+    const remaining = payload.exp - now;
+    return Math.max(0, Math.min(SESSION_MAX_AGE_SECONDS, remaining));
+  } catch {
+    return 0;
+  }
+}
