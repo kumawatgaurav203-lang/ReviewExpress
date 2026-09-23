@@ -960,17 +960,15 @@ export default function CreateAccountAdminPage() {
   const getHandoverMessage = () => {
     if (!createdBusiness) return '';
     const host = liveOrigin;
-    const qrLink = `${host}/r/${createdBusiness.slug}?source=qr`;
-    const nfcLink = `${host}/r/${createdBusiness.slug}?source=nfc`;
     const loginLink = `${host}/dashboard/login`;
     return (
       `⭐ *ReviewXpress Store Setup Complete!*\n\n` +
       `🏪 *Store Name:* ${createdBusiness.name}\n\n` +
-      `📱 *NFC Tag Link (Write to NFC Chip / Card):*\n${nfcLink}\n\n` +
-      `📷 *QR Review Link (Standee Print):*\n${qrLink}\n\n` +
       `🔐 *Store Owner Dashboard Login:*\n${loginLink}\n` +
       `📧 *Client ID / Email:* ${createdBusiness.ownerEmail}\n` +
       `🔑 *Password:* ${createdBusiness.ownerPassword}\n\n` +
+      `🙏 *Thank you for choosing ReviewXpress!*\n` +
+      `We look forward to helping ${createdBusiness.name} achieve more 5-star verified customer reviews and accelerate business growth.\n\n` +
       `⚡ *ReviewXpress Smart NFC & QR Review System*`
     );
   };
@@ -1608,7 +1606,7 @@ export default function CreateAccountAdminPage() {
                 {/* NFC & QR Details & Copy Actions */}
                 <div className="md:col-span-8 space-y-4">
                   {/* BOX 1: Permanent QR Code URL */}
-                  <div className="p-3.5 rounded-xl bg-indigo-950/40 border border-indigo-500/30 space-y-2">
+                  <div className="p-3 sm:p-3.5 rounded-xl bg-indigo-950/40 border border-indigo-500/30 space-y-2">
                     <div className="flex items-center justify-between">
                       <label className="text-xs font-bold text-indigo-300 flex items-center gap-1.5">
                         <QrCode className="w-4 h-4 text-indigo-400" />
@@ -1624,10 +1622,13 @@ export default function CreateAccountAdminPage() {
                         <ExternalLink className="w-3 h-3" />
                       </a>
                     </div>
-                    <div className="flex flex-col sm:flex-row gap-2">
-                      <div className="flex-1 bg-slate-950 border border-slate-800 rounded-xl px-3 py-2.5 text-xs font-mono text-indigo-300 break-all select-all">
-                        {`${liveOrigin}/r/${createdBusiness.slug}?source=qr`}
-                      </div>
+                    <div className="flex items-center gap-2 bg-slate-950 border border-indigo-500/30 rounded-xl p-1.5 focus-within:border-indigo-400">
+                      <input
+                        type="text"
+                        readOnly
+                        value={`${liveOrigin}/r/${createdBusiness.slug}?source=qr`}
+                        className="flex-1 bg-transparent px-2.5 text-xs font-mono text-indigo-300 focus:outline-none select-all truncate"
+                      />
                       <button
                         type="button"
                         onClick={() =>
@@ -1636,17 +1637,17 @@ export default function CreateAccountAdminPage() {
                             'qr-permanent'
                           )
                         }
-                        className="w-full sm:w-auto px-4 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 active:scale-95 text-white text-xs font-bold flex items-center justify-center gap-2 transition-all shadow-md shrink-0 cursor-pointer"
+                        className="px-3.5 py-2 rounded-lg bg-indigo-600 hover:bg-indigo-500 active:scale-95 text-white text-xs font-bold flex items-center gap-1.5 shrink-0 transition-all shadow-sm cursor-pointer"
                       >
                         {copiedField === 'qr-permanent' ? (
                           <>
-                            <Check className="w-4 h-4 text-emerald-300" />
+                            <Check className="w-3.5 h-3.5 text-emerald-300" />
                             <span className="text-emerald-300">Copied!</span>
                           </>
                         ) : (
                           <>
-                            <Copy className="w-4 h-4" />
-                            <span>Copy QR Link</span>
+                            <Copy className="w-3.5 h-3.5" />
+                            <span>Copy</span>
                           </>
                         )}
                       </button>
@@ -1654,7 +1655,7 @@ export default function CreateAccountAdminPage() {
                   </div>
 
                   {/* BOX 2: Permanent NFC Review URL */}
-                  <div className="p-3.5 rounded-xl bg-amber-950/30 border border-amber-500/30 space-y-2">
+                  <div className="p-3 sm:p-3.5 rounded-xl bg-amber-950/30 border border-amber-500/30 space-y-2">
                     <div className="flex items-center justify-between">
                       <label className="text-xs font-bold text-amber-300 flex items-center gap-1.5">
                         <Smartphone className="w-4 h-4 text-amber-400" />
@@ -1670,10 +1671,13 @@ export default function CreateAccountAdminPage() {
                         <ExternalLink className="w-3 h-3" />
                       </a>
                     </div>
-                    <div className="flex flex-col sm:flex-row gap-2">
-                      <div className="flex-1 bg-slate-950 border border-slate-800 rounded-xl px-3 py-2.5 text-xs font-mono text-amber-300 break-all select-all">
-                        {`${liveOrigin}/r/${createdBusiness.slug}?source=nfc`}
-                      </div>
+                    <div className="flex items-center gap-2 bg-slate-950 border border-amber-500/30 rounded-xl p-1.5 focus-within:border-amber-400">
+                      <input
+                        type="text"
+                        readOnly
+                        value={`${liveOrigin}/r/${createdBusiness.slug}?source=nfc`}
+                        className="flex-1 bg-transparent px-2.5 text-xs font-mono text-amber-300 focus:outline-none select-all truncate"
+                      />
                       <button
                         type="button"
                         onClick={() =>
@@ -1682,17 +1686,17 @@ export default function CreateAccountAdminPage() {
                             'nfc-permanent'
                           )
                         }
-                        className="w-full sm:w-auto px-4 py-2.5 rounded-xl bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-600 hover:to-amber-700 active:scale-95 text-slate-950 text-xs font-black flex items-center justify-center gap-2 transition-all shadow-md shrink-0 cursor-pointer"
+                        className="px-3.5 py-2 rounded-lg bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-600 hover:to-amber-700 active:scale-95 text-slate-950 text-xs font-black flex items-center gap-1.5 shrink-0 transition-all shadow-sm cursor-pointer"
                       >
                         {copiedField === 'nfc-permanent' ? (
                           <>
-                            <Check className="w-4 h-4 text-slate-950" />
-                            <span className="text-slate-950">Copied!</span>
+                            <Check className="w-3.5 h-3.5 text-slate-950" />
+                            <span>Copied!</span>
                           </>
                         ) : (
                           <>
-                            <Copy className="w-4 h-4 text-slate-950" />
-                            <span>Copy NFC Link</span>
+                            <Copy className="w-3.5 h-3.5 text-slate-950" />
+                            <span>Copy</span>
                           </>
                         )}
                       </button>
@@ -1788,19 +1792,39 @@ export default function CreateAccountAdminPage() {
               </div>
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs font-mono">
-                <div className="p-2.5 rounded-xl bg-slate-900 border border-slate-800">
-                  <span className="text-[10px] text-slate-400 block font-sans">Owner Email:</span>
-                  <span className="text-white font-semibold">{createdBusiness.ownerEmail}</span>
+                <div className="p-2.5 rounded-xl bg-slate-900 border border-slate-800 flex items-center justify-between gap-2">
+                  <div className="min-w-0 flex-1">
+                    <span className="text-[10px] text-slate-400 block font-sans">Owner Email:</span>
+                    <span className="text-white font-semibold truncate block select-all">{createdBusiness.ownerEmail}</span>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => handleCopy(createdBusiness.ownerEmail, 'owner-email')}
+                    className="p-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white shrink-0 transition-colors cursor-pointer"
+                    title="Copy Email"
+                  >
+                    {copiedField === 'owner-email' ? <Check className="w-3.5 h-3.5 text-emerald-400" /> : <Copy className="w-3.5 h-3.5" />}
+                  </button>
                 </div>
-                <div className="p-2.5 rounded-xl bg-slate-900 border border-slate-800">
-                  <span className="text-[10px] text-slate-400 block font-sans">Owner Password:</span>
-                  <span className="text-emerald-400 font-semibold">{createdBusiness.ownerPassword}</span>
+                <div className="p-2.5 rounded-xl bg-slate-900 border border-slate-800 flex items-center justify-between gap-2">
+                  <div className="min-w-0 flex-1">
+                    <span className="text-[10px] text-slate-400 block font-sans">Owner Password:</span>
+                    <span className="text-emerald-400 font-semibold truncate block select-all">{createdBusiness.ownerPassword}</span>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => handleCopy(createdBusiness.ownerPassword, 'owner-pass')}
+                    className="p-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white shrink-0 transition-colors cursor-pointer"
+                    title="Copy Password"
+                  >
+                    {copiedField === 'owner-pass' ? <Check className="w-3.5 h-3.5 text-emerald-400" /> : <Copy className="w-3.5 h-3.5" />}
+                  </button>
                 </div>
               </div>
 
               <div className="flex items-center justify-between text-xs text-slate-400 pt-1">
                 <span>Login Portal:</span>
-                <span className="text-indigo-400 font-mono">/dashboard/login</span>
+                <span className="text-indigo-400 font-mono select-all">/dashboard/login</span>
               </div>
 
               {/* 1-Click WhatsApp Handover Actions */}
@@ -1808,7 +1832,7 @@ export default function CreateAccountAdminPage() {
                 <button
                   type="button"
                   onClick={() => handleCopy(getHandoverMessage(), 'handover')}
-                  className="w-full py-3 px-3 rounded-xl bg-slate-800 hover:bg-slate-700 border border-slate-700 text-white font-bold text-xs flex items-center justify-center gap-2 transition-all cursor-pointer"
+                  className="w-full py-3 px-3 rounded-xl bg-slate-800 hover:bg-slate-700 border border-slate-700 active:scale-95 text-white font-bold text-xs flex items-center justify-center gap-2 transition-all cursor-pointer"
                 >
                   {copiedField === 'handover' ? (
                     <>
@@ -1827,9 +1851,9 @@ export default function CreateAccountAdminPage() {
                   href={`https://api.whatsapp.com/send?text=${encodeURIComponent(getHandoverMessage())}`}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="w-full py-3 px-3 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs flex items-center justify-center gap-2 transition-all shadow-md shadow-emerald-600/20 text-center cursor-pointer"
+                  className="w-full py-3 px-3 rounded-xl bg-emerald-600 hover:bg-emerald-500 active:scale-95 text-white font-bold text-xs flex items-center justify-center gap-2 transition-all shadow-lg shadow-emerald-950/40 text-center cursor-pointer"
                 >
-                  <MessageSquare className="w-4 h-4" />
+                  <MessageSquare className="w-4 h-4 shrink-0" />
                   <span>Open Directly in WhatsApp</span>
                 </a>
               </div>
