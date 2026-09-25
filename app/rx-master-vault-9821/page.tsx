@@ -20,6 +20,7 @@ import {
   UserCheck,
   Store,
   Layers,
+  Filter,
   Check,
   Info,
   CheckCircle,
@@ -1919,60 +1920,69 @@ export default function CreateAccountAdminPage() {
             </div>
           ) : (
             <div className="space-y-6">
-              {/* Category Filter Pills / Tabs */}
-              <div className="flex flex-wrap items-center gap-2 pb-1">
-                <button
-                  type="button"
-                  onClick={() => setSelectedCategoryTab('all')}
-                  className={`text-xs font-semibold px-3 py-1.5 rounded-xl border transition-all shrink-0 flex items-center gap-1.5 cursor-pointer ${
-                    selectedCategoryTab === 'all'
-                      ? 'bg-indigo-600 text-white border-indigo-500 shadow-sm shadow-indigo-500/20'
-                      : 'bg-slate-900 text-slate-400 border-slate-800 hover:text-white hover:border-slate-700'
-                  }`}
-                >
-                  <span>All Stores</span>
-                  <span
-                    className={`text-[10px] px-2 py-0.5 rounded-full font-bold ${
-                      selectedCategoryTab === 'all'
-                        ? 'bg-indigo-700 text-white'
-                        : 'bg-slate-800 text-slate-400'
-                    }`}
-                  >
-                    {activeStores.length}
-                  </span>
-                </button>
+              {/* Category Filter Toolbar Container */}
+              <div className="p-2 sm:p-2.5 bg-slate-900/80 border border-slate-800/90 rounded-2xl shadow-sm backdrop-blur-sm">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5">
+                  <div className="flex items-center gap-2 px-2 text-xs font-semibold text-slate-300 shrink-0">
+                    <Filter className="w-3.5 h-3.5 text-indigo-400" />
+                    <span>Filter by Niche:</span>
+                  </div>
 
-                {Array.from(new Set(activeStores.map((s) => normalizeCategory(s.category, s.name)))).map((catKey) => {
-                  const meta = getCategoryDisplay(catKey);
-                  const count = activeStores.filter(
-                    (s) => normalizeCategory(s.category, s.name) === catKey
-                  ).length;
-                  return (
+                  <div className="flex flex-wrap items-center gap-1.5 p-1 bg-slate-950/70 border border-slate-800/80 rounded-xl">
                     <button
-                      key={catKey}
                       type="button"
-                      onClick={() => setSelectedCategoryTab(catKey)}
-                      title={meta.label}
-                      className={`text-xs font-semibold px-3 py-1.5 rounded-xl border transition-all shrink-0 flex items-center gap-1.5 cursor-pointer max-w-[260px] ${
-                        selectedCategoryTab === catKey
-                          ? 'bg-indigo-600 text-white border-indigo-500 shadow-sm shadow-indigo-500/20'
-                          : 'bg-slate-900 text-slate-400 border-slate-800 hover:text-white hover:border-slate-700'
+                      onClick={() => setSelectedCategoryTab('all')}
+                      className={`text-xs font-semibold px-3 py-1.5 rounded-lg transition-all shrink-0 flex items-center gap-2 cursor-pointer ${
+                        selectedCategoryTab === 'all'
+                          ? 'bg-indigo-600 text-white shadow-sm shadow-indigo-600/30'
+                          : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800/50'
                       }`}
                     >
-                      <span className="shrink-0">{meta.icon}</span>
-                      <span className="truncate">{meta.label}</span>
+                      <span>All Stores</span>
                       <span
-                        className={`text-[10px] px-2 py-0.5 rounded-full font-bold shrink-0 ${
-                          selectedCategoryTab === catKey
-                            ? 'bg-indigo-700 text-white'
+                        className={`text-[10px] px-1.5 py-0.5 rounded-md font-bold leading-none ${
+                          selectedCategoryTab === 'all'
+                            ? 'bg-indigo-700/80 text-white'
                             : 'bg-slate-800 text-slate-400'
                         }`}
                       >
-                        {count}
+                        {activeStores.length}
                       </span>
                     </button>
-                  );
-                })}
+
+                    {Array.from(new Set(activeStores.map((s) => normalizeCategory(s.category, s.name)))).map((catKey) => {
+                      const meta = getCategoryDisplay(catKey);
+                      const count = activeStores.filter(
+                        (s) => normalizeCategory(s.category, s.name) === catKey
+                      ).length;
+                      return (
+                        <button
+                          key={catKey}
+                          type="button"
+                          onClick={() => setSelectedCategoryTab(catKey)}
+                          title={meta.label}
+                          className={`text-xs font-semibold px-3 py-1.5 rounded-lg transition-all shrink-0 flex items-center gap-2 cursor-pointer ${
+                            selectedCategoryTab === catKey
+                              ? 'bg-indigo-600 text-white shadow-sm shadow-indigo-600/30'
+                              : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800/50'
+                          }`}
+                        >
+                          <span className="shrink-0">{meta.icon}</span>
+                          <span className="truncate max-w-[200px]">{meta.label}</span>
+                          <span
+                            className={`text-[10px] px-1.5 py-0.5 rounded-md font-bold leading-none shrink-0 ${
+                              selectedCategoryTab === catKey
+                                ? 'bg-indigo-700/80 text-white'
+                                : 'bg-slate-800 text-slate-400'
+                            }`}
+                          >
+                            {count}
+                          </span>
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
               </div>
 
               {/* Horizontal Grid of All Filtered Stores */}

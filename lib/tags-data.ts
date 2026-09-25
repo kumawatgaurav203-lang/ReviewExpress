@@ -150,17 +150,44 @@ export const CATEGORY_TAGS: Record<string, string[]> = {
 };
 
 export function detectCategory(name: string): string {
-  const lower = name.toLowerCase();
-  if (/coaching|classes|academy|institute|tuition|school|tutorial|ias|neet|jee/.test(lower)) return 'coaching';
+  const lower = (name || '').toLowerCase();
+
+  // 1. Studio & Photography (checked before clothing so that "fashion shoot" / "studio" isn't misclassified)
+  if (/photo|studio|photography|videography|shoot|lens|cameraman|photographer|cinematography|filming/.test(lower)) {
+    return 'studio';
+  }
+
+  // 2. Automobile & Workshop (checked before coaching so "jeep" isn't matched by "jee")
+  if (/jeep|auto|motor|car|bike|garage|workshop|tyre|tire|service center|mechanic|fourwheeler|four-wheeler|wheeler|spare part|parts of fourwheeler|vehicle|automobile/.test(lower)) {
+    return 'automobile';
+  }
+
+  // 3. Coaching & Education (acronyms ias, neet, jee, upsc with word boundaries)
+  if (/coaching|classes|academy|institute|tuition|school|tutorial|\b(ias|neet|jee|upsc)\b/.test(lower)) {
+    return 'coaching';
+  }
+
+  // 4. Salon & Hair
   if (/salon|barber|hair|spa/.test(lower)) return 'salon';
+
+  // 5. Beauty Parlour & Makeup
   if (/beauty|parlour|parlor|makeup|makeover|skin|nail|bridal/.test(lower)) return 'beauty';
+
+  // 6. Cafe & Bakery
   if (/cafe|coffee|tea|chai|bakery|bake|brew/.test(lower)) return 'cafe';
+
+  // 7. Hotel & Stay
   if (/hotel|resort|lodge|inn|motel|stay|guest house/.test(lower)) return 'hotel';
-  if (/medical|clinic|hospital|doctor|pharmacy|chemist|dental|dentist|health|care|diagnostic|pathology/.test(lower)) return 'medical';
+
+  // 8. Medical & Pharmacy
+  if (/medical|clinic|hospital|doctor|pharmacy|chemist|dental|dentist|\bhealth\b|\bcare\b|diagnostic|pathology/.test(lower)) return 'medical';
+
+  // 9. Restaurant & Dining
   if (/restaurant|dine|dining|food|dhaba|kitchen|sweets|pizza|burger|snack|grill/.test(lower)) return 'restaurant';
-  if (/clothing|fashion|boutique|garment|wear|saree|textile|apparel|tailor|suit/.test(lower)) return 'clothing';
-  if (/photo|studio|photography|media|films|video|lens/.test(lower)) return 'studio';
-  if (/auto|motor|car|bike|garage|workshop|tyre|tire|service center|mechanic/.test(lower)) return 'automobile';
+
+  // 10. Clothing & Fashion
+  if (/clothing|fashion|boutique|garment|\bwear\b|saree|textile|apparel|tailor|suit/.test(lower)) return 'clothing';
+
   return 'general';
 }
 
