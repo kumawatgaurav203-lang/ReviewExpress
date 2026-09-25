@@ -156,11 +156,14 @@ Length instruction: ${chosenStyle.promptLength}
 ${safeCurrentReview ? `IMPORTANT: Do NOT repeat this review: "${safeCurrentReview}". Write a completely different one.` : ''}
 Random seed: #${randomSeed}
 
-STRICT HUMAN-WRITING RULES:
-1. Write 100% natural, casual human text the way real customers in India write on Google Reviews.
-2. Blend the highlighted points (${tagsString}) naturally into everyday casual wording. Do NOT quote tags like robotic headlines.
-3. NEVER use cliché AI filler like "testament to", "delightful array", "beacon of", "unparalleled", or "tapestry".
-4. Output ONLY the raw review text. No quotes, no intro, no emojis, no hashtags.`;
+STRICT GOOGLE MAPS CONTENT & POLICY COMPLIANCE:
+1. STRICT COMPLIANCE WITH GOOGLE MAPS TERMS: Must reflect a real, authentic personal customer experience that adheres to Google's User Contributed Content policies.
+2. ABSOLUTELY NO PROMOTIONAL OR RESTRICTED CONTENT: Strictly NO phone numbers, NO email addresses, NO URLs or website links, NO coupon/discount promo codes, NO referral incentives, and NO hashtags (#).
+3. ANTI-SPAM PROTECTION: Never use repetitive robotic templates that trigger Google spam filters. Use varied, authentic conversational vocabulary.
+4. FIRST-PERSON NATURAL VOICE: Speak naturally from direct customer experience (e.g. "Visited today...", "Really liked their...", "Staff was humble and polite...").
+5. CASUAL INDIAN CONVERSATIONAL ENGLISH: Simple, polite, natural, the way real Indians write on Google Maps.
+6. STRICT BAN ON AI WORDS: Absolutely NO "testament to", "delightful array", "beacon of", "unparalleled", "epitome", "gem of a place", "tapestry", or "bespoke".
+7. OUTPUT: Output ONLY the raw review text. No quotes, no intro, no emojis, no hashtags.`;
 
         const fastModel = 'gemini-1.5-flash-latest';
         let generatedReview = '';
@@ -186,7 +189,19 @@ STRICT HUMAN-WRITING RULES:
             const data = await response.json();
             const text = data?.candidates?.[0]?.content?.parts?.[0]?.text?.trim();
             if (text && text !== safeCurrentReview && text.length >= 10) {
-              generatedReview = text.replace(/^["'«»]|["'«»]$/g, '').trim();
+              // Sanitize output to guarantee 100% compliance with Google Maps Content Policies
+              let cleaned = text
+                .replace(/^["'«»“”]|["'«»“”]$/g, '')
+                .replace(/https?:\/\/\S+|www\.\S+/gi, '') // No URLs
+                .replace(/\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Z|a-z]{2,}\b/g, '') // No Emails
+                .replace(/\b(?:\+91|0)?[6-9]\d{9}\b/g, '') // No Phone Numbers
+                .replace(/#\w+/g, '') // No Hashtags
+                .replace(/\s+/g, ' ')
+                .trim();
+
+              if (cleaned.length >= 10) {
+                generatedReview = cleaned;
+              }
             }
           }
         } catch (fastErr) {

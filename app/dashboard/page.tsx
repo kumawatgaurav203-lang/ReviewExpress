@@ -29,8 +29,11 @@ import {
   Plus,
   Pencil,
   Tag,
+  Settings,
+  ChevronDown,
 } from 'lucide-react';
 import { DEMO_BUSINESSES } from '@/lib/demo-data';
+import { detectCategory, CATEGORY_TAGS } from '@/lib/tags-data';
 import TermsModal from '@/components/TermsModal';
 import SocialContactBar from '@/components/SocialContactBar';
 
@@ -145,6 +148,9 @@ export default function OwnerDashboardPage() {
   const [newTagInput, setNewTagInput] = useState('');
   const [isSavingTags, setIsSavingTags] = useState(false);
   const [tagsMessage, setTagsMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
+  const [editingTagIndex, setEditingTagIndex] = useState<number | null>(null);
+  const [editingTagText, setEditingTagText] = useState<string>('');
+  const [isSettingsMenuOpen, setIsSettingsMenuOpen] = useState<boolean>(false);
 
   // Data fetching state
   const [dashboardData, setDashboardData] = useState<DashboardData | null>(null);
@@ -174,6 +180,19 @@ export default function OwnerDashboardPage() {
     tags: customTags.length > 0 ? customTags : (dashboardData?.businessInfo?.tags || []),
     is_active: true,
   };
+
+  // Preload customTags from server, or populate with recommended category defaults so merchant always sees active tags
+  useEffect(() => {
+    if (dashboardData?.businessInfo?.tags && dashboardData.businessInfo.tags.length > 0) {
+      setCustomTags(dashboardData.businessInfo.tags);
+    } else if (business.name && customTags.length === 0) {
+      const cat = detectCategory(business.name);
+      const defaultPool = CATEGORY_TAGS[cat] || CATEGORY_TAGS.general;
+      if (defaultPool && defaultPool.length > 0) {
+        setCustomTags([...defaultPool]);
+      }
+    }
+  }, [dashboardData?.businessInfo?.tags, business.name]);
 
   const PRESET_SUGGESTIONS = [
     'Quick Response',
@@ -226,8 +245,61 @@ export default function OwnerDashboardPage() {
     setTagsMessage(null);
   };
 
+  const handleStartEditTag = (index: number) => {
+    setEditingTagIndex(index);
+    setEditingTagText(customTags[index]);
+    setTagsMessage(null);
+  };
+
+  const handleCancelEditTag = () => {
+    setEditingTagIndex(null);
+    setEditingTagText('');
+  };
+
+  const handleSaveEditTag = (index: number) => {
+    const trimmed = editingTagText.trim();
+    if (!trimmed) {
+      setTagsMessage({ type: 'error', text: 'Highlight sentence cannot be empty.' });
+      return;
+    }
+    const words = trimmed.split(/\s+/).filter(Boolean);
+    if (words.length > 6) {
+      setTagsMessage({ type: 'error', text: `Highlight has ${words.length} words. Maximum allowed is 6 words.` });
+      return;
+    }
+    if (trimmed.length > 45) {
+      setTagsMessage({ type: 'error', text: `Highlight has ${trimmed.length} characters. Maximum allowed is 45 characters.` });
+      return;
+    }
+    if (customTags.some((t, i) => i !== index && t.toLowerCase() === trimmed.toLowerCase())) {
+      setTagsMessage({ type: 'error', text: `"${trimmed}" already exists in your highlights list.` });
+      return;
+    }
+
+    const updated = [...customTags];
+    updated[index] = trimmed;
+    setCustomTags(updated);
+    setEditingTagIndex(null);
+    setEditingTagText('');
+    setTagsMessage(null);
+  };
+
   const handleRemoveTag = (indexToRemove: number) => {
     setCustomTags((prev) => prev.filter((_, idx) => idx !== indexToRemove));
+    if (editingTagIndex === indexToRemove) {
+      setEditingTagIndex(null);
+      setEditingTagText('');
+    }
+  };
+
+  const handleResetToDefaultTags = () => {
+    const bizName = dashboardData?.businessInfo?.name || ownerSession?.businessName || '';
+    const cat = detectCategory(bizName);
+    const pool = CATEGORY_TAGS[cat] || CATEGORY_TAGS.general;
+    setCustomTags([...pool]);
+    setEditingTagIndex(null);
+    setEditingTagText('');
+    setTagsMessage({ type: 'success', text: `Loaded recommended highlights for ${cat.toUpperCase()}.` });
   };
 
   const handleSaveTags = async () => {
@@ -442,17 +514,7 @@ export default function OwnerDashboardPage() {
           </div>
 
           {/* Header Action Links */}
-          <div className="flex items-center gap-1.5 sm:gap-3 shrink-0">
-            <button
-              type="button"
-              onClick={() => setIsTagsModalOpen(true)}
-              className="text-[11px] sm:text-xs font-semibold bg-indigo-600/20 hover:bg-indigo-600/30 text-indigo-300 border border-indigo-500/30 px-2.5 sm:px-3.5 py-1.5 sm:py-2 rounded-xl flex items-center gap-1.5 transition-colors shrink-0 cursor-pointer"
-              title="Edit Review Highlights (Compliment Chips)"
-            >
-              <Sparkles className="w-3.5 h-3.5 text-indigo-400" />
-              <span>Review Highlights</span>
-            </button>
-
+          <div className="flex items-center gap-1.5 sm:gap-2.5 shrink-0 relative">
             <Link
               href={`/qr/${currentSlug}`}
               target="_blank"
@@ -463,13 +525,76 @@ export default function OwnerDashboardPage() {
               <span className="sm:hidden">Standee</span>
             </Link>
 
-            <button
-              onClick={handleSignOut}
-              title="Sign Out"
-              className="text-xs text-slate-400 hover:text-rose-400 p-1.5 sm:p-2 rounded-xl hover:bg-slate-800/80 transition-colors border border-transparent hover:border-slate-700 shrink-0 cursor-pointer"
-            >
-              <LogOut className="w-4 h-4" />
-            </button>
+            {/* Settings Dropdown Button (Replaces bare logout) */}
+            <div className="relative">
+              <button
+                type="button"
+                onClick={() => setIsSettingsMenuOpen(!isSettingsMenuOpen)}
+                className={`text-xs font-semibold px-2.5 sm:px-3.5 py-1.5 sm:py-2 rounded-xl border flex items-center gap-1.5 transition-all cursor-pointer ${
+                  isSettingsMenuOpen
+                    ? 'bg-slate-800 text-white border-indigo-500/50 shadow-md ring-2 ring-indigo-500/20'
+                    : 'bg-slate-800 hover:bg-slate-700 text-slate-200 border-slate-700'
+                }`}
+                title="Account & Dashboard Settings"
+              >
+                <Settings className={`w-3.5 h-3.5 text-indigo-400 transition-transform ${isSettingsMenuOpen ? 'rotate-45' : ''}`} />
+                <span>Settings</span>
+                <ChevronDown className={`w-3 h-3 text-slate-400 transition-transform ${isSettingsMenuOpen ? 'rotate-180' : ''}`} />
+              </button>
+
+              {/* Settings Dropdown Popover */}
+              {isSettingsMenuOpen && (
+                <>
+                  <div
+                    className="fixed inset-0 z-40"
+                    onClick={() => setIsSettingsMenuOpen(false)}
+                  />
+
+                  <div className="absolute right-0 mt-2 w-56 rounded-2xl bg-slate-900 border border-slate-800 shadow-2xl z-50 p-1.5 space-y-1 animate-in fade-in zoom-in-95 duration-150">
+                    <div className="px-3 py-2 border-b border-slate-800/80">
+                      <div className="text-[10px] font-bold uppercase tracking-wider text-slate-500">Store Settings</div>
+                      <div className="text-xs font-semibold text-slate-200 truncate">{business.name}</div>
+                    </div>
+
+                    {/* Option 1: Review Highlights */}
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setIsSettingsMenuOpen(false);
+                        setIsTagsModalOpen(true);
+                      }}
+                      className="w-full px-3 py-2.5 rounded-xl text-left text-xs font-semibold text-slate-200 hover:text-white hover:bg-indigo-600/20 border border-transparent hover:border-indigo-500/30 flex items-center gap-2.5 transition-all cursor-pointer group"
+                    >
+                      <div className="p-1.5 rounded-lg bg-indigo-500/10 text-indigo-400 group-hover:bg-indigo-500 group-hover:text-white transition-colors">
+                        <Sparkles className="w-3.5 h-3.5" />
+                      </div>
+                      <div>
+                        <div className="font-bold">Review Highlights</div>
+                        <div className="text-[10px] text-slate-400 font-normal">Edit compliment chips ({customTags.length}/24)</div>
+                      </div>
+                    </button>
+
+                    {/* Option 2: Logout */}
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setIsSettingsMenuOpen(false);
+                        handleSignOut();
+                      }}
+                      className="w-full px-3 py-2.5 rounded-xl text-left text-xs font-semibold text-rose-300 hover:text-rose-200 hover:bg-rose-500/10 border border-transparent hover:border-rose-500/30 flex items-center gap-2.5 transition-all cursor-pointer group"
+                    >
+                      <div className="p-1.5 rounded-lg bg-rose-500/10 text-rose-400 group-hover:bg-rose-500 group-hover:text-white transition-colors">
+                        <LogOut className="w-3.5 h-3.5" />
+                      </div>
+                      <div>
+                        <div className="font-bold">Logout</div>
+                        <div className="text-[10px] text-slate-400 font-normal">Sign out of owner panel</div>
+                      </div>
+                    </button>
+                  </div>
+                </>
+              )}
+            </div>
           </div>
         </div>
       </header>
@@ -1224,45 +1349,134 @@ export default function OwnerDashboardPage() {
               </div>
 
               {/* Current Highlights List */}
-              <div className="space-y-2">
-                <div className="flex items-center justify-between">
-                  <span className="text-xs font-bold text-slate-300">
-                    Active Highlights ({customTags.length} of 24)
-                  </span>
-                  {customTags.length > 0 && (
+              <div className="space-y-2.5">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-1.5">
+                  <div className="flex items-center gap-2">
+                    <span className="text-xs font-bold text-slate-200">
+                      Active Highlights ({customTags.length} of 24)
+                    </span>
+                    <span className="text-[10px] text-slate-500">
+                      (Click Edit to modify or Delete to remove)
+                    </span>
+                  </div>
+                  <div className="flex items-center gap-2">
                     <button
                       type="button"
-                      onClick={() => setCustomTags([])}
-                      className="text-[11px] text-rose-400 hover:text-rose-300 cursor-pointer"
+                      onClick={handleResetToDefaultTags}
+                      className="text-[11px] font-semibold text-indigo-400 hover:text-indigo-300 cursor-pointer flex items-center gap-1"
+                      title="Restore industry-recommended compliments for this store"
                     >
-                      Clear All
+                      <Sparkles className="w-3 h-3" />
+                      <span>Reset to Store Defaults</span>
                     </button>
-                  )}
+                    {customTags.length > 0 && (
+                      <>
+                        <span className="text-slate-700">•</span>
+                        <button
+                          type="button"
+                          onClick={() => setCustomTags([])}
+                          className="text-[11px] text-rose-400 hover:text-rose-300 cursor-pointer"
+                        >
+                          Clear All
+                        </button>
+                      </>
+                    )}
+                  </div>
                 </div>
 
                 {customTags.length === 0 ? (
-                  <div className="p-6 rounded-2xl bg-slate-950/60 border border-dashed border-slate-800 text-center">
+                  <div className="p-6 rounded-2xl bg-slate-950/60 border border-dashed border-slate-800 text-center space-y-2">
                     <p className="text-xs text-slate-400">
-                      No custom highlights added yet. Click suggestions below or type your own above.
+                      No custom highlights added yet. Type your own above or load recommended compliments.
                     </p>
+                    <button
+                      type="button"
+                      onClick={handleResetToDefaultTags}
+                      className="px-3.5 py-1.5 text-xs font-bold rounded-xl bg-indigo-600/20 hover:bg-indigo-600/30 text-indigo-300 border border-indigo-500/30 inline-flex items-center gap-1.5 cursor-pointer"
+                    >
+                      <Sparkles className="w-3.5 h-3.5 text-indigo-400" />
+                      <span>Load Recommended Compliments</span>
+                    </button>
                   </div>
                 ) : (
-                  <div className="flex flex-wrap gap-2 max-h-48 overflow-y-auto p-2 bg-slate-950/50 rounded-2xl border border-slate-800/80">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 max-h-60 overflow-y-auto p-2 bg-slate-950/50 rounded-2xl border border-slate-800/80">
                     {customTags.map((tag, idx) => (
-                      <span
-                        key={idx}
-                        className="inline-flex items-center gap-1.5 text-xs font-medium px-3 py-1.5 rounded-xl bg-slate-800 text-slate-100 border border-slate-700/80 shadow-sm group hover:border-slate-600 transition-colors"
-                      >
-                        <span>{tag}</span>
-                        <button
-                          type="button"
-                          onClick={() => handleRemoveTag(idx)}
-                          className="text-slate-400 hover:text-rose-400 p-0.5 rounded-md hover:bg-slate-700 transition-colors cursor-pointer"
-                          title="Remove highlight"
-                        >
-                          <X className="w-3.5 h-3.5" />
-                        </button>
-                      </span>
+                      editingTagIndex === idx ? (
+                        <div key={idx} className="sm:col-span-2 flex flex-col sm:flex-row items-stretch sm:items-center gap-2 p-2.5 rounded-xl bg-indigo-950/60 border-2 border-indigo-500 shadow-md">
+                          <div className="relative flex-1">
+                            <input
+                              type="text"
+                              value={editingTagText}
+                              onChange={(e) => setEditingTagText(e.target.value)}
+                              onKeyDown={(e) => {
+                                if (e.key === 'Enter') {
+                                  e.preventDefault();
+                                  handleSaveEditTag(idx);
+                                } else if (e.key === 'Escape') {
+                                  handleCancelEditTag();
+                                }
+                              }}
+                              maxLength={45}
+                              autoFocus
+                              placeholder="Edit sentence (max 6 words)..."
+                              className="w-full bg-slate-900 border border-indigo-400/60 rounded-lg px-2.5 py-1.5 text-xs text-white placeholder-slate-500 focus:outline-none focus:ring-1 focus:ring-indigo-400"
+                            />
+                            <div className="flex items-center justify-between text-[10px] text-indigo-300 px-1 mt-0.5">
+                              <span>Words: {editingTagText.trim().split(/\s+/).filter(Boolean).length}/6</span>
+                              <span>Chars: {editingTagText.trim().length}/45</span>
+                            </div>
+                          </div>
+                          <div className="flex items-center gap-1.5 self-end sm:self-center shrink-0">
+                            <button
+                              type="button"
+                              onClick={() => handleSaveEditTag(idx)}
+                              className="px-3 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs flex items-center gap-1 cursor-pointer transition-colors shadow-sm"
+                              title="Save changes"
+                            >
+                              <Check className="w-3.5 h-3.5" />
+                              <span>Save</span>
+                            </button>
+                            <button
+                              type="button"
+                              onClick={handleCancelEditTag}
+                              className="px-2.5 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs flex items-center gap-1 cursor-pointer transition-colors"
+                              title="Cancel editing"
+                            >
+                              <X className="w-3.5 h-3.5" />
+                              <span>Cancel</span>
+                            </button>
+                          </div>
+                        </div>
+                      ) : (
+                        <div key={idx} className="flex items-center justify-between gap-2 p-2.5 rounded-xl bg-slate-900/90 border border-slate-800 hover:border-slate-700 transition-colors">
+                          <div className="flex items-center gap-1.5 min-w-0 flex-1">
+                            <span className="text-indigo-400 shrink-0 text-xs">✨</span>
+                            <span className="text-xs text-slate-200 font-medium truncate" title={tag}>
+                              {tag}
+                            </span>
+                          </div>
+                          <div className="flex items-center gap-1 shrink-0">
+                            <button
+                              type="button"
+                              onClick={() => handleStartEditTag(idx)}
+                              className="px-2 py-1 rounded-lg bg-slate-800 hover:bg-indigo-600/30 text-slate-300 hover:text-indigo-200 border border-slate-700 hover:border-indigo-500/40 text-[11px] font-semibold flex items-center gap-1 cursor-pointer transition-colors"
+                              title="Edit this highlight"
+                            >
+                              <Pencil className="w-3 h-3 text-indigo-400" />
+                              <span>Edit</span>
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => handleRemoveTag(idx)}
+                              className="px-2 py-1 rounded-lg bg-slate-800 hover:bg-rose-500/20 text-slate-300 hover:text-rose-300 border border-slate-700 hover:border-rose-500/40 text-[11px] font-semibold flex items-center gap-1 cursor-pointer transition-colors"
+                              title="Delete this highlight"
+                            >
+                              <Trash2 className="w-3 h-3 text-rose-400" />
+                              <span>Delete</span>
+                            </button>
+                          </div>
+                        </div>
+                      )
                     ))}
                   </div>
                 )}

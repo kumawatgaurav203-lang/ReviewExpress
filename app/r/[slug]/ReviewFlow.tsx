@@ -172,15 +172,31 @@ export default function ReviewFlow({ business, initialSource }: ReviewFlowProps)
     }
   };
 
-  // Step 1: Copy review to clipboard and open Google Maps in new tab
-  // Records as drafted/unposted (postedToGoogle: false) until customer confirms Step 2
-  const handleOpenGoogle = async () => {
+  // Copy review to clipboard and open Google Maps review page immediately (synchronously to prevent mobile popup blocking)
+  const handleOpenGoogle = () => {
     const textToCopy =
       reviewDraft || `Excellent service and experience at ${business.name}!`;
 
+    const targetUrl =
+      business.slug === "demo"
+        ? "https://www.google.com/maps"
+        : (business.google_review_link || "https://www.google.com/maps");
+
+    // 1. Open Google Review window synchronously in direct response to user gesture
+    // Running this before any async operations prevents mobile browsers (Chrome Android, iOS Safari) from blocking it as a popup
+    try {
+      const win = window.open(targetUrl, "_blank", "noopener,noreferrer");
+      if (!win || win.closed || typeof win.closed === "undefined") {
+        window.location.href = targetUrl;
+      }
+    } catch {
+      window.location.href = targetUrl;
+    }
+
+    // 2. Copy review text to clipboard
     try {
       if (navigator.clipboard && window.isSecureContext) {
-        await navigator.clipboard.writeText(textToCopy);
+        navigator.clipboard.writeText(textToCopy).catch(() => {});
       } else {
         const textArea = document.createElement("textarea");
         textArea.value = textToCopy;
@@ -198,50 +214,15 @@ export default function ReviewFlow({ business, initialSource }: ReviewFlowProps)
       setIsCopied(true);
     }
 
-    // Log review as posted to Google (postedToGoogle: true)
+    // 3. Mark as completed in UI immediately without intermediate questioning screens
+    setIsConfirmedPosted(true);
+
+    // 4. Log review as posted to Google asynchronously in background (keepalive ensures delivery)
     try {
-      const res = await fetch("/api/submit-feedback", {
+      fetch("/api/submit-feedback", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        signal: AbortSignal.timeout(6000),
-        body: JSON.stringify({
-          logId: draftLogId || visitLogId || undefined,
-          businessId: business.id,
-          rating: Math.max(rating || 5, 4),
-          selectedTags: selectedTags,
-          reviewText: textToCopy,
-          postedToGoogle: true, // Mark as posted since customer is opening Google Maps to post
-          source,
-        }),
-      });
-      const data = await res.json();
-      if (data?.logId) {
-        setDraftLogId(data.logId);
-      }
-    } catch (err) {
-      console.warn("Feedback draft sync notice:", err);
-    }
-
-    const targetUrl =
-      business.slug === "demo"
-        ? "https://www.google.com/maps"
-        : business.google_review_link;
-
-    window.open(targetUrl, "_blank");
-    setIsGoogleOpened(true);
-  };
-
-  // Step 2: Customer confirms review was actually submitted/posted on Google Maps
-  const handleConfirmPosted = async () => {
-    setIsPostingVerification(true);
-    const textToCopy =
-      reviewDraft || `Excellent service and experience at ${business.name}!`;
-
-    try {
-      await fetch("/api/submit-feedback", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        signal: AbortSignal.timeout(6000),
+        keepalive: true,
         body: JSON.stringify({
           logId: draftLogId || visitLogId || undefined,
           businessId: business.id,
@@ -251,12 +232,14 @@ export default function ReviewFlow({ business, initialSource }: ReviewFlowProps)
           postedToGoogle: true,
           source,
         }),
-      });
+      })
+        .then((res) => res.json())
+        .then((data) => {
+          if (data?.logId) setDraftLogId(data.logId);
+        })
+        .catch(() => {});
     } catch (err) {
-      console.warn("Notice: Verified post logging reached network limit:", err);
-    } finally {
-      setIsPostingVerification(false);
-      setIsConfirmedPosted(true);
+      console.warn("Feedback draft sync notice:", err);
     }
   };
 
@@ -521,13 +504,13 @@ export default function ReviewFlow({ business, initialSource }: ReviewFlowProps)
                   {isConfirmedPosted ? (
                     <div className="bg-emerald-50 border border-emerald-200 rounded-3xl p-6 text-center space-y-3 animate-fade-in shadow-xl">
                       <div className="w-14 h-14 rounded-full bg-emerald-500 text-white flex items-center justify-center mx-auto shadow-md shadow-emerald-500/30">
-                        <Sparkles className="w-8 h-8 text-amber-300" />
+                        <CheckCircle2 className="w-8 h-8 text-white" />
                       </div>
                       <h3 className="text-xl font-black text-emerald-950">
-                        Thank You! Review Recorded 🎉
+                        Review Copied & Google Maps Opened! 🎉
                       </h3>
                       <p className="text-xs text-emerald-800 leading-relaxed max-w-xs mx-auto">
-                        Your 5-star review has been successfully verified and posted. Thank you for supporting {business.name}!
+                        Your review was copied to your clipboard. Simply <strong>paste</strong> it into Google Maps and tap <strong>Post</strong>.
                       </p>
                       <div className="pt-2 flex flex-col gap-2 items-center justify-center">
                         <button
@@ -544,58 +527,17 @@ export default function ReviewFlow({ business, initialSource }: ReviewFlowProps)
                           <ExternalLink className="w-3.5 h-3.5" />
                           <span>Re-open Google Maps Review Window</span>
                         </button>
-                        <div className="text-[11px] text-emerald-700 font-semibold flex items-center gap-1">
-                          <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />
-                          <span>Verified Google Maps Review Submission</span>
+                        <button
+                          type="button"
+                          onClick={() => setIsConfirmedPosted(false)}
+                          className="text-xs font-semibold text-emerald-700 hover:text-emerald-900 underline underline-offset-2 cursor-pointer mt-1"
+                        >
+                          Edit Review Text
+                        </button>
+                        <div className="text-[11px] text-emerald-700 font-semibold flex items-center gap-1 pt-1">
+                          <Sparkles className="w-3.5 h-3.5 text-emerald-600" />
+                          <span>Thank you for supporting {business.name}!</span>
                         </div>
-                      </div>
-                    </div>
-                  ) : isGoogleOpened ? (
-                    /* Step 4B: Verification Step - Did customer actually send the review on Google? */
-                    <div className="bg-gradient-to-b from-emerald-50 via-teal-50 to-emerald-100 border-2 border-emerald-300 rounded-3xl p-5 text-center space-y-4 animate-fade-in shadow-xl shadow-emerald-500/15">
-                      <div className="w-12 h-12 rounded-2xl bg-emerald-600 text-white flex items-center justify-center mx-auto shadow-md shadow-emerald-600/30 animate-pulse">
-                        <CheckCircle2 className="w-7 h-7" />
-                      </div>
-
-                      <div>
-                        <span className="text-[11px] font-extrabold uppercase tracking-wider text-emerald-700 bg-emerald-200/60 px-2.5 py-0.5 rounded-full">
-                          Step 2: Confirmation
-                        </span>
-                        <h3 className="text-base font-black text-emerald-950 mt-1.5">
-                          Did you post your review on Google Maps?
-                        </h3>
-                        <p className="text-xs text-emerald-800 mt-1 leading-relaxed max-w-xs mx-auto">
-                          Your review draft was copied to your clipboard. Simply paste it into the Google Maps window and click <strong>Post</strong>.
-                        </p>
-                      </div>
-
-                      <div className="space-y-2 pt-1">
-                        <button
-                          type="button"
-                          disabled={isPostingVerification}
-                          onClick={handleConfirmPosted}
-                          className="w-full py-3.5 px-4 rounded-2xl bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 text-white font-black text-xs sm:text-sm shadow-lg shadow-emerald-600/30 flex items-center justify-center gap-2 active:scale-95 transition-all cursor-pointer"
-                        >
-                          {isPostingVerification ? (
-                            <>
-                              <RefreshCw className="w-4 h-4 animate-spin text-white" />
-                              <span>Verifying review...</span>
-                            </>
-                          ) : (
-                            <>
-                              <CheckCircle2 className="w-4 h-4 text-white" />
-                              <span>Yes, I Posted on Google!</span>
-                            </>
-                          )}
-                        </button>
-
-                        <button
-                          type="button"
-                          onClick={() => setIsGoogleOpened(false)}
-                          className="w-full py-2.5 px-3 rounded-xl bg-white/90 hover:bg-white text-emerald-900 border border-emerald-200 font-bold text-xs flex items-center justify-center gap-1.5 transition-colors cursor-pointer"
-                        >
-                          <span>Edit Review Draft</span>
-                        </button>
                       </div>
                     </div>
                   ) : (
@@ -612,9 +554,9 @@ export default function ReviewFlow({ business, initialSource }: ReviewFlowProps)
                       {/* Copy review text, then open Google Maps */}
                       <button
                         type="button"
-                        onClick={async (e) => {
+                        onClick={(e) => {
                           e.preventDefault();
-                          await handleOpenGoogle();
+                          handleOpenGoogle();
                         }}
                         className="w-full mt-3 py-3.5 px-4 rounded-2xl bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 text-white font-bold text-sm shadow-lg shadow-emerald-600/25 transition-all flex items-center justify-center gap-2 active:scale-[0.98] text-center cursor-pointer"
                       >
