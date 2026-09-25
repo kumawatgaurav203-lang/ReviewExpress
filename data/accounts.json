@@ -1,32 +1,22 @@
 [
   {
-    "id": "acc-1790191370984",
+    "id": "acc-1790250176114",
     "email": "kumawatgaurav203@gmail.com",
     "password": "Gaur@v27",
-    "businessName": "Studio",
-    "businessSlug": "studio",
-    "category": "Photo and video shoot studio",
-    "googleReviewLink": "https://g.page/r/CYa03-0ngD2lEBM/review",
-    "createdAt": "2026-09-23T19:22:50.984Z"
+    "businessName": "Jeep Center & Hind Automobile",
+    "businessSlug": "jeep-center-hind-automobile",
+    "category": "All Parts of fourwheeler",
+    "googleReviewLink": "https://search.google.com/local/writereview?placeid=ChIJG2gaSgCzbTkRC6EsbBLGudE",
+    "createdAt": "2026-09-24T11:42:56.114Z"
   },
   {
-    "id": "acc-1790191925510",
-    "email": "kumawatpriyanshu036@gmail.com",
-    "password": "Gaur@v27",
-    "businessName": "Beauty parlour",
-    "businessSlug": "beauty-parlour",
-    "category": "Women Beauti Parlour",
+    "id": "acc-1790244423046",
+    "email": "bhaveshsirohiya070@gmail.com",
+    "password": "Photify@",
+    "businessName": "Photify studios",
+    "businessSlug": "photify-studios",
+    "category": "Rental studio for photography, videography, podcast, fashion shoot,baby shoot , product shoot and many more with 26+ creative backdrops and photify does not provide in house",
     "googleReviewLink": "https://g.page/r/CYa03-0ngD2lEBM/review",
-    "createdAt": "2026-09-23T19:32:05.510Z"
-  },
-  {
-    "id": "acc-1789895170607",
-    "email": "kumawatpriyanshu036@gmail.com",
-    "password": "1234567@",
-    "businessName": "kumawat clothing",
-    "businessSlug": "kumawat-clothing",
-    "category": "Men Clothing",
-    "googleReviewLink": "https://g.page/r/CYa03-0ngD2lEAE/review",
-    "createdAt": "2026-09-20T09:06:10.607Z"
+    "createdAt": "2026-09-24T10:07:03.046Z"
   }
 ]

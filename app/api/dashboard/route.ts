@@ -40,7 +40,7 @@ function resolveBusinessName(businessId: string): string {
 export async function GET(req: NextRequest) {
   try {
     const { searchParams } = new URL(req.url);
-    const period = (searchParams.get('period') || 'month') as 'day' | 'week' | 'month' | 'year' | 'all';
+    const period = (searchParams.get('period') || 'day') as 'day' | 'week' | 'month' | 'year' | 'all';
     const rawBusinessId = searchParams.get('businessId') || 'all';
     const filter = (searchParams.get('filter') || 'all') as 'all' | 'posted_only' | 'unposted_scans' | 'complaints';
     const channel = (searchParams.get('channel') || 'all') as 'all' | 'nfc' | 'qr';
@@ -311,6 +311,7 @@ export async function GET(req: NextRequest) {
     let businessName = resolveBusinessName(businessId);
     let businessSlug = businessId.startsWith('b-') ? businessId.slice(2) : businessId;
     let googleReviewLink = 'https://g.page/r/CYa03-0ngD2lEAE/review';
+    let businessTags: string[] = [];
 
     // 1. Resolve from Supabase businesses table
     if (isSupabaseConfigured() && businessId !== 'all') {
@@ -318,13 +319,16 @@ export async function GET(req: NextRequest) {
         // Both businessId and businessSlug are already sanitized above
         const { data: dbBiz } = await supabase
           .from('businesses')
-          .select('id, name, slug, google_review_link')
+          .select('id, name, slug, google_review_link, tags, category')
           .or(`id.eq.${businessId},slug.eq.${businessSlug}`)
           .single();
         if (dbBiz) {
           businessName = dbBiz.name;
           businessSlug = dbBiz.slug;
           googleReviewLink = dbBiz.google_review_link;
+          if (Array.isArray(dbBiz.tags)) {
+            businessTags = dbBiz.tags;
+          }
         }
       } catch (e) {}
     }
@@ -345,12 +349,16 @@ export async function GET(req: NextRequest) {
       const demoBiz = DEMO_BUSINESSES[businessSlug];
       if (businessName === 'Store') businessName = demoBiz.name;
       googleReviewLink = demoBiz.google_review_link;
+      if (businessTags.length === 0 && Array.isArray(demoBiz.tags)) {
+        businessTags = demoBiz.tags;
+      }
     }
 
     const businessInfo = {
       name: businessName,
       slug: businessSlug,
       googleReviewLink,
+      tags: businessTags,
     };
 
     const responsePayload = {

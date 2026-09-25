@@ -71,14 +71,20 @@ export default function ReviewFlow({ business, initialSource }: ReviewFlowProps)
 
   const [rating, setRating] = useState<number>(0);
   const [hoveredRating, setHoveredRating] = useState<number>(0);
+  const hasCustomTags = Array.isArray(business.tags) && business.tags.length > 0;
+
   const [displayTags, setDisplayTags] = useState<string[]>(() => {
-    return business.tags && business.tags.length > 0
-      ? business.tags
-      : getShuffledCategoryTags(business.name, business.category);
+    if (hasCustomTags) return business.tags;
+    return getShuffledCategoryTags(business.name, business.category);
   });
   const [selectedTags, setSelectedTags] = useState<string[]>([]);
 
   const handleShuffleTags = () => {
+    if (hasCustomTags) {
+      const shuffled = [...business.tags].sort(() => Math.random() - 0.5);
+      setDisplayTags(shuffled);
+      return;
+    }
     const fresh = getShuffledCategoryTags(
       business.name,
       business.category,
@@ -363,12 +369,16 @@ export default function ReviewFlow({ business, initialSource }: ReviewFlowProps)
                   onClick={() => {
                     setRating(starValue);
                     if (starValue >= 3 && selectedTags.length === 0) {
-                      const freshTags = getShuffledCategoryTags(
-                        business.name,
-                        business.category,
-                      );
-                      setDisplayTags(freshTags);
-                      if (freshTags.length > 0) setSelectedTags([freshTags[0]]);
+                      if (!hasCustomTags) {
+                        const freshTags = getShuffledCategoryTags(
+                          business.name,
+                          business.category,
+                        );
+                        setDisplayTags(freshTags);
+                        if (freshTags.length > 0) setSelectedTags([freshTags[0]]);
+                      } else if (displayTags.length > 0) {
+                        setSelectedTags([displayTags[0]]);
+                      }
                     }
                   }}
                   onMouseEnter={() => setHoveredRating(starValue)}

@@ -26,6 +26,9 @@ import {
   Check,
   Smartphone,
   ExternalLink,
+  Plus,
+  Pencil,
+  Tag,
 } from 'lucide-react';
 import { DEMO_BUSINESSES } from '@/lib/demo-data';
 import TermsModal from '@/components/TermsModal';
@@ -60,6 +63,7 @@ interface DashboardData {
     name: string;
     slug: string;
     googleReviewLink: string;
+    tags?: string[];
   };
   metrics: {
     totalTraffic: number;
@@ -132,8 +136,15 @@ export default function OwnerDashboardPage() {
   const [accessDeniedError, setAccessDeniedError] = useState<string | null>(null);
   const [showTermsModal, setShowTermsModal] = useState(false);
   const currentSlug = ownerSession?.businessSlug || '';
-  const [timePeriod, setTimePeriod] = useState<'day' | 'week' | 'month' | 'year' | 'all'>('month');
+  const [timePeriod, setTimePeriod] = useState<'day' | 'week' | 'month' | 'year' | 'all'>('day');
   const [channelFilter, setChannelFilter] = useState<'all' | 'nfc' | 'qr'>('all');
+
+  // Review Highlights state
+  const [isTagsModalOpen, setIsTagsModalOpen] = useState(false);
+  const [customTags, setCustomTags] = useState<string[]>([]);
+  const [newTagInput, setNewTagInput] = useState('');
+  const [isSavingTags, setIsSavingTags] = useState(false);
+  const [tagsMessage, setTagsMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
 
   // Data fetching state
   const [dashboardData, setDashboardData] = useState<DashboardData | null>(null);
@@ -160,8 +171,97 @@ export default function OwnerDashboardPage() {
     name: dashboardData?.businessInfo?.name || ownerSession?.businessName || (currentSlug && DEMO_BUSINESSES[currentSlug]?.name) || 'Store Dashboard',
     slug: currentSlug,
     google_review_link: dashboardData?.businessInfo?.googleReviewLink || (currentSlug && DEMO_BUSINESSES[currentSlug]?.google_review_link) || '',
-    tags: [],
+    tags: customTags.length > 0 ? customTags : (dashboardData?.businessInfo?.tags || []),
     is_active: true,
+  };
+
+  const PRESET_SUGGESTIONS = [
+    'Quick Response',
+    'Cooperative Staff',
+    'Best in Town',
+    'Pocket Friendly Rates',
+    'Superb Quality',
+    'Highly Recommended',
+    'Clean & Hygienic Space',
+    'On-Time Service',
+    'Trustworthy & Reliable',
+    'Great Overall Experience',
+    'Professional Behavior',
+    'Worth Every Penny',
+  ];
+
+  const newTagWords = newTagInput.trim() ? newTagInput.trim().split(/\s+/).filter(Boolean) : [];
+  const isTagWordLimitExceeded = newTagWords.length > 6;
+  const isTagCharLimitExceeded = newTagInput.trim().length > 45;
+
+  const handleAddTag = (tagToAdd?: string) => {
+    const raw = (tagToAdd !== undefined ? tagToAdd : newTagInput).trim();
+    if (!raw) return;
+
+    if (customTags.length >= 24) {
+      setTagsMessage({ type: 'error', text: 'Maximum 24 highlights limit reached.' });
+      return;
+    }
+
+    const words = raw.split(/\s+/).filter(Boolean);
+    if (words.length > 6) {
+      setTagsMessage({ type: 'error', text: `"${raw}" has ${words.length} words. Maximum allowed is 6 words.` });
+      return;
+    }
+
+    if (raw.length > 45) {
+      setTagsMessage({ type: 'error', text: `"${raw}" has ${raw.length} characters. Maximum allowed is 45 characters.` });
+      return;
+    }
+
+    if (customTags.some((t) => t.toLowerCase() === raw.toLowerCase())) {
+      setTagsMessage({ type: 'error', text: `"${raw}" is already in your highlights list.` });
+      return;
+    }
+
+    setCustomTags((prev) => [...prev, raw]);
+    if (tagToAdd === undefined) {
+      setNewTagInput('');
+    }
+    setTagsMessage(null);
+  };
+
+  const handleRemoveTag = (indexToRemove: number) => {
+    setCustomTags((prev) => prev.filter((_, idx) => idx !== indexToRemove));
+  };
+
+  const handleSaveTags = async () => {
+    if (!currentSlug) return;
+    setIsSavingTags(true);
+    setTagsMessage(null);
+    try {
+      const headers: Record<string, string> = { 'Content-Type': 'application/json' };
+      if (ownerSession?.token) {
+        headers['Authorization'] = `Bearer ${ownerSession.token}`;
+      }
+      const res = await fetch('/api/dashboard/tags', {
+        method: 'PUT',
+        headers,
+        body: JSON.stringify({
+          businessId: currentSlug,
+          slug: currentSlug,
+          tags: customTags,
+        }),
+      });
+      const data = await res.json();
+      if (!res.ok || !data.success) {
+        throw new Error(data.message || 'Failed to update review highlights');
+      }
+      setCustomTags(data.tags || customTags);
+      setTagsMessage({ type: 'success', text: 'Review highlights updated successfully! Active on your review page.' });
+      setTimeout(() => {
+        setTagsMessage(null);
+      }, 4000);
+    } catch (err: any) {
+      setTagsMessage({ type: 'error', text: err.message || 'Failed to save highlights' });
+    } finally {
+      setIsSavingTags(false);
+    }
   };
 
   const handleDeleteSingleComplaint = async (complaintId: string) => {
@@ -243,6 +343,9 @@ export default function OwnerDashboardPage() {
       if (data?.success) {
         setAccessDeniedError(null);
         setDashboardData(data);
+        if (Array.isArray(data.businessInfo?.tags) && data.businessInfo.tags.length > 0) {
+          setCustomTags(data.businessInfo.tags);
+        }
       }
     } catch (err) {
       console.warn('Dashboard sync note:', err);
@@ -340,19 +443,30 @@ export default function OwnerDashboardPage() {
 
           {/* Header Action Links */}
           <div className="flex items-center gap-1.5 sm:gap-3 shrink-0">
+            <button
+              type="button"
+              onClick={() => setIsTagsModalOpen(true)}
+              className="text-[11px] sm:text-xs font-semibold bg-indigo-600/20 hover:bg-indigo-600/30 text-indigo-300 border border-indigo-500/30 px-2.5 sm:px-3.5 py-1.5 sm:py-2 rounded-xl flex items-center gap-1.5 transition-colors shrink-0 cursor-pointer"
+              title="Edit Review Highlights (Compliment Chips)"
+            >
+              <Sparkles className="w-3.5 h-3.5 text-indigo-400" />
+              <span>Review Highlights</span>
+            </button>
+
             <Link
               href={`/qr/${currentSlug}`}
               target="_blank"
               className="text-[11px] sm:text-xs font-semibold bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 px-2.5 sm:px-3.5 py-1.5 sm:py-2 rounded-xl flex items-center gap-1.5 transition-colors shrink-0"
             >
               <QrCode className="w-3.5 h-3.5 text-indigo-400" />
-              <span>Store QR Standee</span>
+              <span className="hidden sm:inline">Store QR Standee</span>
+              <span className="sm:hidden">Standee</span>
             </Link>
 
             <button
               onClick={handleSignOut}
               title="Sign Out"
-              className="text-xs text-slate-400 hover:text-rose-400 p-1.5 sm:p-2 rounded-xl hover:bg-slate-800/80 transition-colors border border-transparent hover:border-slate-700 shrink-0"
+              className="text-xs text-slate-400 hover:text-rose-400 p-1.5 sm:p-2 rounded-xl hover:bg-slate-800/80 transition-colors border border-transparent hover:border-slate-700 shrink-0 cursor-pointer"
             >
               <LogOut className="w-4 h-4" />
             </button>
@@ -713,6 +827,81 @@ export default function OwnerDashboardPage() {
         </div>
 
         {/* ----------------------------------------------------------------- */}
+        {/* REVIEW HIGHLIGHT CHIPS CUSTOMIZER CARD                             */}
+        {/* ----------------------------------------------------------------- */}
+        <div className="bg-slate-900/90 border border-slate-800 rounded-3xl p-5 sm:p-6 shadow-xl space-y-4">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-slate-800">
+            <div className="flex items-center gap-2.5">
+              <div className="p-2 rounded-xl bg-indigo-500/10 text-indigo-400 border border-indigo-500/20">
+                <Sparkles className="w-5 h-5" />
+              </div>
+              <div>
+                <div className="flex items-center gap-2">
+                  <h2 className="text-base sm:text-lg font-bold text-white tracking-tight">
+                    Review Highlight Sentences (Compliment Chips)
+                  </h2>
+                  <span className="text-[11px] font-bold px-2.5 py-0.5 rounded-full bg-indigo-500/10 text-indigo-300 border border-indigo-500/20">
+                    {customTags.length} / 24 Active
+                  </span>
+                </div>
+                <p className="text-xs text-slate-400 mt-0.5">
+                  These sentence chips appear when customers rate 4-5 stars at your review link. Customers click them to generate natural reviews.
+                </p>
+              </div>
+            </div>
+
+            <button
+              type="button"
+              onClick={() => setIsTagsModalOpen(true)}
+              className="px-4 py-2 text-xs font-bold rounded-xl bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white shadow-md shadow-indigo-900/20 flex items-center justify-center gap-1.5 transition-all self-start sm:self-auto cursor-pointer"
+            >
+              <Pencil className="w-3.5 h-3.5" />
+              <span>Edit Highlights</span>
+            </button>
+          </div>
+
+          {/* Active Chips Preview */}
+          {customTags.length === 0 ? (
+            <div className="p-4 rounded-2xl bg-slate-950/60 border border-slate-800/80 text-center space-y-2">
+              <p className="text-xs text-slate-400">
+                No custom highlights saved yet. Default category compliment chips are currently being shown to customers.
+              </p>
+              <button
+                type="button"
+                onClick={() => setIsTagsModalOpen(true)}
+                className="text-xs font-semibold text-indigo-400 hover:text-indigo-300 underline underline-offset-4 cursor-pointer"
+              >
+                + Customize your store's highlights now (Max 24, up to 6 words each)
+              </button>
+            </div>
+          ) : (
+            <div className="space-y-3">
+              <div className="flex flex-wrap items-center gap-2">
+                {customTags.map((tag, idx) => (
+                  <span
+                    key={idx}
+                    className="inline-flex items-center gap-1.5 text-xs font-medium px-3 py-1.5 rounded-xl bg-slate-800/80 text-slate-200 border border-slate-700/80 shadow-sm"
+                  >
+                    <span className="text-indigo-400">✨</span>
+                    <span>{tag}</span>
+                  </span>
+                ))}
+              </div>
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-1 text-[11px] text-slate-500 pt-1">
+                <span>Rule: Maximum 24 highlight chips, up to 6 words per sentence</span>
+                <button
+                  type="button"
+                  onClick={() => setIsTagsModalOpen(true)}
+                  className="text-indigo-400 hover:text-indigo-300 font-medium cursor-pointer self-start sm:self-auto"
+                >
+                  Manage highlights →
+                </button>
+              </div>
+            </div>
+          )}
+        </div>
+
+        {/* ----------------------------------------------------------------- */}
         {/* COMPLAINTS MANAGEMENT HUB (1 to 3 Stars - User's Core Request)    */}
         {/* ----------------------------------------------------------------- */}
         <section className="bg-slate-900/90 border border-slate-800 rounded-3xl p-6 shadow-xl space-y-5">
@@ -925,6 +1114,222 @@ export default function OwnerDashboardPage() {
         isOpen={showTermsModal}
         onClose={() => setShowTermsModal(false)}
       />
+
+      {/* Review Highlights Customizer Modal */}
+      {isTagsModalOpen && (
+        <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-3 sm:p-4 animate-in fade-in duration-200">
+          <div className="bg-slate-900 border border-slate-800 rounded-3xl max-w-2xl w-full max-h-[90vh] flex flex-col shadow-2xl overflow-hidden">
+            {/* Modal Header */}
+            <div className="p-4 sm:p-6 border-b border-slate-800 flex items-start justify-between gap-3">
+              <div className="flex items-center gap-3">
+                <div className="p-2.5 rounded-2xl bg-indigo-500/10 text-indigo-400 border border-indigo-500/20">
+                  <Sparkles className="w-5 h-5" />
+                </div>
+                <div>
+                  <div className="flex items-center gap-2">
+                    <h3 className="text-base sm:text-lg font-bold text-white">
+                      Customize Review Highlights
+                    </h3>
+                    <span className="text-[11px] font-bold px-2 py-0.5 rounded-full bg-indigo-500/20 text-indigo-300 border border-indigo-500/30">
+                      {customTags.length} / 24 Active
+                    </span>
+                  </div>
+                  <p className="text-xs text-slate-400 mt-0.5">
+                    Maximum 24 highlight sentences, up to 6 words each. Your customers can tap these when giving a review.
+                  </p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => {
+                  setIsTagsModalOpen(false);
+                  setTagsMessage(null);
+                }}
+                className="text-slate-400 hover:text-white p-1 rounded-xl hover:bg-slate-800 transition-colors cursor-pointer"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            {/* Modal Body */}
+            <div className="p-4 sm:p-6 space-y-5 overflow-y-auto flex-1">
+              {tagsMessage && (
+                <div
+                  className={`p-3 rounded-2xl text-xs font-medium flex items-center gap-2 ${
+                    tagsMessage.type === 'success'
+                      ? 'bg-emerald-500/10 text-emerald-300 border border-emerald-500/20'
+                      : 'bg-rose-500/10 text-rose-300 border border-rose-500/20'
+                  }`}
+                >
+                  {tagsMessage.type === 'success' ? (
+                    <CheckCircle2 className="w-4 h-4 shrink-0 text-emerald-400" />
+                  ) : (
+                    <AlertTriangle className="w-4 h-4 shrink-0 text-rose-400" />
+                  )}
+                  <span>{tagsMessage.text}</span>
+                </div>
+              )}
+
+              {/* Add New Highlight Sentence Input */}
+              <div className="space-y-2">
+                <label className="text-xs font-bold text-slate-300 block">
+                  Add New Highlight Sentence (Max 6 words, 45 chars)
+                </label>
+                <div className="flex gap-2">
+                  <div className="relative flex-1">
+                    <input
+                      type="text"
+                      value={newTagInput}
+                      onChange={(e) => {
+                        setNewTagInput(e.target.value);
+                        setTagsMessage(null);
+                      }}
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter') {
+                          e.preventDefault();
+                          handleAddTag();
+                        }
+                      }}
+                      placeholder="e.g. Quick Service, Best Quality in Town..."
+                      maxLength={45}
+                      disabled={customTags.length >= 24}
+                      className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3.5 py-2.5 text-xs text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 disabled:opacity-50"
+                    />
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => handleAddTag()}
+                    disabled={
+                      !newTagInput.trim() ||
+                      isTagWordLimitExceeded ||
+                      isTagCharLimitExceeded ||
+                      customTags.length >= 24
+                    }
+                    className="px-4 py-2.5 text-xs font-bold rounded-xl bg-indigo-600 hover:bg-indigo-500 disabled:bg-slate-800 text-white disabled:text-slate-500 flex items-center gap-1.5 transition-all shrink-0 cursor-pointer disabled:cursor-not-allowed"
+                  >
+                    <Plus className="w-3.5 h-3.5" />
+                    <span>Add</span>
+                  </button>
+                </div>
+
+                {/* Counters and limits helper */}
+                <div className="flex items-center justify-between text-[11px] text-slate-400 px-1">
+                  <span className={isTagWordLimitExceeded ? 'text-rose-400 font-bold' : ''}>
+                    Words: {newTagWords.length} / 6 max
+                  </span>
+                  <span className={isTagCharLimitExceeded ? 'text-rose-400 font-bold' : ''}>
+                    Characters: {newTagInput.trim().length} / 45 max
+                  </span>
+                </div>
+              </div>
+
+              {/* Current Highlights List */}
+              <div className="space-y-2">
+                <div className="flex items-center justify-between">
+                  <span className="text-xs font-bold text-slate-300">
+                    Active Highlights ({customTags.length} of 24)
+                  </span>
+                  {customTags.length > 0 && (
+                    <button
+                      type="button"
+                      onClick={() => setCustomTags([])}
+                      className="text-[11px] text-rose-400 hover:text-rose-300 cursor-pointer"
+                    >
+                      Clear All
+                    </button>
+                  )}
+                </div>
+
+                {customTags.length === 0 ? (
+                  <div className="p-6 rounded-2xl bg-slate-950/60 border border-dashed border-slate-800 text-center">
+                    <p className="text-xs text-slate-400">
+                      No custom highlights added yet. Click suggestions below or type your own above.
+                    </p>
+                  </div>
+                ) : (
+                  <div className="flex flex-wrap gap-2 max-h-48 overflow-y-auto p-2 bg-slate-950/50 rounded-2xl border border-slate-800/80">
+                    {customTags.map((tag, idx) => (
+                      <span
+                        key={idx}
+                        className="inline-flex items-center gap-1.5 text-xs font-medium px-3 py-1.5 rounded-xl bg-slate-800 text-slate-100 border border-slate-700/80 shadow-sm group hover:border-slate-600 transition-colors"
+                      >
+                        <span>{tag}</span>
+                        <button
+                          type="button"
+                          onClick={() => handleRemoveTag(idx)}
+                          className="text-slate-400 hover:text-rose-400 p-0.5 rounded-md hover:bg-slate-700 transition-colors cursor-pointer"
+                          title="Remove highlight"
+                        >
+                          <X className="w-3.5 h-3.5" />
+                        </button>
+                      </span>
+                    ))}
+                  </div>
+                )}
+              </div>
+
+              {/* Quick Preset Suggestions */}
+              {customTags.length < 24 && (
+                <div className="space-y-2 pt-1 border-t border-slate-800/80">
+                  <span className="text-[11px] font-semibold text-slate-400 block">
+                    Quick Suggestions (Click to add):
+                  </span>
+                  <div className="flex flex-wrap gap-1.5">
+                    {PRESET_SUGGESTIONS.filter((s) => !customTags.includes(s)).map((preset) => (
+                      <button
+                        key={preset}
+                        type="button"
+                        onClick={() => handleAddTag(preset)}
+                        className="text-[11px] font-medium px-2.5 py-1 rounded-lg bg-slate-800/60 hover:bg-indigo-600/20 text-slate-300 hover:text-indigo-300 border border-slate-700/60 hover:border-indigo-500/40 transition-colors flex items-center gap-1 cursor-pointer"
+                      >
+                        <Plus className="w-3 h-3 opacity-60" />
+                        <span>{preset}</span>
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {/* Modal Footer */}
+            <div className="p-4 sm:p-6 border-t border-slate-800 bg-slate-900/80 flex items-center justify-between gap-3">
+              <span className="text-[11px] text-slate-400">
+                Changes apply instantly to customer review page
+              </span>
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setIsTagsModalOpen(false);
+                    setTagsMessage(null);
+                  }}
+                  className="px-4 py-2 text-xs font-semibold text-slate-400 hover:text-white rounded-xl hover:bg-slate-800 transition-colors cursor-pointer"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="button"
+                  onClick={handleSaveTags}
+                  disabled={isSavingTags}
+                  className="px-5 py-2 text-xs font-bold rounded-xl bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white shadow-md shadow-indigo-900/30 flex items-center gap-1.5 transition-all disabled:opacity-50 cursor-pointer"
+                >
+                  {isSavingTags ? (
+                    <>
+                      <div className="w-3.5 h-3.5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                      <span>Saving...</span>
+                    </>
+                  ) : (
+                    <>
+                      <Check className="w-3.5 h-3.5" />
+                      <span>Save Highlights</span>
+                    </>
+                  )}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
