@@ -66,18 +66,38 @@ const CATEGORY_META: Record<string, { label: string; icon: string }> = {
 };
 
 const normalizeCategory = (cat?: string, name?: string): string => {
-  if (cat && cat !== 'auto' && cat.trim().length > 0) {
-    return cat.toLowerCase().trim();
+  const raw = (cat || '').toLowerCase().trim();
+  // 1. If explicit recognized key in CATEGORY_META (e.g. 'cafe', 'studio', 'salon')
+  if (raw && CATEGORY_META[raw]) {
+    return raw;
   }
-  return detectCategory(name || '');
+  // 2. Detect category from category description typed by user
+  if (raw) {
+    const detectedFromCat = detectCategory(raw);
+    if (detectedFromCat && detectedFromCat !== 'general' && CATEGORY_META[detectedFromCat]) {
+      return detectedFromCat;
+    }
+  }
+  // 3. Detect category from store name
+  const detectedFromName = detectCategory(name || '');
+  if (detectedFromName && detectedFromName !== 'general' && CATEGORY_META[detectedFromName]) {
+    return detectedFromName;
+  }
+  // 4. Short custom category (max 25 chars)
+  if (raw && raw.length <= 25) {
+    return raw;
+  }
+  return detectedFromName || 'general';
 };
 
 const getCategoryDisplay = (catKey: string) => {
   if (CATEGORY_META[catKey]) {
     return CATEGORY_META[catKey];
   }
+  const clean = catKey.trim();
+  const shortLabel = clean.length > 24 ? clean.slice(0, 22) + '...' : clean;
   return {
-    label: catKey.charAt(0).toUpperCase() + catKey.slice(1),
+    label: shortLabel.charAt(0).toUpperCase() + shortLabel.slice(1),
     icon: '🏷️',
   };
 };
@@ -1444,15 +1464,10 @@ export default function CreateAccountAdminPage() {
                 </div>
               </div>
 
-              {/* Field 4: Google Maps Review Link (MANDATORY) */}
+              {/* Field 4: Google Maps Review Link */}
               <div>
-                <label className="block text-xs font-semibold text-slate-300 mb-1.5 flex items-center justify-between">
-                  <span>
-                    Google Maps Review Link <span className="text-rose-400">*</span>
-                  </span>
-                  <span className="text-[10px] text-amber-400 font-semibold">
-                    Mandatory
-                  </span>
+                <label className="block text-xs font-semibold text-slate-300 mb-1.5">
+                  Google Maps Review Link <span className="text-rose-400">*</span>
                 </label>
                 <div className="relative">
                   <LinkIcon className="w-4 h-4 text-slate-500 absolute left-3.5 top-1/2 -translate-y-1/2" />
@@ -1466,7 +1481,7 @@ export default function CreateAccountAdminPage() {
                   />
                 </div>
                 <p className="mt-1 text-[10px] text-slate-400 leading-tight">
-                  ★ Mandatory: In Google Maps, search shop name → click &quot;Share&quot; or &quot;Ask for reviews&quot; → paste link here.
+                  In Google Maps, search shop name → click &quot;Share&quot; or &quot;Ask for reviews&quot; → paste link here.
                 </p>
               </div>
 
@@ -1905,7 +1920,7 @@ export default function CreateAccountAdminPage() {
           ) : (
             <div className="space-y-6">
               {/* Category Filter Pills / Tabs */}
-              <div className="flex items-center gap-2 overflow-x-auto pb-1.5 scrollbar-thin">
+              <div className="flex flex-wrap items-center gap-2 pb-1">
                 <button
                   type="button"
                   onClick={() => setSelectedCategoryTab('all')}
@@ -1917,7 +1932,7 @@ export default function CreateAccountAdminPage() {
                 >
                   <span>All Stores</span>
                   <span
-                    className={`text-[10px] px-1.5 py-0.2 rounded-full font-bold ${
+                    className={`text-[10px] px-2 py-0.5 rounded-full font-bold ${
                       selectedCategoryTab === 'all'
                         ? 'bg-indigo-700 text-white'
                         : 'bg-slate-800 text-slate-400'
@@ -1937,16 +1952,17 @@ export default function CreateAccountAdminPage() {
                       key={catKey}
                       type="button"
                       onClick={() => setSelectedCategoryTab(catKey)}
-                      className={`text-xs font-semibold px-3 py-1.5 rounded-xl border transition-all shrink-0 flex items-center gap-1.5 cursor-pointer ${
+                      title={meta.label}
+                      className={`text-xs font-semibold px-3 py-1.5 rounded-xl border transition-all shrink-0 flex items-center gap-1.5 cursor-pointer max-w-[260px] ${
                         selectedCategoryTab === catKey
                           ? 'bg-indigo-600 text-white border-indigo-500 shadow-sm shadow-indigo-500/20'
                           : 'bg-slate-900 text-slate-400 border-slate-800 hover:text-white hover:border-slate-700'
                       }`}
                     >
-                      <span>{meta.icon}</span>
-                      <span>{meta.label}</span>
+                      <span className="shrink-0">{meta.icon}</span>
+                      <span className="truncate">{meta.label}</span>
                       <span
-                        className={`text-[10px] px-1.5 py-0.2 rounded-full font-bold ${
+                        className={`text-[10px] px-2 py-0.5 rounded-full font-bold shrink-0 ${
                           selectedCategoryTab === catKey
                             ? 'bg-indigo-700 text-white'
                             : 'bg-slate-800 text-slate-400'
@@ -2006,10 +2022,20 @@ export default function CreateAccountAdminPage() {
                                 >
                                   {store.name}
                                 </h4>
-                                <span className="inline-flex items-center gap-1 text-[10px] font-medium text-slate-400 mt-0.5">
-                                  <span>{meta.icon}</span>
-                                  <span className="truncate max-w-[140px]">{meta.label}</span>
-                                </span>
+                                <div className="flex items-center gap-1.5 flex-wrap mt-1">
+                                  <span className="inline-flex items-center gap-1 text-[10px] font-semibold text-indigo-300 bg-indigo-500/10 border border-indigo-500/20 px-2 py-0.5 rounded-md">
+                                    <span>{meta.icon}</span>
+                                    <span>{meta.label}</span>
+                                  </span>
+                                  {store.category && store.category.toLowerCase().trim() !== catKey && (
+                                    <span
+                                      className="text-[10px] text-slate-400 truncate max-w-[160px]"
+                                      title={store.category}
+                                    >
+                                      • {store.category}
+                                    </span>
+                                  )}
+                                </div>
                               </div>
                               <div className="flex items-center gap-1.5 shrink-0">
                                 <span className="inline-flex items-center gap-1 text-[9px] font-semibold text-emerald-400 bg-emerald-500/10 border border-emerald-500/20 px-2 py-0.5 rounded-full">
