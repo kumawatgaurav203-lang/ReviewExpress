@@ -157,9 +157,12 @@ export default function ReviewFlow({ business, initialSource }: ReviewFlowProps)
 
   // Generate review via Gemini API route (Allows up to 5 regenerations)
   const handleGenerateReview = async () => {
-    if (selectedTags.length === 0) return;
     const isRegenerating = Boolean(reviewDraft);
     if (isRegenerating && regenerationCount >= 5) return;
+
+    const tagsToSend = selectedTags.length > 0
+      ? selectedTags
+      : (displayTags.length > 0 ? [displayTags[0]] : ["Great Experience"]);
 
     setIsGenerating(true);
     try {
@@ -169,7 +172,7 @@ export default function ReviewFlow({ business, initialSource }: ReviewFlowProps)
         signal: AbortSignal.timeout(6000),
         body: JSON.stringify({
           businessName: business.name,
-          tags: selectedTags,
+          tags: tagsToSend,
           rating: rating || 5,
           currentReview: reviewDraft,
           regenerate: isRegenerating,
@@ -186,7 +189,7 @@ export default function ReviewFlow({ business, initialSource }: ReviewFlowProps)
     } catch (err) {
       console.error("Error triggering AI generation:", err);
       setReviewDraft(
-        `Great experience at ${business.name}! Loved the ${selectedTags.join(" and ")}, highly recommended.`,
+        `Great experience at ${business.name}! Loved the ${tagsToSend.join(" and ")}, highly recommended.`,
       );
       if (isRegenerating) {
         setRegenerationCount((prev) => prev + 1);
@@ -375,18 +378,6 @@ export default function ReviewFlow({ business, initialSource }: ReviewFlowProps)
                   type="button"
                   onClick={() => {
                     setRating(starValue);
-                    if (starValue >= 3 && selectedTags.length === 0) {
-                      if (!hasCustomTags) {
-                        const freshTags = getShuffledCategoryTags(
-                          business.name,
-                          business.category,
-                        );
-                        setDisplayTags(freshTags);
-                        if (freshTags.length > 0) setSelectedTags([freshTags[0]]);
-                      } else if (displayTags.length > 0) {
-                        setSelectedTags([displayTags[0]]);
-                      }
-                    }
                   }}
                   onMouseEnter={() => setHoveredRating(starValue)}
                   onMouseLeave={() => setHoveredRating(0)}
@@ -452,7 +443,7 @@ export default function ReviewFlow({ business, initialSource }: ReviewFlowProps)
               </div>
 
               {/* Step 2: AI Generate Button & Manual Typing Option (Only when not in draft or manual typing mode) */}
-              {selectedTags.length > 0 && !reviewDraft && !isCustomTyping && (
+              {!reviewDraft && !isCustomTyping && (
                 <div className="pt-1 space-y-2">
                   <button
                     type="button"
@@ -473,11 +464,12 @@ export default function ReviewFlow({ business, initialSource }: ReviewFlowProps)
                     )}
                   </button>
 
-                  <div className="flex items-center justify-between px-1 text-[11px] text-slate-500">
-                    <span>⚡ AI creates natural reviews</span>
-                    <span className="text-indigo-600 font-semibold">
-                      Up to 5 AI regenerations allowed
+                  <div className="flex items-center justify-center gap-2 py-0.5 text-[11px] text-slate-500">
+                    <span className="inline-flex items-center gap-1">
+                      <span>⚡ Natural AI Reviews</span>
                     </span>
+                    <span className="text-slate-300">•</span>
+                    <span className="text-indigo-600 font-semibold">5 Retries</span>
                   </div>
 
                   {/* Option to Type Review Manually (Write Myself) */}
