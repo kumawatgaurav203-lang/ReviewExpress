@@ -79,6 +79,12 @@ export default function ReviewFlow({ business, initialSource }: ReviewFlowProps)
   });
   const [selectedTags, setSelectedTags] = useState<string[]>([]);
 
+  useEffect(() => {
+    if (Array.isArray(business.tags) && business.tags.length > 0) {
+      setDisplayTags(business.tags);
+    }
+  }, [business.tags]);
+
   const handleShuffleTags = () => {
     if (hasCustomTags) {
       const shuffled = [...business.tags].sort(() => Math.random() - 0.5);

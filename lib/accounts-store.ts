@@ -10,6 +10,7 @@ export interface OwnerAccount {
   businessName: string;
   businessSlug: string;
   category?: string;
+  tags?: string[];
   googleReviewLink: string;
   createdAt: string;
 }
@@ -274,7 +275,7 @@ export function deleteOwnerAccount(emailOrSlug: string): boolean {
 
 export function updateOwnerAccount(
   slugOrEmail: string,
-  updates: Partial<Pick<OwnerAccount, 'category' | 'googleReviewLink' | 'businessName'>>
+  updates: Partial<Pick<OwnerAccount, 'category' | 'googleReviewLink' | 'businessName' | 'tags'>>
 ): OwnerAccount | null {
   accountsCache = readAccountsFromFile();
   const cleanTarget = slugOrEmail.toLowerCase().trim();
@@ -291,6 +292,9 @@ export function updateOwnerAccount(
     }
     if (updates.businessName !== undefined) {
       accountsCache[existingIdx].businessName = updates.businessName;
+    }
+    if (updates.tags !== undefined) {
+      accountsCache[existingIdx].tags = updates.tags;
     }
     writeAccountsToFile(accountsCache);
     persistAccountsToCloud(accountsCache).catch(() => {});

@@ -324,7 +324,19 @@ export default function OwnerDashboardPage() {
       if (!res.ok || !data.success) {
         throw new Error(data.message || 'Failed to update review highlights');
       }
-      setCustomTags(data.tags || customTags);
+      if (data.tags) {
+        setCustomTags(data.tags);
+        setDashboardData((prev) => {
+          if (!prev || !prev.businessInfo) return prev;
+          return {
+            ...prev,
+            businessInfo: {
+              ...prev.businessInfo,
+              tags: data.tags,
+            },
+          };
+        });
+      }
       setTagsMessage({ type: 'success', text: 'Review highlights updated successfully! Active on your review page.' });
       setTimeout(() => {
         setTagsMessage(null);

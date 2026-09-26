@@ -3,7 +3,7 @@ import { notFound } from 'next/navigation';
 import { supabase, isSupabaseConfigured } from '@/lib/supabase';
 import { DEMO_BUSINESSES } from '@/lib/demo-data';
 import { getAccountBySlug } from '@/lib/accounts-store';
-import { getShuffledCategoryTags } from '@/lib/tags-data';
+import { getShuffledCategoryTags, detectCategory } from '@/lib/tags-data';
 import { Business } from '@/lib/types';
 import { redisCache } from '@/lib/redis';
 import ReviewFlow from './ReviewFlow';
@@ -40,25 +40,33 @@ async function getBusinessBySlug(slug: string): Promise<Business | null> {
       try {
         const { data, error } = await supabase
           .from('businesses')
-          .select('id, name, slug, google_review_link, category, tags, is_active, status')
+          .select('id, name, slug, google_review_link, tags, is_active')
           .eq('slug', cleanSlug)
           .single();
 
         if (!error && data) {
           // Verify business is active
-          const isActive = data.is_active !== false && data.status !== 'inactive' && data.status !== 'suspended';
+          const isActive = data.is_active !== false;
           if (!isActive) {
             return null; // Inactive business triggers 404
           }
+
+          // Resolve category from accounts store or auto-detection
+          const acc = getAccountBySlug(cleanSlug);
+          const category = acc?.category || detectCategory(data.name);
 
           // Return strictly public sanitized business representation
           return {
             id: data.id,
             name: data.name,
             slug: data.slug,
-            category: data.category || 'general',
+            category,
             google_review_link: data.google_review_link,
-            tags: data.tags && data.tags.length > 0 ? data.tags : getShuffledCategoryTags(data.name, data.category),
+            tags: Array.isArray(data.tags) && data.tags.length > 0
+              ? data.tags
+              : (Array.isArray(acc?.tags) && acc.tags.length > 0
+                ? acc.tags
+                : getShuffledCategoryTags(data.name, category)),
             is_active: true,
           };
         }
@@ -71,13 +79,16 @@ async function getBusinessBySlug(slug: string): Promise<Business | null> {
     try {
       const acc = getAccountBySlug(cleanSlug);
       if (acc) {
+        const category = acc.category || detectCategory(acc.businessName);
         return {
           id: 'b-' + acc.businessSlug,
           name: acc.businessName,
           slug: acc.businessSlug,
-          category: acc.category,
+          category,
           google_review_link: acc.googleReviewLink,
-          tags: getShuffledCategoryTags(acc.businessName, acc.category),
+          tags: Array.isArray(acc.tags) && acc.tags.length > 0
+            ? acc.tags
+            : getShuffledCategoryTags(acc.businessName, category),
           is_active: true,
         };
       }

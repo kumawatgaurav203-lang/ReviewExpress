@@ -3,6 +3,7 @@ import { getSessionUser, authorizeBusinessAccess } from '@/lib/auth-server';
 import { supabase, isSupabaseConfigured } from '@/lib/supabase';
 import { redisCache } from '@/lib/redis';
 import { DEMO_BUSINESSES } from '@/lib/demo-data';
+import { updateOwnerAccount } from '@/lib/accounts-store';
 
 export async function PUT(req: NextRequest) {
   try {
@@ -86,17 +87,25 @@ export async function PUT(req: NextRequest) {
       }
     }
 
-    // 2. Demo fallback
+    // 2. Persist in local accounts store and sys-accounts-vault
+    try {
+      updateOwnerAccount(cleanSlug, { tags: cleanTags });
+    } catch (err) {
+      console.warn('Local accounts tags update note:', err);
+    }
+
+    // 3. Demo fallback
     if (DEMO_BUSINESSES[cleanSlug]) {
       DEMO_BUSINESSES[cleanSlug].tags = cleanTags;
     }
 
-    // 3. Invalidate Redis Caches so /r/[slug] instantly serves the updated highlights
+    // 4. Invalidate Redis Caches so /r/[slug] instantly serves the updated highlights
     if (cleanSlug) {
       redisCache.del([
         `store:profile:${cleanSlug}`,
         `store:profile:b-${cleanSlug}`,
       ]).catch(() => {});
+      redisCache.delPattern(`store:profile:*${cleanSlug}*`).catch(() => {});
       redisCache.delPattern(`dashboard:${cleanSlug}:*`).catch(() => {});
       redisCache.delPattern(`dashboard:b-${cleanSlug}:*`).catch(() => {});
     }

@@ -319,14 +319,14 @@ export async function GET(req: NextRequest) {
         // Both businessId and businessSlug are already sanitized above
         const { data: dbBiz } = await supabase
           .from('businesses')
-          .select('id, name, slug, google_review_link, tags, category')
+          .select('id, name, slug, google_review_link, tags')
           .or(`id.eq.${businessId},slug.eq.${businessSlug}`)
           .single();
         if (dbBiz) {
           businessName = dbBiz.name;
           businessSlug = dbBiz.slug;
           googleReviewLink = dbBiz.google_review_link;
-          if (Array.isArray(dbBiz.tags)) {
+          if (Array.isArray(dbBiz.tags) && dbBiz.tags.length > 0) {
             businessTags = dbBiz.tags;
           }
         }
@@ -334,13 +334,16 @@ export async function GET(req: NextRequest) {
     }
 
     // 2. Resolve from local accounts store
-    if (businessName === 'Store' || businessSlug === businessId) {
+    if (businessName === 'Store' || businessSlug === businessId || businessTags.length === 0) {
       const allAccs = getAllOwnerAccounts();
       const acc = allAccs.find(a => a.id === businessId || a.businessSlug === businessSlug || 'b-' + a.businessSlug === businessId);
       if (acc) {
-        businessName = acc.businessName;
-        businessSlug = acc.businessSlug;
-        googleReviewLink = acc.googleReviewLink;
+        if (businessName === 'Store') businessName = acc.businessName;
+        if (businessSlug === businessId) businessSlug = acc.businessSlug;
+        if (!googleReviewLink) googleReviewLink = acc.googleReviewLink;
+        if (businessTags.length === 0 && Array.isArray(acc.tags) && acc.tags.length > 0) {
+          businessTags = acc.tags;
+        }
       }
     }
 
