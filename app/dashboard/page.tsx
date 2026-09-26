@@ -31,6 +31,7 @@ import {
   Tag,
   Settings,
   ChevronDown,
+  RefreshCw,
 } from 'lucide-react';
 import { DEMO_BUSINESSES } from '@/lib/demo-data';
 import { detectCategory, CATEGORY_TAGS } from '@/lib/tags-data';
@@ -224,9 +225,50 @@ export default function OwnerDashboardPage() {
 
   const [quickSuggestions, setQuickSuggestions] = useState<string[]>(DEFAULT_QUICK_SUGGESTIONS);
 
+  const saveQuickSuggestionsToStorage = (updatedList: string[]) => {
+    if (typeof window !== 'undefined' && currentSlug) {
+      try {
+        localStorage.setItem(`nfc_quick_pool_${currentSlug}`, JSON.stringify(updatedList));
+      } catch {}
+    }
+  };
+
+  useEffect(() => {
+    if (!currentSlug || typeof window === 'undefined') return;
+    try {
+      const saved = localStorage.getItem(`nfc_quick_pool_${currentSlug}`);
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        if (Array.isArray(parsed) && parsed.length > 0) {
+          const merged = Array.from(new Set([...parsed, ...DEFAULT_QUICK_SUGGESTIONS])).slice(0, 27);
+          setQuickSuggestions(merged);
+          return;
+        }
+      }
+    } catch {}
+    setQuickSuggestions(DEFAULT_QUICK_SUGGESTIONS);
+  }, [currentSlug]);
+
+  const availableSuggestions = quickSuggestions.filter(
+    (s) => !customTags.some((c) => c.toLowerCase() === s.toLowerCase())
+  );
+
   const handleDeleteQuickSuggestion = (suggestionToRemove: string, e: React.MouseEvent) => {
     e.stopPropagation();
-    setQuickSuggestions((prev) => prev.filter((s) => s !== suggestionToRemove));
+    setQuickSuggestions((prev) => {
+      const updated = prev.filter((s) => s.toLowerCase() !== suggestionToRemove.toLowerCase());
+      saveQuickSuggestionsToStorage(updated);
+      return updated;
+    });
+  };
+
+  const handleRefillQuickSuggestions = () => {
+    const remaining = DEFAULT_QUICK_SUGGESTIONS.filter(
+      (s) => !customTags.some((c) => c.toLowerCase() === s.toLowerCase())
+    ).slice(0, 27);
+    setQuickSuggestions(remaining);
+    saveQuickSuggestionsToStorage(remaining);
+    setTagsMessage({ type: 'success', text: 'Refilled Quick Suggestions with 27 default sentences.' });
   };
 
   const newTagWords = newTagInput.trim() ? newTagInput.trim().split(/\s+/).filter(Boolean) : [];
@@ -238,7 +280,7 @@ export default function OwnerDashboardPage() {
     if (!raw) return;
 
     if (customTags.length >= 24) {
-      setTagsMessage({ type: 'error', text: 'Maximum 24 highlights limit reached.' });
+      setTagsMessage({ type: 'error', text: 'Maximum 24 active highlights limit reached. Remove one first.' });
       return;
     }
 
@@ -254,11 +296,17 @@ export default function OwnerDashboardPage() {
     }
 
     if (customTags.some((t) => t.toLowerCase() === raw.toLowerCase())) {
-      setTagsMessage({ type: 'error', text: `"${raw}" is already in your highlights list.` });
+      setTagsMessage({ type: 'error', text: `"${raw}" is already active in your highlights list.` });
       return;
     }
 
     setCustomTags((prev) => [...prev, raw]);
+    setQuickSuggestions((prev) => {
+      const updated = prev.filter((s) => s.toLowerCase() !== raw.toLowerCase());
+      saveQuickSuggestionsToStorage(updated);
+      return updated;
+    });
+
     if (tagToAdd === undefined) {
       setNewTagInput('');
     }
@@ -305,11 +353,34 @@ export default function OwnerDashboardPage() {
   };
 
   const handleRemoveTag = (indexToRemove: number) => {
+    const removedTag = customTags[indexToRemove];
     setCustomTags((prev) => prev.filter((_, idx) => idx !== indexToRemove));
     if (editingTagIndex === indexToRemove) {
       setEditingTagIndex(null);
       setEditingTagText('');
     }
+    if (removedTag) {
+      setQuickSuggestions((prev) => {
+        const withoutCurrent = prev.filter((s) => s.toLowerCase() !== removedTag.toLowerCase());
+        const updated = [removedTag, ...withoutCurrent].slice(0, 27);
+        saveQuickSuggestionsToStorage(updated);
+        return updated;
+      });
+      setTagsMessage({ type: 'success', text: `Moved "${removedTag}" down to Quick Suggestions below.` });
+    }
+  };
+
+  const handleClearAllTags = () => {
+    if (customTags.length === 0) return;
+    const currentActive = [...customTags];
+    setCustomTags([]);
+    setQuickSuggestions((prev) => {
+      const combined = [...currentActive, ...prev.filter((s) => !currentActive.some((c) => c.toLowerCase() === s.toLowerCase()))];
+      const updated = combined.slice(0, 27);
+      saveQuickSuggestionsToStorage(updated);
+      return updated;
+    });
+    setTagsMessage({ type: 'success', text: 'All active highlights moved to Quick Suggestions below.' });
   };
 
   const handleResetToDefaultTags = () => {
@@ -319,6 +390,12 @@ export default function OwnerDashboardPage() {
     setCustomTags([...pool]);
     setEditingTagIndex(null);
     setEditingTagText('');
+
+    const remaining = DEFAULT_QUICK_SUGGESTIONS.filter(
+      (s) => !pool.some((p) => p.toLowerCase() === s.toLowerCase())
+    ).slice(0, 27);
+    setQuickSuggestions(remaining);
+    saveQuickSuggestionsToStorage(remaining);
     setTagsMessage({ type: 'success', text: `Loaded recommended highlights for ${cat.toUpperCase()}.` });
   };
 
@@ -597,6 +674,12 @@ export default function OwnerDashboardPage() {
                         if (dashboardData?.businessInfo?.tags) {
                           setCustomTags([...dashboardData.businessInfo.tags]);
                         }
+                        setQuickSuggestions((prev) => {
+                          if (!prev || prev.length === 0) {
+                            return DEFAULT_QUICK_SUGGESTIONS;
+                          }
+                          return prev;
+                        });
                         setIsTagsModalOpen(true);
                       }}
                       className="w-full px-3 py-2.5 rounded-xl text-left text-xs font-semibold text-slate-200 hover:text-white hover:bg-indigo-600/20 border border-transparent hover:border-indigo-500/30 flex items-center gap-2.5 transition-all cursor-pointer group"
@@ -1335,8 +1418,9 @@ export default function OwnerDashboardPage() {
                         <span className="text-slate-700">•</span>
                         <button
                           type="button"
-                          onClick={() => setCustomTags([])}
+                          onClick={handleClearAllTags}
                           className="text-[11px] text-rose-400 hover:text-rose-300 cursor-pointer"
+                          title="Move all active highlights to Quick Suggestions below"
                         >
                           Clear All
                         </button>
@@ -1436,48 +1520,67 @@ export default function OwnerDashboardPage() {
               </div>
 
               {/* Quick Preset Suggestions */}
-              {customTags.length < 24 && quickSuggestions.length > 0 && (
-                <div className="space-y-2 pt-2 border-t border-slate-800/80">
-                  <div className="flex items-center justify-between">
-                    <span className="text-[11px] font-semibold text-slate-400">
-                      Quick Suggestions ({quickSuggestions.filter((s) => !customTags.includes(s)).length} available • Max 27):
+              <div className="space-y-2 pt-2 border-t border-slate-800/80">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <span className="text-xs font-bold text-slate-300">
+                      Quick Suggestions ({availableSuggestions.length} available • Max 27 in pool):
                     </span>
                     <span className="text-[10px] text-slate-500 font-medium">
                       Select up to 24 active
                     </span>
                   </div>
-                  <div className="flex flex-wrap gap-1.5 max-h-36 overflow-y-auto p-1.5 bg-slate-950/40 rounded-xl border border-slate-800/50">
-                    {quickSuggestions
-                      .filter((s) => !customTags.includes(s))
-                      .slice(0, 27)
-                      .map((preset) => (
-                        <div
-                          key={preset}
-                          className="group inline-flex items-center rounded-lg bg-slate-800/70 hover:bg-indigo-950/60 border border-slate-700/60 hover:border-indigo-500/50 transition-all text-[11px] overflow-hidden shadow-xs"
-                        >
-                          <button
-                            type="button"
-                            onClick={() => handleAddTag(preset)}
-                            className="px-2.5 py-1 text-slate-300 group-hover:text-indigo-200 font-medium flex items-center gap-1 cursor-pointer"
-                            title={`Add "${preset}" to active highlights`}
-                          >
-                            <Plus className="w-3 h-3 text-indigo-400 opacity-70 group-hover:opacity-100" />
-                            <span>{preset}</span>
-                          </button>
-                          <button
-                            type="button"
-                            onClick={(e) => handleDeleteQuickSuggestion(preset, e)}
-                            className="px-1.5 py-1 text-slate-500 hover:text-rose-400 hover:bg-rose-950/40 transition-colors border-l border-slate-700/50 cursor-pointer"
-                            title={`Remove "${preset}" from quick suggestions`}
-                            aria-label={`Remove ${preset}`}
-                          >
-                            <X className="w-3 h-3" />
-                          </button>
-                        </div>
-                      ))}
-                  </div>
+                  <button
+                    type="button"
+                    onClick={handleRefillQuickSuggestions}
+                    className="text-[11px] font-semibold text-indigo-400 hover:text-indigo-300 cursor-pointer flex items-center gap-1 transition-colors"
+                    title="Refill Quick Suggestions pool from 27 defaults"
+                  >
+                    <RefreshCw className="w-3 h-3" />
+                    <span>Refill Pool</span>
+                  </button>
                 </div>
-              )}
+
+                {availableSuggestions.length === 0 ? (
+                  <div className="p-3.5 rounded-xl bg-slate-950/40 border border-slate-800/60 text-center space-y-1">
+                    <p className="text-xs text-slate-400 font-medium">
+                      All pool suggestions are active, or suggestion pool is empty.
+                    </p>
+                    <p className="text-[11px] text-slate-500">
+                      Click <span className="text-rose-300 font-semibold">Remove</span> on any active highlight above to drop it back down here, or click <span className="text-indigo-300 font-semibold">Refill Pool</span>.
+                    </p>
+                  </div>
+                ) : (
+                  <div className="flex flex-wrap gap-1.5 max-h-36 overflow-y-auto p-1.5 bg-slate-950/40 rounded-xl border border-slate-800/50">
+                    {availableSuggestions.slice(0, 27).map((preset) => (
+                      <div
+                        key={preset}
+                        className="group inline-flex items-center rounded-lg bg-slate-800/70 hover:bg-indigo-950/60 border border-slate-700/60 hover:border-indigo-500/50 transition-all text-[11px] overflow-hidden shadow-xs"
+                      >
+                        <button
+                          type="button"
+                          onClick={() => handleAddTag(preset)}
+                          disabled={customTags.length >= 24}
+                          className="px-2.5 py-1 text-slate-300 group-hover:text-indigo-200 font-medium flex items-center gap-1 cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed"
+                          title={customTags.length >= 24 ? "Max 24 active highlights reached" : `Add "${preset}" to active highlights`}
+                        >
+                          <Plus className="w-3 h-3 text-indigo-400 opacity-70 group-hover:opacity-100" />
+                          <span>{preset}</span>
+                        </button>
+                        <button
+                          type="button"
+                          onClick={(e) => handleDeleteQuickSuggestion(preset, e)}
+                          className="px-1.5 py-1 text-slate-500 hover:text-rose-400 hover:bg-rose-950/40 transition-colors border-l border-slate-700/50 cursor-pointer"
+                          title={`Permanently delete "${preset}" from quick suggestions`}
+                          aria-label={`Remove ${preset}`}
+                        >
+                          <X className="w-3 h-3" />
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
             </div>
 
             {/* Modal Footer */}

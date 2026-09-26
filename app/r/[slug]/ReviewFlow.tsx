@@ -473,6 +473,13 @@ export default function ReviewFlow({ business, initialSource }: ReviewFlowProps)
                     )}
                   </button>
 
+                  <div className="flex items-center justify-between px-1 text-[11px] text-slate-500">
+                    <span>⚡ AI creates natural reviews</span>
+                    <span className="text-indigo-600 font-semibold">
+                      Up to 5 AI regenerations allowed
+                    </span>
+                  </div>
+
                   {/* Option to Type Review Manually (Write Myself) */}
                   <button
                     type="button"
@@ -486,22 +493,6 @@ export default function ReviewFlow({ business, initialSource }: ReviewFlowProps)
                   >
                     <Pencil className="w-3.5 h-3.5 text-indigo-600" />
                     <span>Type Review Manually (Write Myself) ✍️</span>
-                  </button>
-
-                  <div className="flex items-center justify-between px-1 text-[11px] text-slate-500">
-                    <span>⚡ AI creates natural reviews</span>
-                    <span className="text-indigo-600 font-semibold">
-                      Up to 5 AI regenerations allowed
-                    </span>
-                  </div>
-
-                  <button
-                    type="button"
-                    onClick={handleOpenGoogle}
-                    className="w-full py-2.5 px-3 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold text-xs flex items-center justify-center gap-1.5 transition-colors cursor-pointer"
-                  >
-                    <ExternalLink className="w-3.5 h-3.5 text-slate-500" />
-                    <span>Proceed Directly to Google Maps (Skip AI)</span>
                   </button>
                 </div>
               )}
