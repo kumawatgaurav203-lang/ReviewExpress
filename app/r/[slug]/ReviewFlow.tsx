@@ -38,19 +38,34 @@ export default function ReviewFlow({ business, initialSource }: ReviewFlowProps)
 
   const [visitLogId, setVisitLogId] = useState<string>("");
 
-  // Log scan visitor event on every visit (debounced by 3 seconds to avoid double-firing on quick reloads)
+  // Log scan visitor event once per customer visit session (deduplicated across rapid reloads & camera prefetch)
+  const hasLoggedScan = useRef(false);
+
   useEffect(() => {
     if (!business?.id) return;
     if (typeof window === "undefined") return;
+    if (hasLoggedScan.current) return;
+
+    const bizKey = business.id;
+    const sessionKey = `rx_scanned_${bizKey}`;
+    const localLastScanKey = `rx_last_scan_${bizKey}`;
+    const logIdKey = `rx_log_${bizKey}`;
 
     const now = Date.now();
-    const lastScanTime = Number(sessionStorage.getItem(`rx_last_scan_${business.id}`) || 0);
-    if (now - lastScanTime < 3000) {
-      const existingId = sessionStorage.getItem(`rx_log_${business.id}`);
+    const lastScanTime = Number(localStorage.getItem(localLastScanKey) || 0);
+    const alreadyScannedInSession = sessionStorage.getItem(sessionKey);
+
+    // If scanned in this browser session or within last 5 minutes from same device, avoid re-logging
+    if (alreadyScannedInSession || (now - lastScanTime < 5 * 60 * 1000)) {
+      const existingId = sessionStorage.getItem(logIdKey) || localStorage.getItem(logIdKey);
       if (existingId) setVisitLogId(existingId);
+      hasLoggedScan.current = true;
       return;
     }
-    sessionStorage.setItem(`rx_last_scan_${business.id}`, String(now));
+
+    hasLoggedScan.current = true;
+    sessionStorage.setItem(sessionKey, 'true');
+    localStorage.setItem(localLastScanKey, String(now));
 
     fetch('/api/log-scan', {
       method: 'POST',
@@ -62,7 +77,8 @@ export default function ReviewFlow({ business, initialSource }: ReviewFlowProps)
       .then((data) => {
         if (data?.logId) {
           setVisitLogId(data.logId);
-          sessionStorage.setItem(`rx_log_${business.id}`, data.logId);
+          sessionStorage.setItem(logIdKey, data.logId);
+          localStorage.setItem(logIdKey, data.logId);
         }
       })
       .catch(() => {});
@@ -398,15 +414,17 @@ export default function ReviewFlow({ business, initialSource }: ReviewFlowProps)
                   <label className="text-xs font-semibold uppercase tracking-wider text-slate-600">
                     What did you like the most?
                   </label>
-                  <button
-                    type="button"
-                    onClick={handleShuffleTags}
-                    className="text-[11px] font-bold text-indigo-600 hover:text-indigo-800 flex items-center gap-1 transition-colors px-2 py-0.5 rounded-lg hover:bg-indigo-50"
-                    title="Shuffle to see more experience highlights"
-                  >
-                    <RefreshCw className="w-3 h-3" />
-                    <span>Shuffle Highlights 🎲</span>
-                  </button>
+                  {displayTags.length > 3 && (
+                    <button
+                      type="button"
+                      onClick={handleShuffleTags}
+                      className="text-[11px] font-bold text-indigo-600 hover:text-indigo-800 flex items-center gap-1 transition-colors px-2 py-0.5 rounded-lg hover:bg-indigo-50"
+                      title="Shuffle to see more experience highlights"
+                    >
+                      <RefreshCw className="w-3 h-3" />
+                      <span>Shuffle Highlights 🎲</span>
+                    </button>
+                  )}
                 </div>
 
                 <div className="flex flex-wrap gap-2">

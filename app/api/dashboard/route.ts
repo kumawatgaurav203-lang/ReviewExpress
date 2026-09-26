@@ -159,7 +159,7 @@ export async function GET(req: NextRequest) {
       }
     }
 
-    // If Supabase is connected, merge real-time review logs
+    // If Supabase is connected, load authoritative real-time review logs
     if (isSupabaseConfigured()) {
       try {
         let query = supabase.from('review_logs').select('*');
@@ -170,31 +170,22 @@ export async function GET(req: NextRequest) {
           query = query.or(orFilter);
         }
         const { data: dbLogs, error: dbErr } = await query;
-        if (!dbErr && dbLogs && dbLogs.length > 0) {
-          // Merge unique logs from db
-          const existingIds = new Set(allLogs.map((l) => l.id));
-          dbLogs.forEach((dbLog: any) => {
-            // Restore resolved status stored in database
+        if (!dbErr && dbLogs) {
+          const formattedDbLogs = dbLogs.map((dbLog: any) => {
             if (dbLog.rating > 0 && dbLog.rating <= 3) {
               if (dbLog.review_text && typeof dbLog.review_text === 'string' && dbLog.review_text.startsWith('RESOLVED:')) {
                 dbLog.is_resolved = true;
                 dbLog.resolved_at = dbLog.review_text.slice(9);
               }
             }
-            if (!existingIds.has(dbLog.id)) {
-              allLogs.push(dbLog);
-            } else {
-              // Keep database resolution status in sync with local cache
-              const localLog = allLogs.find((l) => l.id === dbLog.id);
-              if (localLog && dbLog.is_resolved) {
-                localLog.is_resolved = true;
-                (localLog as any).resolved_at = dbLog.resolved_at;
-              }
-            }
+            return dbLog;
           });
+
+          // Use Supabase logs as the authoritative single source of truth when connected
+          allLogs = formattedDbLogs;
         }
       } catch (err) {
-        // non-blocking fallback
+        // non-blocking fallback to local disk
       }
     }
 
@@ -202,6 +193,33 @@ export async function GET(req: NextRequest) {
     if (businessId !== 'all') {
       allLogs = allLogs.filter((l) => matchedBusinessIds.has(l.business_id));
     }
+
+    // Deduplicate rapid scan artifacts within 45 seconds for same business and channel
+    // (prevents camera app / mobile prefetch / rapid double clicks from inflating visit counts)
+    const sortedLogs = [...allLogs].sort((a, b) => new Date(a.created_at || 0).getTime() - new Date(b.created_at || 0).getTime());
+    const cleanLogs: typeof allLogs = [];
+    for (const log of sortedLogs) {
+      const logTime = new Date(log.created_at || 0).getTime();
+      const isScan = !log.rating || log.rating === 0;
+
+      if (isScan) {
+        // If there's another scan or review for the same business & source within 45s, skip duplicate scan
+        const hasNearDuplicate = cleanLogs.some((existing) => {
+          const existingTime = new Date(existing.created_at || 0).getTime();
+          const diff = Math.abs(logTime - existingTime);
+          return (
+            existing.business_id === log.business_id &&
+            existing.source === log.source &&
+            diff < 45000
+          );
+        });
+        if (hasNearDuplicate) {
+          continue;
+        }
+      }
+      cleanLogs.push(log);
+    }
+    allLogs = cleanLogs;
 
     // Filter by selected time period
     let periodLogs = filterLogsByPeriod(allLogs, period);

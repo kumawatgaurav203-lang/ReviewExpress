@@ -5,8 +5,10 @@ import { DEMO_BUSINESSES } from '@/lib/demo-data';
 import { getAccountBySlug } from '@/lib/accounts-store';
 import { getShuffledCategoryTags, detectCategory } from '@/lib/tags-data';
 import { Business } from '@/lib/types';
-import { redisCache } from '@/lib/redis';
 import ReviewFlow from './ReviewFlow';
+
+export const dynamic = 'force-dynamic';
+export const revalidate = 0;
 
 interface PageProps {
   params: {
@@ -19,21 +21,18 @@ interface PageProps {
 
 async function getBusinessBySlug(slug: string): Promise<Business | null> {
   const cleanSlug = slug.toLowerCase().trim();
-  const cacheKey = `store:profile:${cleanSlug}`;
 
-  // Serve from Redis cache (< 2ms) or compute and cache for 10 minutes (600s)
-  return redisCache.remember(cacheKey, 600, async () => {
-    // 1. Official demo portal
-    if (cleanSlug === 'demo') {
-      return {
-        id: 'b0000000-0000-4000-8000-000000000000',
-        name: 'ReviewXpress Client Demo',
-        slug: 'demo',
-        google_review_link: 'https://www.google.com/maps',
-        tags: getShuffledCategoryTags('ReviewXpress Client Demo'),
-        is_active: true,
-      };
-    }
+  // 1. Official demo portal
+  if (cleanSlug === 'demo') {
+    return {
+      id: 'b0000000-0000-4000-8000-000000000000',
+      name: 'ReviewXpress Client Demo',
+      slug: 'demo',
+      google_review_link: 'https://www.google.com/maps',
+      tags: getShuffledCategoryTags('ReviewXpress Client Demo'),
+      is_active: true,
+    };
+  }
 
     // 2. Query Supabase businesses table (primary source of truth)
     if (isSupabaseConfigured()) {
@@ -110,9 +109,8 @@ async function getBusinessBySlug(slug: string): Promise<Business | null> {
       };
     }
 
-    // 5. Store not found or inactive -> trigger 404
-    return null;
-  });
+  // 5. Store not found or inactive -> trigger 404
+  return null;
 }
 
 export async function generateMetadata({ params }: PageProps): Promise<Metadata> {

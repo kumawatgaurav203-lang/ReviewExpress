@@ -194,7 +194,7 @@ export default function OwnerDashboardPage() {
     }
   }, [dashboardData?.businessInfo?.tags, business.name]);
 
-  const PRESET_SUGGESTIONS = [
+  const DEFAULT_QUICK_SUGGESTIONS = [
     'Quick Response',
     'Cooperative Staff',
     'Best in Town',
@@ -207,7 +207,29 @@ export default function OwnerDashboardPage() {
     'Great Overall Experience',
     'Professional Behavior',
     'Worth Every Penny',
+    'Courteous & Polite',
+    'Fast Turnaround Time',
+    'Genuine & Honest Advice',
+    'Excellent Customer Support',
+    'Transparent Pricing',
+    'High Attention to Detail',
+    'Skilled Professionals',
+    'Hassle-Free Process',
+    'Top Quality Workmanship',
+    'Very Welcoming Atmosphere',
+    'Always Exceeds Expectations',
+    'Punctual & Dedicated',
+    'Smooth & Easy Handling',
+    'Exceptional Value',
+    'Safe & Dependable Service',
   ];
+
+  const [quickSuggestions, setQuickSuggestions] = useState<string[]>(DEFAULT_QUICK_SUGGESTIONS);
+
+  const handleDeleteQuickSuggestion = (suggestionToRemove: string, e: React.MouseEvent) => {
+    e.stopPropagation();
+    setQuickSuggestions((prev) => prev.filter((s) => s !== suggestionToRemove));
+  };
 
   const newTagWords = newTagInput.trim() ? newTagInput.trim().split(/\s+/).filter(Boolean) : [];
   const isTagWordLimitExceeded = newTagWords.length > 6;
@@ -1322,18 +1344,10 @@ export default function OwnerDashboardPage() {
                 </div>
 
                 {customTags.length === 0 ? (
-                  <div className="p-6 rounded-2xl bg-slate-950/60 border border-dashed border-slate-800 text-center space-y-2">
+                  <div className="p-6 rounded-2xl bg-slate-950/60 border border-dashed border-slate-800 text-center space-y-1.5">
                     <p className="text-xs text-slate-400">
-                      No custom highlights added yet. Type your own above or load recommended compliments.
+                      No active highlights added yet. Type your own above or pick from Quick Suggestions below.
                     </p>
-                    <button
-                      type="button"
-                      onClick={handleResetToDefaultTags}
-                      className="px-3.5 py-1.5 text-xs font-bold rounded-xl bg-indigo-600/20 hover:bg-indigo-600/30 text-indigo-300 border border-indigo-500/30 inline-flex items-center gap-1.5 cursor-pointer"
-                    >
-                      <Sparkles className="w-3.5 h-3.5 text-indigo-400" />
-                      <span>Load Recommended Compliments</span>
-                    </button>
                   </div>
                 ) : (
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 max-h-60 overflow-y-auto p-2 bg-slate-950/50 rounded-2xl border border-slate-800/80">
@@ -1420,32 +1434,55 @@ export default function OwnerDashboardPage() {
               </div>
 
               {/* Quick Preset Suggestions */}
-              {customTags.length < 24 && (
-                <div className="space-y-2 pt-1 border-t border-slate-800/80">
-                  <span className="text-[11px] font-semibold text-slate-400 block">
-                    Quick Suggestions (Click to add):
-                  </span>
-                  <div className="flex flex-wrap gap-1.5">
-                    {PRESET_SUGGESTIONS.filter((s) => !customTags.includes(s)).map((preset) => (
-                      <button
-                        key={preset}
-                        type="button"
-                        onClick={() => handleAddTag(preset)}
-                        className="text-[11px] font-medium px-2.5 py-1 rounded-lg bg-slate-800/60 hover:bg-indigo-600/20 text-slate-300 hover:text-indigo-300 border border-slate-700/60 hover:border-indigo-500/40 transition-colors flex items-center gap-1 cursor-pointer"
-                      >
-                        <Plus className="w-3 h-3 opacity-60" />
-                        <span>{preset}</span>
-                      </button>
-                    ))}
+              {customTags.length < 24 && quickSuggestions.length > 0 && (
+                <div className="space-y-2 pt-2 border-t border-slate-800/80">
+                  <div className="flex items-center justify-between">
+                    <span className="text-[11px] font-semibold text-slate-400">
+                      Quick Suggestions ({quickSuggestions.filter((s) => !customTags.includes(s)).length} available • Max 27):
+                    </span>
+                    <span className="text-[10px] text-slate-500 font-medium">
+                      Select up to 24 active
+                    </span>
+                  </div>
+                  <div className="flex flex-wrap gap-1.5 max-h-36 overflow-y-auto p-1.5 bg-slate-950/40 rounded-xl border border-slate-800/50">
+                    {quickSuggestions
+                      .filter((s) => !customTags.includes(s))
+                      .slice(0, 27)
+                      .map((preset) => (
+                        <div
+                          key={preset}
+                          className="group inline-flex items-center rounded-lg bg-slate-800/70 hover:bg-indigo-950/60 border border-slate-700/60 hover:border-indigo-500/50 transition-all text-[11px] overflow-hidden shadow-xs"
+                        >
+                          <button
+                            type="button"
+                            onClick={() => handleAddTag(preset)}
+                            className="px-2.5 py-1 text-slate-300 group-hover:text-indigo-200 font-medium flex items-center gap-1 cursor-pointer"
+                            title={`Add "${preset}" to active highlights`}
+                          >
+                            <Plus className="w-3 h-3 text-indigo-400 opacity-70 group-hover:opacity-100" />
+                            <span>{preset}</span>
+                          </button>
+                          <button
+                            type="button"
+                            onClick={(e) => handleDeleteQuickSuggestion(preset, e)}
+                            className="px-1.5 py-1 text-slate-500 hover:text-rose-400 hover:bg-rose-950/40 transition-colors border-l border-slate-700/50 cursor-pointer"
+                            title={`Remove "${preset}" from quick suggestions`}
+                            aria-label={`Remove ${preset}`}
+                          >
+                            <X className="w-3 h-3" />
+                          </button>
+                        </div>
+                      ))}
                   </div>
                 </div>
               )}
             </div>
 
             {/* Modal Footer */}
-            <div className="p-4 sm:p-6 border-t border-slate-800 bg-slate-900/80 flex items-center justify-between gap-3">
-              <span className="text-[11px] text-slate-400">
-                Changes apply instantly to customer review page
+            <div className="p-4 sm:p-6 border-t border-slate-800 bg-slate-900/80 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+              <span className="text-[11px] text-slate-400 flex items-center gap-1.5">
+                <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse shrink-0" />
+                <span>⚡ Real-time Sync: Active highlights update instantly on your live customer review page.</span>
               </span>
               <div className="flex items-center gap-2">
                 <button

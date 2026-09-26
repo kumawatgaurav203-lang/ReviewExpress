@@ -34,8 +34,8 @@ export async function POST(req: NextRequest) {
     const now = Date.now();
     const lastScanTime = recentScans.get(dedupeKey);
 
-    // If scanned within last 60 seconds from same IP & channel, deduplicate
-    if (lastScanTime && now - lastScanTime < 60000) {
+    // If scanned within last 2 minutes from same IP & channel, deduplicate
+    if (lastScanTime && now - lastScanTime < 120000) {
       return NextResponse.json({ success: true, message: 'Scan already counted (deduplicated)' });
     }
     recentScans.set(dedupeKey, now);
@@ -47,20 +47,14 @@ export async function POST(req: NextRequest) {
       });
     }
 
-    const savedLog = recordLiveReview({
-      business_id: safeBusinessId,
-      rating: 0,
-      posted_to_google: false,
-      is_scan: true,
-      review_text: channel === 'nfc' ? 'NFC Chip Tapped' : 'QR Standee Scanned',
-      source: channel,
-    });
+    let dbLogId: string | null = null;
+    let canonicalBusinessId = safeBusinessId;
 
-    // Also persist scan visit to Supabase review_logs so scan counts never reset on redeploy
+    // Persist scan visit to Supabase review_logs FIRST so we have a canonical UUID
     if (isSupabaseConfigured()) {
       try {
-        const canonicalBusinessId = await resolveBusinessUuid(safeBusinessId);
-        supabase
+        canonicalBusinessId = await resolveBusinessUuid(safeBusinessId);
+        const { data: dbData } = await supabase
           .from('review_logs')
           .insert([
             {
@@ -71,21 +65,36 @@ export async function POST(req: NextRequest) {
               source: channel,
             },
           ])
-          .then(() => {});
+          .select('id')
+          .single();
+
+        if (dbData?.id) {
+          dbLogId = dbData.id;
+        }
       } catch (dbErr) {
-        // non-blocking
+        console.warn('Supabase scan insert note:', dbErr);
       }
     }
 
+    const savedLog = recordLiveReview({
+      id: dbLogId || undefined,
+      business_id: canonicalBusinessId,
+      rating: 0,
+      posted_to_google: false,
+      is_scan: true,
+      review_text: channel === 'nfc' ? 'NFC Chip Tapped' : 'QR Standee Scanned',
+      source: channel,
+    });
+
     // Invalidate dashboard metrics cache so owner sees real-time visit
     redisCache.delPattern(`dashboard:${safeBusinessId}:*`).catch(() => {});
+    redisCache.delPattern(`dashboard:${canonicalBusinessId}:*`).catch(() => {});
     redisCache.delPattern('dashboard:all:*').catch(() => {});
-
 
     return NextResponse.json({
       success: true,
       message: `${channel.toUpperCase()} visit logged`,
-      logId: savedLog.id,
+      logId: dbLogId || savedLog.id,
     });
   } catch (err: any) {
     return NextResponse.json({ success: false, message: err.message || 'Error logging scan' }, { status: 500 });

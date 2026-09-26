@@ -117,11 +117,14 @@ export async function POST(req: NextRequest) {
     if (isSupabaseConfigured()) {
       try {
         const canonicalBusinessId = await resolveBusinessUuid(safeBusinessId);
-        const { data, error } = await supabase
-          .from('review_logs')
-          .insert([
-            {
-              business_id: canonicalBusinessId,
+        let updatedDb = false;
+        let finalLogId = savedLogId;
+
+        // 1. Try updating existing scan log row in Supabase so 1 visit does not count as 2
+        if (savedLogId && /^[0-9a-f-]{36}$/i.test(savedLogId)) {
+          const { data: updatedData, error: updateErr } = await supabase
+            .from('review_logs')
+            .update({
               rating,
               selected_tags: safeTags,
               review_text: safeReviewText,
@@ -129,34 +132,56 @@ export async function POST(req: NextRequest) {
               customer_feedback: safeCustomerFeedback,
               posted_to_google: Boolean(postedToGoogle),
               source: safeSource,
-            },
-          ])
-          .select('id')
-          .single();
+            })
+            .eq('id', savedLogId)
+            .select('id')
+            .maybeSingle();
 
-
-        if (error) {
-          console.error('Supabase insert error in review_logs:', error);
-          // Return success even if DB insert failed so customer experience is not blocked
-          return NextResponse.json<SubmitFeedbackResponse>({
-            success: true,
-            message: 'Feedback received (fallback logged)',
-            logId: savedLogId,
-          });
+          if (!updateErr && updatedData?.id) {
+            updatedDb = true;
+            finalLogId = updatedData.id;
+          }
         }
 
-        if (data?.id && savedLogId) {
-          updateRuntimeLog(savedLogId, { id: data.id } as any);
+        // 2. If no existing scan log was updated, insert as new entry
+        if (!updatedDb) {
+          const { data, error } = await supabase
+            .from('review_logs')
+            .insert([
+              {
+                business_id: canonicalBusinessId,
+                rating,
+                selected_tags: safeTags,
+                review_text: safeReviewText,
+                customer_phone: safeCustomerPhone,
+                customer_feedback: safeCustomerFeedback,
+                posted_to_google: Boolean(postedToGoogle),
+                source: safeSource,
+              },
+            ])
+            .select('id')
+            .single();
+
+          if (error) {
+            console.error('Supabase insert error in review_logs:', error);
+          } else if (data?.id) {
+            finalLogId = data.id;
+          }
+        }
+
+        if (finalLogId && savedLogId && finalLogId !== savedLogId) {
+          updateRuntimeLog(savedLogId, { id: finalLogId } as any);
         }
 
         // Invalidate dashboard metrics and complaints cache
         redisCache.delPattern(`dashboard:${safeBusinessId}:*`).catch(() => {});
+        redisCache.delPattern(`dashboard:${canonicalBusinessId}:*`).catch(() => {});
         redisCache.delPattern('dashboard:all:*').catch(() => {});
 
         return NextResponse.json<SubmitFeedbackResponse>({
           success: true,
           message: 'Feedback successfully logged',
-          logId: data?.id || savedLogId,
+          logId: finalLogId || savedLogId,
         });
       } catch (dbErr) {
         console.error('Database connection exception:', dbErr);

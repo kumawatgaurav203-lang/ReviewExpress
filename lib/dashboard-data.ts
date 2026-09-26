@@ -95,7 +95,7 @@ export function addRuntimeLog(log: ReviewLog): ReviewLog & { id: string; is_reso
   const currentLogs = readReviewsFromFile();
   const fullLog = {
     ...log,
-    id: 'log-' + Date.now() + '-' + Math.random().toString(36).substring(2, 6),
+    id: log.id || ('log-' + Date.now() + '-' + Math.random().toString(36).substring(2, 6)),
     is_resolved: false,
     created_at: log.created_at || new Date().toISOString(),
   };
