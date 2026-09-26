@@ -157,8 +157,7 @@ export default function ReviewFlow({ business, initialSource }: ReviewFlowProps)
 
   // Generate review via Gemini API route (Allows up to 5 regenerations)
   const handleGenerateReview = async () => {
-    const isRegenerating = Boolean(reviewDraft);
-    if (isRegenerating && regenerationCount >= 5) return;
+    if (regenerationCount >= 5) return;
 
     const tagsToSend = selectedTags.length > 0
       ? selectedTags
@@ -175,25 +174,21 @@ export default function ReviewFlow({ business, initialSource }: ReviewFlowProps)
           tags: tagsToSend,
           rating: rating || 5,
           currentReview: reviewDraft,
-          regenerate: isRegenerating,
+          regenerate: Boolean(reviewDraft),
         }),
       });
 
       const data: GenerateReviewResponse = await res.json();
       if (data.review) {
         setReviewDraft(data.review);
-        if (isRegenerating) {
-          setRegenerationCount((prev) => prev + 1);
-        }
+        setRegenerationCount((prev) => prev + 1);
       }
     } catch (err) {
       console.error("Error triggering AI generation:", err);
       setReviewDraft(
         `Great experience at ${business.name}! Loved the ${tagsToSend.join(" and ")}, highly recommended.`,
       );
-      if (isRegenerating) {
-        setRegenerationCount((prev) => prev + 1);
-      }
+      setRegenerationCount((prev) => prev + 1);
     } finally {
       setIsGenerating(false);
     }
@@ -445,6 +440,14 @@ export default function ReviewFlow({ business, initialSource }: ReviewFlowProps)
               {/* Step 2: AI Generate Button & Manual Typing Option (Only when not in draft or manual typing mode) */}
               {!reviewDraft && !isCustomTyping && (
                 <div className="pt-1 space-y-2">
+                  <div className="flex items-center justify-center gap-2 py-0.5 text-[11px] text-slate-500">
+                    <span className="inline-flex items-center gap-1">
+                      <span>⚡ Natural AI Reviews</span>
+                    </span>
+                    <span className="text-slate-300">•</span>
+                    <span className="text-indigo-600 font-semibold">5 Retries</span>
+                  </div>
+
                   <button
                     type="button"
                     onClick={handleGenerateReview}
@@ -463,14 +466,6 @@ export default function ReviewFlow({ business, initialSource }: ReviewFlowProps)
                       </>
                     )}
                   </button>
-
-                  <div className="flex items-center justify-center gap-2 py-0.5 text-[11px] text-slate-500">
-                    <span className="inline-flex items-center gap-1">
-                      <span>⚡ Natural AI Reviews</span>
-                    </span>
-                    <span className="text-slate-300">•</span>
-                    <span className="text-indigo-600 font-semibold">5 Retries</span>
-                  </div>
 
                   {/* Option to Type Review Manually (Write Myself) */}
                   <button
