@@ -15,6 +15,7 @@ import {
   Building2,
   ShieldCheck,
   Lock,
+  Pencil,
 } from "lucide-react";
 import HumanVerification from "@/components/HumanVerification";
 
@@ -122,6 +123,7 @@ export default function ReviewFlow({ business, initialSource }: ReviewFlowProps)
   const [isConfirmedPosted, setIsConfirmedPosted] = useState<boolean>(false);
   const [draftLogId, setDraftLogId] = useState<string>("");
   const [isPostingVerification, setIsPostingVerification] = useState<boolean>(false);
+  const [isCustomTyping, setIsCustomTyping] = useState<boolean>(false);
 
   // 1-2 star private feedback form state
   const [complaintText, setComplaintText] = useState<string>("");
@@ -449,8 +451,8 @@ export default function ReviewFlow({ business, initialSource }: ReviewFlowProps)
                 </div>
               </div>
 
-              {/* Step 2: AI Generate Button (Only when at least 1 tag is selected) */}
-              {selectedTags.length > 0 && !reviewDraft && (
+              {/* Step 2: AI Generate Button & Manual Typing Option (Only when not in draft or manual typing mode) */}
+              {selectedTags.length > 0 && !reviewDraft && !isCustomTyping && (
                 <div className="pt-1 space-y-2">
                   <button
                     type="button"
@@ -471,6 +473,21 @@ export default function ReviewFlow({ business, initialSource }: ReviewFlowProps)
                     )}
                   </button>
 
+                  {/* Option to Type Review Manually (Write Myself) */}
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setIsCustomTyping(true);
+                      if (!reviewDraft) {
+                        setReviewDraft("");
+                      }
+                    }}
+                    className="w-full py-2.5 px-3 rounded-xl bg-indigo-50/80 hover:bg-indigo-100 border border-indigo-200/80 text-indigo-700 font-semibold text-xs flex items-center justify-center gap-2 transition-all cursor-pointer shadow-xs active:scale-[0.98]"
+                  >
+                    <Pencil className="w-3.5 h-3.5 text-indigo-600" />
+                    <span>Type Review Manually (Write Myself) ✍️</span>
+                  </button>
+
                   <div className="flex items-center justify-between px-1 text-[11px] text-slate-500">
                     <span>⚡ AI creates natural reviews</span>
                     <span className="text-indigo-600 font-semibold">
@@ -489,26 +506,35 @@ export default function ReviewFlow({ business, initialSource }: ReviewFlowProps)
                 </div>
               )}
 
-              {/* Step 3: Editable Review Area (Rendered after AI generation or ready for custom input) */}
-              {reviewDraft && (
+              {/* Step 3: Editable Review Area (Rendered after AI generation or when typing manually) */}
+              {(reviewDraft || isCustomTyping) && (
                 <div className="space-y-2 pt-1 animate-fade-in">
                   <div className="flex justify-between items-center">
                     <span className="text-xs font-semibold text-slate-700 flex items-center gap-1.5">
-                      <Sparkles className="w-3.5 h-3.5 text-indigo-600" />
-                      Review Draft (Tap to edit):
+                      {isCustomTyping && !regenerationCount ? (
+                        <>
+                          <Pencil className="w-3.5 h-3.5 text-indigo-600" />
+                          <span>Type Your Review:</span>
+                        </>
+                      ) : (
+                        <>
+                          <Sparkles className="w-3.5 h-3.5 text-indigo-600" />
+                          <span>Review Draft (Tap to edit):</span>
+                        </>
+                      )}
                     </span>
                     {regenerationCount < 5 ? (
                       <button
                         type="button"
                         onClick={handleGenerateReview}
                         disabled={isGenerating}
-                        className="text-[11px] font-semibold text-indigo-600 hover:text-indigo-800 flex items-center gap-1 cursor-pointer bg-indigo-50 hover:bg-indigo-100 px-2 py-1 rounded-lg transition-colors"
-                        title="Click to regenerate another version (up to 5 times)"
+                        className="text-[11px] font-semibold text-indigo-600 hover:text-indigo-800 flex items-center gap-1 cursor-pointer bg-indigo-50 hover:bg-indigo-100 px-2 py-1 rounded-lg transition-colors border border-indigo-200/50"
+                        title="Click to generate with AI (up to 5 times)"
                       >
-                        <RefreshCw
-                          className={`w-3 h-3 ${isGenerating ? "animate-spin" : ""}`}
+                        <Sparkles
+                          className={`w-3 h-3 text-amber-500 ${isGenerating ? "animate-spin" : ""}`}
                         />
-                        Regenerate ({regenerationCount}/5 used)
+                        <span>{reviewDraft && regenerationCount > 0 ? `Regenerate (${regenerationCount}/5)` : "Write with AI ✨"}</span>
                       </button>
                     ) : (
                       <span className="text-[10px] font-semibold text-slate-500 bg-slate-100 border border-slate-200 px-2 py-0.5 rounded-md">
@@ -518,9 +544,9 @@ export default function ReviewFlow({ business, initialSource }: ReviewFlowProps)
                   </div>
 
                   <div className="flex items-center justify-between text-[11px] text-slate-400 px-0.5">
-                    <span>You can edit this draft manually</span>
+                    <span>{isCustomTyping && !regenerationCount ? "Write your authentic review below" : "You can edit this draft manually"}</span>
                     <span className="text-[10px] text-slate-500 font-medium">
-                      ({5 - regenerationCount} regenerations left)
+                      {reviewDraft.trim() ? `${reviewDraft.trim().split(/\s+/).filter(Boolean).length} words` : "Empty draft"}
                     </span>
                   </div>
 
@@ -572,7 +598,11 @@ export default function ReviewFlow({ business, initialSource }: ReviewFlowProps)
                         value={reviewDraft}
                         onChange={(e) => setReviewDraft(e.target.value)}
                         className="w-full text-sm text-slate-800 bg-slate-50 border border-slate-200 rounded-2xl p-3 focus:outline-none focus:ring-2 focus:ring-blue-500/30 focus:border-blue-500 transition-all leading-relaxed"
-                        placeholder="Your review draft will appear here..."
+                        placeholder={
+                          isCustomTyping && !regenerationCount
+                            ? "Type your authentic review here... (e.g. Great experience, friendly staff and prompt service!)"
+                            : "Your review draft will appear here (tap to edit)..."
+                        }
                       />
 
                       {/* Copy review text, then open Google Maps */}
@@ -605,7 +635,7 @@ export default function ReviewFlow({ business, initialSource }: ReviewFlowProps)
                       <div className="bg-amber-50 rounded-xl p-2.5 border border-amber-100/80 text-[11px] text-amber-900 text-center flex items-center justify-center gap-1.5">
                         <span className="font-semibold">💡 Tip:</span>
                         <span>
-                          Copies your AI review & opens Google. Click 'Post' on Google, then confirm below!
+                          Copies your review & opens Google Maps. Simply paste and tap 'Post'!
                         </span>
                       </div>
                     </>

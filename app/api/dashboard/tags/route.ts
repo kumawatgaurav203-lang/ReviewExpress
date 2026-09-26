@@ -99,15 +99,14 @@ export async function PUT(req: NextRequest) {
       DEMO_BUSINESSES[cleanSlug].tags = cleanTags;
     }
 
-    // 4. Invalidate Redis Caches so /r/[slug] instantly serves the updated highlights
+    // 4. Invalidate Redis Caches so /r/[slug] & /dashboard instantly serve the updated highlights
     if (cleanSlug) {
       redisCache.del([
         `store:profile:${cleanSlug}`,
         `store:profile:b-${cleanSlug}`,
       ]).catch(() => {});
-      redisCache.delPattern(`store:profile:*${cleanSlug}*`).catch(() => {});
-      redisCache.delPattern(`dashboard:${cleanSlug}:*`).catch(() => {});
-      redisCache.delPattern(`dashboard:b-${cleanSlug}:*`).catch(() => {});
+      redisCache.delPattern(`store:profile:*`).catch(() => {});
+      redisCache.delPattern(`dashboard:*`).catch(() => {});
     }
 
     return NextResponse.json({

@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import {
@@ -181,18 +181,16 @@ export default function OwnerDashboardPage() {
     is_active: true,
   };
 
-  // Preload customTags from server, or populate with recommended category defaults so merchant always sees active tags
+  const isTagsInitializedRef = useRef(false);
+
+  // Load customTags from server ONLY once on initial mount; NEVER overwrite afterwards during user editing
   useEffect(() => {
+    if (isTagsInitializedRef.current) return;
     if (dashboardData?.businessInfo?.tags && dashboardData.businessInfo.tags.length > 0) {
-      setCustomTags(dashboardData.businessInfo.tags);
-    } else if (business.name && customTags.length === 0) {
-      const cat = detectCategory(business.name);
-      const defaultPool = CATEGORY_TAGS[cat] || CATEGORY_TAGS.general;
-      if (defaultPool && defaultPool.length > 0) {
-        setCustomTags([...defaultPool]);
-      }
+      setCustomTags([...dashboardData.businessInfo.tags]);
+      isTagsInitializedRef.current = true;
     }
-  }, [dashboardData?.businessInfo?.tags, business.name]);
+  }, [dashboardData?.businessInfo?.tags]);
 
   const DEFAULT_QUICK_SUGGESTIONS = [
     'Quick Response',
@@ -449,8 +447,9 @@ export default function OwnerDashboardPage() {
       if (data?.success) {
         setAccessDeniedError(null);
         setDashboardData(data);
-        if (Array.isArray(data.businessInfo?.tags) && data.businessInfo.tags.length > 0) {
-          setCustomTags(data.businessInfo.tags);
+        if (!isTagsInitializedRef.current && Array.isArray(data.businessInfo?.tags) && data.businessInfo.tags.length > 0) {
+          setCustomTags([...data.businessInfo.tags]);
+          isTagsInitializedRef.current = true;
         }
       }
     } catch (err) {
@@ -595,6 +594,9 @@ export default function OwnerDashboardPage() {
                       type="button"
                       onClick={() => {
                         setIsSettingsMenuOpen(false);
+                        if (dashboardData?.businessInfo?.tags) {
+                          setCustomTags([...dashboardData.businessInfo.tags]);
+                        }
                         setIsTagsModalOpen(true);
                       }}
                       className="w-full px-3 py-2.5 rounded-xl text-left text-xs font-semibold text-slate-200 hover:text-white hover:bg-indigo-600/20 border border-transparent hover:border-indigo-500/30 flex items-center gap-2.5 transition-all cursor-pointer group"
@@ -1315,7 +1317,7 @@ export default function OwnerDashboardPage() {
                       Active Highlights ({customTags.length} of 24)
                     </span>
                     <span className="text-[10px] text-slate-500">
-                      (Click Edit to modify or Delete to remove)
+                      (Click Edit to modify or Remove to delete)
                     </span>
                   </div>
                   <div className="flex items-center gap-2">
@@ -1420,10 +1422,10 @@ export default function OwnerDashboardPage() {
                               type="button"
                               onClick={() => handleRemoveTag(idx)}
                               className="px-2 py-1 rounded-lg bg-slate-800 hover:bg-rose-500/20 text-slate-300 hover:text-rose-300 border border-slate-700 hover:border-rose-500/40 text-[11px] font-semibold flex items-center gap-1 cursor-pointer transition-colors"
-                              title="Delete this highlight"
+                              title="Remove this highlight"
                             >
                               <Trash2 className="w-3 h-3 text-rose-400" />
-                              <span>Delete</span>
+                              <span>Remove</span>
                             </button>
                           </div>
                         </div>
