@@ -172,7 +172,7 @@ export async function GET(req: NextRequest) {
         const { data: dbLogs, error: dbErr } = await query;
         if (!dbErr && dbLogs) {
           const formattedDbLogs = dbLogs.map((dbLog: any) => {
-            if (dbLog.rating > 0 && dbLog.rating <= 3) {
+            if (dbLog.rating > 0 && dbLog.rating <= 2) {
               if (dbLog.review_text && typeof dbLog.review_text === 'string' && dbLog.review_text.startsWith('RESOLVED:')) {
                 dbLog.is_resolved = true;
                 dbLog.resolved_at = dbLog.review_text.slice(9);
@@ -255,7 +255,7 @@ export async function GET(req: NextRequest) {
     }
 
     const complaints = complaintLogsSource
-      .filter((l) => l.rating > 0 && l.rating <= 3)
+      .filter((l) => l.rating > 0 && l.rating <= 2)
       .map((l) => {
         const feedbackText =
           (l.customer_feedback && l.customer_feedback.trim()) ||
@@ -281,9 +281,9 @@ export async function GET(req: NextRequest) {
       metrics.interceptedComplaints = complaints.length;
     }
 
-    // Positive Google reviews stream (ratings 4-5 confirmed posted to Google)
+    // Positive Google reviews stream (ratings 3-5 confirmed posted to Google)
     const recentGoogleReviews = filteredLogs
-      .filter((l) => l.posted_to_google && l.rating >= 4)
+      .filter((l) => l.posted_to_google && l.rating >= 3)
       .slice(0, 35)
       .map((l) => {
         return {
@@ -297,9 +297,9 @@ export async function GET(req: NextRequest) {
         };
       });
 
-    // Drafted reviews stream (ratings 4-5 generated, but NOT confirmed posted on Google)
+    // Drafted reviews stream (ratings 3-5 generated, but NOT confirmed posted on Google)
     const draftedUnpostedReviews = filteredLogs
-      .filter((l) => !l.posted_to_google && l.rating >= 4)
+      .filter((l) => !l.posted_to_google && l.rating >= 3)
       .slice(0, 35)
       .map((l) => {
         return {

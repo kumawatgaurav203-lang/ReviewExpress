@@ -168,9 +168,9 @@ export function calculateMetrics(
   filterMode: 'all' | 'posted_only' | 'drafted_unposted' | 'bounced_scans' | 'unposted_scans' | 'complaints' = 'all'
 ): DashboardMetrics {
   const totalTraffic = logs.length;
-  const postedLogs = logs.filter((l) => l.posted_to_google && l.rating >= 4);
-  const draftedUnpostedLogs = logs.filter((l) => !l.posted_to_google && l.rating >= 4);
-  const complaintLogs = logs.filter((l) => l.rating > 0 && l.rating <= 3);
+  const postedLogs = logs.filter((l) => l.posted_to_google && l.rating >= 3);
+  const draftedUnpostedLogs = logs.filter((l) => !l.posted_to_google && l.rating >= 3);
+  const complaintLogs = logs.filter((l) => l.rating > 0 && l.rating <= 2);
   const bouncedLogs = logs.filter((l) => !l.posted_to_google && (!l.rating || l.rating === 0));
 
   const postedToGoogle = postedLogs.length;
@@ -188,9 +188,9 @@ export function calculateMetrics(
   // Build accurate per-channel stats with non-overlapping categories:
   // total = posted + draftedUnposted + bounced + complaints (exactly mutually exclusive!)
   const buildStats = (channelLogs: typeof logs): ChannelStats => {
-    const postedCount = channelLogs.filter((l) => l.posted_to_google && l.rating >= 4).length;
-    const draftedCount = channelLogs.filter((l) => !l.posted_to_google && l.rating >= 4).length;
-    const complaintCount = channelLogs.filter((l) => l.rating > 0 && l.rating <= 3).length;
+    const postedCount = channelLogs.filter((l) => l.posted_to_google && l.rating >= 3).length;
+    const draftedCount = channelLogs.filter((l) => !l.posted_to_google && l.rating >= 3).length;
+    const complaintCount = channelLogs.filter((l) => l.rating > 0 && l.rating <= 2).length;
     const bouncedCount = channelLogs.filter((l) => !l.posted_to_google && (!l.rating || l.rating === 0)).length;
 
     return {
@@ -207,7 +207,7 @@ export function calculateMetrics(
   const qr: ChannelStats = buildStats(qrLogs);
 
   // Completed reviews count (verified posted + complaints)
-  const completedReviews = logs.filter((l) => l.posted_to_google || (l.rating > 0 && l.rating <= 3));
+  const completedReviews = logs.filter((l) => l.posted_to_google || (l.rating > 0 && l.rating <= 2));
   const totalReviews = completedReviews.length;
 
   // Rating breakdown depends on filterMode

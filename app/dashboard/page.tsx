@@ -863,11 +863,11 @@ export default function OwnerDashboardPage() {
             <p className="text-[10px] sm:text-[11px] text-slate-400 mt-1">Confirmed published on Google Maps</p>
           </div>
 
-          {/* Card 3: Shielded Complaints (1-3 Stars) */}
+          {/* Card 3: Shielded Complaints (1-2 Stars) */}
           <div className="bg-slate-900/80 border border-slate-800 rounded-2xl sm:rounded-3xl p-4 sm:p-5 shadow-lg relative overflow-hidden">
             <div className="flex items-center justify-between">
               <span className="text-[11px] sm:text-xs font-semibold text-rose-400 uppercase tracking-wider">
-                Shielded Complaints (1-3 ⭐)
+                Shielded Complaints (1-2 ⭐)
               </span>
               <div className="p-1.5 sm:p-2 rounded-xl bg-rose-500/10 text-rose-400 border border-rose-500/20">
                 <ShieldAlert className="w-4 h-4" />
@@ -1057,12 +1057,12 @@ export default function OwnerDashboardPage() {
                 </div>
 
                 <div className="p-3 rounded-2xl bg-emerald-500/10 border border-emerald-500/20">
-                  <div className="text-[11px] font-bold text-emerald-400 uppercase">2. Positive Reviews (4-5 ⭐)</div>
+                  <div className="text-[11px] font-bold text-emerald-400 uppercase">2. Positive Reviews (3-5 ⭐)</div>
                   <p className="text-xs text-emerald-200/90 mt-0.5">AI drafts natural review & opens Google Reviews</p>
                 </div>
 
                 <div className="p-3 rounded-2xl bg-rose-500/10 border border-rose-500/20">
-                  <div className="text-[11px] font-bold text-rose-400 uppercase">3. Intercepted Complaints (1-3 ⭐)</div>
+                  <div className="text-[11px] font-bold text-rose-400 uppercase">3. Intercepted Complaints (1-2 ⭐)</div>
                   <p className="text-xs text-rose-200/90 mt-0.5">Private form captures phone & problem for owner resolution</p>
                 </div>
               </div>
@@ -1071,7 +1071,7 @@ export default function OwnerDashboardPage() {
         </div>
 
         {/* ----------------------------------------------------------------- */}
-        {/* COMPLAINTS MANAGEMENT HUB (1 to 3 Stars - User's Core Request)    */}
+        {/* COMPLAINTS MANAGEMENT HUB (1 to 2 Stars)                          */}
         {/* ----------------------------------------------------------------- */}
         <section className="bg-slate-900/90 border border-slate-800 rounded-3xl p-6 shadow-xl space-y-5">
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-slate-800">
@@ -1082,7 +1082,7 @@ export default function OwnerDashboardPage() {
                   </div>
                   <div>
                     <h2 className="text-lg font-bold text-white tracking-tight">
-                      Intercepted Customer Complaints (1-3 Stars)
+                      Intercepted Customer Complaints (1-2 Stars)
                     </h2>
                     <p className="text-xs text-slate-400">
                       Private feedback intercepted before reaching Google Maps. Contact customers to resolve issues.
@@ -1134,7 +1134,7 @@ export default function OwnerDashboardPage() {
                 </div>
                 <h3 className="text-base font-bold text-white">No complaints in this period!</h3>
                 <p className="text-xs text-slate-400 max-w-sm mx-auto mt-1">
-                  Your customers had great visits during this time. Any negative 1-3 star feedback will be captured privately here.
+                  Your customers had great visits during this time. Any negative 1-2 star feedback will be captured privately here.
                 </p>
               </div>
             ) : (
