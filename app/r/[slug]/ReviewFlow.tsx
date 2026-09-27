@@ -274,16 +274,10 @@ export default function ReviewFlow({ business, initialSource }: ReviewFlowProps)
     const textToCopy =
       reviewDraft || `Excellent service and experience at ${business.name}!`;
 
-    let targetUrl =
+    const targetUrl =
       business.slug === "demo"
         ? "https://www.google.com/maps"
         : (business.google_review_link || "https://www.google.com/maps");
-
-    // If Google Review link is search.google.com/local/writereview?placeid=...,
-    // append rating parameter so compatible browsers/clients can pre-fill 5 stars
-    if (targetUrl.includes("search.google.com/local/writereview?placeid=") && !targetUrl.includes(",")) {
-      targetUrl = `${targetUrl},${rating || 5}`;
-    }
 
     // 1. Copy review text to clipboard FIRST while document has active focus and user activation
     copyTextToClipboard(textToCopy);
