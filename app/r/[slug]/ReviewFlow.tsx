@@ -194,6 +194,64 @@ export default function ReviewFlow({ business, initialSource }: ReviewFlowProps)
     }
   };
 
+  // Robust cross-device clipboard copy (works on Android Chrome, iOS Safari, Samsung Internet, and in-app webviews)
+  const copyTextToClipboard = (text: string): boolean => {
+    let copied = false;
+
+    // Method A: Synchronous execCommand copy (executes while document is focused and within user gesture)
+    try {
+      const el = document.createElement("textarea");
+      el.value = text;
+      el.setAttribute("readonly", "");
+      el.style.position = "fixed";
+      el.style.top = "0";
+      el.style.left = "-9999px";
+      el.style.opacity = "0";
+      el.style.fontSize = "16px"; // Prevent iOS zoom
+      document.body.appendChild(el);
+
+      if (navigator.userAgent.match(/ipad|ipod|iphone/i)) {
+        const editable = el.contentEditable;
+        const readOnly = el.readOnly;
+        el.contentEditable = "true";
+        el.readOnly = false;
+        const range = document.createRange();
+        range.selectNodeContents(el);
+        const sel = window.getSelection();
+        if (sel) {
+          sel.removeAllRanges();
+          sel.addRange(range);
+        }
+        el.setSelectionRange(0, 999999);
+        el.contentEditable = editable;
+        el.readOnly = readOnly;
+      } else {
+        el.select();
+        el.setSelectionRange(0, 999999);
+      }
+
+      copied = document.execCommand("copy");
+      document.body.removeChild(el);
+    } catch (e) {
+      console.warn("execCommand copy error:", e);
+    }
+
+    // Method B: Modern Clipboard API (also invoked synchronously while gesture & focus are active)
+    try {
+      if (navigator.clipboard && typeof navigator.clipboard.writeText === "function") {
+        navigator.clipboard.writeText(text).then(() => {
+          copied = true;
+        }).catch((err) => {
+          console.warn("navigator.clipboard.writeText error:", err);
+        });
+      }
+    } catch (e) {
+      console.warn("Clipboard API call error:", e);
+    }
+
+    return copied;
+  };
+
   // Copy review to clipboard and open Google Maps review page immediately (synchronously to prevent mobile popup blocking)
   const handleOpenGoogle = () => {
     const textToCopy =
@@ -204,8 +262,11 @@ export default function ReviewFlow({ business, initialSource }: ReviewFlowProps)
         ? "https://www.google.com/maps"
         : (business.google_review_link || "https://www.google.com/maps");
 
-    // 1. Open Google Review window synchronously in direct response to user gesture
-    // Running this before any async operations prevents mobile browsers (Chrome Android, iOS Safari) from blocking it as a popup
+    // 1. Copy review text to clipboard FIRST while document has active focus and user activation
+    copyTextToClipboard(textToCopy);
+    setIsCopied(true);
+
+    // 2. Open Google Review window synchronously in direct response to user gesture
     try {
       const win = window.open(targetUrl, "_blank", "noopener,noreferrer");
       if (!win || win.closed || typeof win.closed === "undefined") {
@@ -213,27 +274,6 @@ export default function ReviewFlow({ business, initialSource }: ReviewFlowProps)
       }
     } catch {
       window.location.href = targetUrl;
-    }
-
-    // 2. Copy review text to clipboard
-    try {
-      if (navigator.clipboard && window.isSecureContext) {
-        navigator.clipboard.writeText(textToCopy).catch(() => {});
-      } else {
-        const textArea = document.createElement("textarea");
-        textArea.value = textToCopy;
-        textArea.style.position = "fixed";
-        textArea.style.opacity = "0";
-        document.body.appendChild(textArea);
-        textArea.focus();
-        textArea.select();
-        document.execCommand("copy");
-        document.body.removeChild(textArea);
-      }
-      setIsCopied(true);
-    } catch (clipErr) {
-      console.warn("Clipboard copy fallback:", clipErr);
-      setIsCopied(true);
     }
 
     // 3. Mark as completed in UI immediately without intermediate questioning screens
@@ -554,6 +594,18 @@ export default function ReviewFlow({ business, initialSource }: ReviewFlowProps)
                         >
                           <ExternalLink className="w-3.5 h-3.5" />
                           <span>Re-open Google Maps Review Window</span>
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            copyTextToClipboard(reviewDraft || `Great experience at ${business.name}!`);
+                            setIsCopied(true);
+                            setTimeout(() => setIsCopied(false), 2000);
+                          }}
+                          className="py-2 px-3.5 rounded-xl bg-emerald-100/90 hover:bg-emerald-200 text-emerald-800 font-semibold text-xs inline-flex items-center gap-1.5 transition-colors cursor-pointer border border-emerald-300"
+                        >
+                          <Copy className="w-3.5 h-3.5 text-emerald-700" />
+                          <span>{isCopied ? "Review Copied Again! ✓" : "Copy Review Text Again 📋"}</span>
                         </button>
                         <button
                           type="button"
