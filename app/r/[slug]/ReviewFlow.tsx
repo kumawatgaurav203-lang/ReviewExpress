@@ -407,7 +407,7 @@ export default function ReviewFlow({ business, initialSource }: ReviewFlowProps)
             <h2 className="text-lg font-bold text-slate-800">
               {rating === 0
                 ? "How was your experience today?"
-                : rating >= 3
+                : rating >= 4
                   ? "Awesome! We are thrilled to hear that!"
                   : "Oh no! We apologize for falling short."}
             </h2>
@@ -449,9 +449,9 @@ export default function ReviewFlow({ business, initialSource }: ReviewFlowProps)
           </div>
 
           {/* ----------------------------------------------------------------- */}
-          {/* BRANCH A: 3, 4, or 5 STARS (Positive Google Review Flow)          */}
+          {/* BRANCH A: 4 or 5 STARS (Positive Google Review Flow)              */}
           {/* ----------------------------------------------------------------- */}
-          {rating >= 3 && (
+          {rating >= 4 && (
             <div className="space-y-5 animate-slide-up">
               {/* Step 1: Select Tags */}
               <div>
@@ -694,9 +694,9 @@ export default function ReviewFlow({ business, initialSource }: ReviewFlowProps)
           )}
 
           {/* ----------------------------------------------------------------- */}
-          {/* BRANCH B: 1 or 2 STARS (SHIELDED PRIVATE COMPLAINT INTERCEPT)     */}
+          {/* BRANCH B: 1, 2, or 3 STARS (SHIELDED PRIVATE COMPLAINT INTERCEPT) */}
           {/* ----------------------------------------------------------------- */}
-          {rating > 0 && rating <= 2 && (
+          {rating > 0 && rating <= 3 && (
             <div className="space-y-4 animate-slide-up">
               {!isComplaintSubmitted ? (
                 <form

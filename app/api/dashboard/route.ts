@@ -244,16 +244,30 @@ export async function GET(req: NextRequest) {
       return l.source === 'nfc' ? 'nfc' : 'qr';
     };
 
-    // Filter complaints (ratings 1-3 with customer feedback)
-    const complaints = filteredLogs
-      .filter((l) => l.rating > 0 && l.rating <= 3 && l.customer_feedback)
+    // Intercepted complaints (ratings 1-3 shielded from Google Maps)
+    // NOTE: The Complaints Hub must show all complaints recorded for this store,
+    // so owners never miss an unsatisfied customer even if the visit traffic filter is set to 'day' (Today).
+    let complaintLogsSource = allLogs;
+    if (channel === 'nfc') {
+      complaintLogsSource = allLogs.filter((l) => l.source === 'nfc');
+    } else if (channel === 'qr') {
+      complaintLogsSource = allLogs.filter((l) => l.source !== 'nfc');
+    }
+
+    const complaints = complaintLogsSource
+      .filter((l) => l.rating > 0 && l.rating <= 3)
       .map((l) => {
+        const feedbackText =
+          (l.customer_feedback && l.customer_feedback.trim()) ||
+          (l.review_text && typeof l.review_text === 'string' && !l.review_text.startsWith('RESOLVED:') && l.review_text.trim()) ||
+          'Customer submitted a low star rating';
         return {
           id: l.id,
           businessId: l.business_id,
           businessName: resolveBusinessName(l.business_id),
           rating: l.rating,
-          customerFeedback: l.customer_feedback || 'No written feedback provided',
+          customerFeedback: feedbackText,
+          customerPhone: l.customer_phone || '',
           selectedTags: l.selected_tags || [],
           createdAt: l.created_at || new Date().toISOString(),
           isResolved: Boolean(l.is_resolved),
@@ -261,6 +275,11 @@ export async function GET(req: NextRequest) {
         };
       })
       .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+
+    // Ensure interceptedComplaints metric reflects store complaints if period filtered to 0
+    if (period === 'day' && metrics.interceptedComplaints === 0 && complaints.length > 0) {
+      metrics.interceptedComplaints = complaints.length;
+    }
 
     // Positive Google reviews stream (ratings 4-5 confirmed posted to Google)
     const recentGoogleReviews = filteredLogs
