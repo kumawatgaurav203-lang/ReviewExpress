@@ -307,7 +307,7 @@ export async function GET(req: NextRequest) {
           customerPhone: l.customer_phone || '',
           selectedTags: l.selected_tags || [],
           createdAt: l.created_at || new Date().toISOString(),
-          isResolved: Boolean(l.is_resolved),
+          isResolved: Boolean(l.is_resolved || (typeof l.review_text === 'string' && l.review_text.startsWith('RESOLVED:'))),
           source: getLogChannel(l),
         };
       })

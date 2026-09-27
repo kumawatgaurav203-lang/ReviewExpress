@@ -6,19 +6,15 @@ import { checkRateLimit, RATE_LIMITS, checkRequestSize, sanitizeString, validate
 const REVIEW_STYLES = [
   {
     type: 'short',
-    promptLength: 'Write a concise 1-sentence punchy review (10-18 words).',
+    promptLength: 'Write a concise 1-sentence punchy review (strictly 8-15 words).',
   },
   {
     type: 'short',
-    promptLength: 'Write a short and sweet 1 to 2 sentence review (15-22 words).',
+    promptLength: 'Write a short and sweet 1 to 2 sentence review (strictly 12-18 words).',
   },
   {
-    type: 'medium',
-    promptLength: 'Write a natural 2-sentence casual review (20-30 words).',
-  },
-  {
-    type: 'detailed',
-    promptLength: 'Write an authentic 2 to 3 sentence review with realistic details (28-40 words).',
+    type: 'compact',
+    promptLength: 'Write a crisp, natural 2-short-sentence review (strictly 14-22 words).',
   },
 ];
 
@@ -87,24 +83,21 @@ const CLOSERS = [
 ];
 
 function generateDynamicFallback(name: string, tags: string, currentReview: string): string {
-  // 30% chance for a short punchy 1-liner
-  if (Math.random() < 0.3) {
+  // 65% chance for a short punchy 1-liner (10-15 words)
+  if (Math.random() < 0.65) {
     const pool = SHORT_ONE_LINERS.filter((fn) => fn(name, tags) !== currentReview);
     const chosen = pool[Math.floor(Math.random() * pool.length)];
     return chosen(name, tags);
   }
 
-  // 70% chance for a multi-sentence combination (12 * 11 * 10 = 1,320 permutations)
+  // 35% chance for a crisp 2-sentence combination (15-22 words)
   const opener = OPENERS[Math.floor(Math.random() * OPENERS.length)](name);
   const middle = MIDDLES[Math.floor(Math.random() * MIDDLES.length)](tags);
-  const closer = CLOSERS[Math.floor(Math.random() * CLOSERS.length)]();
 
-  // 50% 2-sentence, 50% 3-sentence
-  const review = Math.random() < 0.5 ? `${opener} ${middle}` : `${opener} ${middle} ${closer}`;
-
+  const review = `${opener} ${middle}`;
   if (review === currentReview) {
-    const altCloser = CLOSERS[Math.floor(Math.random() * CLOSERS.length)]();
-    return `${opener} ${middle} ${altCloser}`;
+    const altOpener = OPENERS[Math.floor(Math.random() * OPENERS.length)](name);
+    return `${altOpener} ${middle}`;
   }
   return review;
 }
@@ -145,6 +138,11 @@ export async function POST(req: NextRequest) {
     const chosenTone = REVIEW_TONES[Math.floor(Math.random() * REVIEW_TONES.length)];
     const randomSeed = Math.floor(Math.random() * 100000);
 
+    const isSingleTag = safeTags.length <= 1;
+    const lengthInstruction = isSingleTag
+      ? 'Write a short, crisp 1-sentence or 2-short-sentence review (strictly 10 to 16 words). Never exceed 2 short lines. Keep it brief and natural.'
+      : chosenStyle.promptLength;
+
     // 1. Query Gemini API with dynamic style and high temperature (0.95)
     if (apiKey && apiKey !== 'your_gemini_api_key_here' && apiKey.trim().length > 0) {
       try {
@@ -152,7 +150,7 @@ export async function POST(req: NextRequest) {
 Rating: ${safeRating}/5 stars.
 Things customer liked: ${tagsString}.
 Tone style: ${chosenTone}
-Length instruction: ${chosenStyle.promptLength}
+Length instruction: ${lengthInstruction}
 ${safeCurrentReview ? `IMPORTANT: Do NOT repeat this review: "${safeCurrentReview}". Write a completely different one.` : ''}
 Random seed: #${randomSeed}
 
@@ -165,12 +163,12 @@ STRICT GOOGLE MAPS CONTENT & POLICY COMPLIANCE:
 6. STRICT BAN ON AI WORDS: Absolutely NO "testament to", "delightful array", "beacon of", "unparalleled", "epitome", "gem of a place", "tapestry", or "bespoke".
 7. OUTPUT: Output ONLY the raw review text. No quotes, no intro, no emojis, no hashtags.`;
 
-        const fastModel = 'gemini-1.5-flash-latest';
+        const fastModel = 'gemini-flash-latest';
         let generatedReview = '';
 
         try {
           const response = await fetch(
-            `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey.trim()}`,
+            `https://generativelanguage.googleapis.com/v1beta/models/gemini-flash-latest:generateContent?key=${apiKey.trim()}`,
             {
               method: 'POST',
               headers: { 'Content-Type': 'application/json' },
@@ -179,7 +177,7 @@ STRICT GOOGLE MAPS CONTENT & POLICY COMPLIANCE:
                 contents: [{ parts: [{ text: prompt }] }],
                 generationConfig: {
                   temperature: 0.95,
-                  maxOutputTokens: 90,
+                  maxOutputTokens: 50,
                 },
               }),
             }
