@@ -121,7 +121,11 @@ export async function POST(req: NextRequest) {
         let finalLogId = savedLogId;
 
         // 1. Try updating existing scan log row in Supabase so 1 visit does not count as 2
-        if (savedLogId && /^[0-9a-f-]{36}$/i.test(savedLogId)) {
+        const targetDbLogId = (logId && /^[0-9a-f-]{36}$/i.test(logId))
+          ? logId
+          : (savedLogId && /^[0-9a-f-]{36}$/i.test(savedLogId) ? savedLogId : null);
+
+        if (targetDbLogId) {
           const { data: updatedData, error: updateErr } = await supabase
             .from('review_logs')
             .update({
@@ -133,7 +137,7 @@ export async function POST(req: NextRequest) {
               posted_to_google: Boolean(postedToGoogle),
               source: safeSource,
             })
-            .eq('id', savedLogId)
+            .eq('id', targetDbLogId)
             .select('id')
             .maybeSingle();
 
@@ -141,6 +145,45 @@ export async function POST(req: NextRequest) {
             updatedDb = true;
             finalLogId = updatedData.id;
           }
+        }
+
+        // 1b. If not updated by explicit ID, adopt recent scan log within 15 minutes to avoid double-counting
+        if (!updatedDb) {
+          try {
+            const fifteenMinutesAgo = new Date(Date.now() - 15 * 60 * 1000).toISOString();
+            const { data: recentScan } = await supabase
+              .from('review_logs')
+              .select('id')
+              .eq('business_id', canonicalBusinessId)
+              .eq('source', safeSource)
+              .or('rating.is.null,rating.eq.0')
+              .gte('created_at', fifteenMinutesAgo)
+              .order('created_at', { ascending: false })
+              .limit(1)
+              .maybeSingle();
+
+            if (recentScan?.id) {
+              const { data: updatedRecent, error: errRecent } = await supabase
+                .from('review_logs')
+                .update({
+                  rating,
+                  selected_tags: safeTags,
+                  review_text: safeReviewText,
+                  customer_phone: safeCustomerPhone,
+                  customer_feedback: safeCustomerFeedback,
+                  posted_to_google: Boolean(postedToGoogle),
+                  source: safeSource,
+                })
+                .eq('id', recentScan.id)
+                .select('id')
+                .maybeSingle();
+
+              if (!errRecent && updatedRecent?.id) {
+                updatedDb = true;
+                finalLogId = updatedRecent.id;
+              }
+            }
+          } catch {}
         }
 
         // 2. If no existing scan log was updated, insert as new entry

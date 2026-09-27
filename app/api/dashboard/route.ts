@@ -194,30 +194,48 @@ export async function GET(req: NextRequest) {
       allLogs = allLogs.filter((l) => matchedBusinessIds.has(l.business_id));
     }
 
-    // Deduplicate rapid scan artifacts within 45 seconds for same business and channel
-    // (prevents camera app / mobile prefetch / rapid double clicks from inflating visit counts)
+    // Deduplicate scans:
+    // 1. If a customer scanned and subsequently submitted a review or complaint within 15 minutes,
+    //    that initial scan converted into the review/complaint — do not count it as a separate phantom visit!
+    // 2. If rapid double-taps / camera reloads occurred within 45s, collapse them into 1 visit.
     const sortedLogs = [...allLogs].sort((a, b) => new Date(a.created_at || 0).getTime() - new Date(b.created_at || 0).getTime());
     const cleanLogs: typeof allLogs = [];
-    for (const log of sortedLogs) {
-      const logTime = new Date(log.created_at || 0).getTime();
-      const isScan = !log.rating || log.rating === 0;
+    for (let i = 0; i < sortedLogs.length; i++) {
+      const current = sortedLogs[i];
+      const currentTime = new Date(current.created_at || 0).getTime();
+      const isScan = !current.rating || current.rating === 0;
 
       if (isScan) {
-        // If there's another scan or review for the same business & source within 45s, skip duplicate scan
-        const hasNearDuplicate = cleanLogs.some((existing) => {
-          const existingTime = new Date(existing.created_at || 0).getTime();
-          const diff = Math.abs(logTime - existingTime);
+        // If there is a completed review or complaint shortly after (within 15 minutes) for same business & source,
+        // this scan is the entry point of that review, NOT an extra visit!
+        const convertsToReview = sortedLogs.some((other, otherIdx) => {
+          if (otherIdx <= i) return false;
+          if (other.business_id !== current.business_id || other.source !== current.source) return false;
+          const otherTime = new Date(other.created_at || 0).getTime();
+          const diff = otherTime - currentTime;
+          return (other.rating && other.rating > 0) && diff >= 0 && diff < 15 * 60 * 1000;
+        });
+
+        if (convertsToReview) {
+          continue;
+        }
+
+        // Check if preceded by another scan within 45s (double tap / reload)
+        const isDuplicateScan = cleanLogs.some((prev) => {
+          const prevTime = new Date(prev.created_at || 0).getTime();
           return (
-            existing.business_id === log.business_id &&
-            existing.source === log.source &&
-            diff < 45000
+            prev.business_id === current.business_id &&
+            prev.source === current.source &&
+            Math.abs(currentTime - prevTime) < 45000
           );
         });
-        if (hasNearDuplicate) {
+
+        if (isDuplicateScan) {
           continue;
         }
       }
-      cleanLogs.push(log);
+
+      cleanLogs.push(current);
     }
     allLogs = cleanLogs;
 
