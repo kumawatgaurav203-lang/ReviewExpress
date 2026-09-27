@@ -195,10 +195,38 @@ export async function GET(req: NextRequest) {
     }
 
     // Deduplicate scans:
-    // 1. If a customer scanned and subsequently submitted a review or complaint within 15 minutes,
-    //    that initial scan converted into the review/complaint — do not count it as a separate phantom visit!
-    // 2. If rapid double-taps / camera reloads occurred within 45s, collapse them into 1 visit.
+    // 1. Each completed review or complaint can claim at most ONE closest preceding scan within 15 minutes,
+    //    so the initial scan that converted into the review is not double-counted as an extra phantom visit.
+    // 2. Rapid double-taps / camera reloads within 45s are collapsed into 1 visit.
     const sortedLogs = [...allLogs].sort((a, b) => new Date(a.created_at || 0).getTime() - new Date(b.created_at || 0).getTime());
+
+    const claimedScanIds = new Set<string>();
+    for (const completed of sortedLogs) {
+      if (completed.rating && completed.rating > 0) {
+        const completedTime = new Date(completed.created_at || 0).getTime();
+        let closestScanId: string | null = null;
+        let minDiff = Infinity;
+        for (const candidate of sortedLogs) {
+          if (
+            (!candidate.rating || candidate.rating === 0) &&
+            candidate.business_id === completed.business_id &&
+            candidate.source === completed.source &&
+            !claimedScanIds.has(candidate.id)
+          ) {
+            const candidateTime = new Date(candidate.created_at || 0).getTime();
+            const diff = completedTime - candidateTime;
+            if (diff >= 0 && diff < 15 * 60 * 1000 && diff < minDiff) {
+              minDiff = diff;
+              closestScanId = candidate.id;
+            }
+          }
+        }
+        if (closestScanId) {
+          claimedScanIds.add(closestScanId);
+        }
+      }
+    }
+
     const cleanLogs: typeof allLogs = [];
     for (let i = 0; i < sortedLogs.length; i++) {
       const current = sortedLogs[i];
@@ -206,17 +234,8 @@ export async function GET(req: NextRequest) {
       const isScan = !current.rating || current.rating === 0;
 
       if (isScan) {
-        // If there is a completed review or complaint shortly after (within 15 minutes) for same business & source,
-        // this scan is the entry point of that review, NOT an extra visit!
-        const convertsToReview = sortedLogs.some((other, otherIdx) => {
-          if (otherIdx <= i) return false;
-          if (other.business_id !== current.business_id || other.source !== current.source) return false;
-          const otherTime = new Date(other.created_at || 0).getTime();
-          const diff = otherTime - currentTime;
-          return (other.rating && other.rating > 0) && diff >= 0 && diff < 15 * 60 * 1000;
-        });
-
-        if (convertsToReview) {
+        // If this scan converted into a completed review or complaint, skip phantom duplicate
+        if (claimedScanIds.has(current.id)) {
           continue;
         }
 

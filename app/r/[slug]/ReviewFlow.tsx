@@ -274,10 +274,16 @@ export default function ReviewFlow({ business, initialSource }: ReviewFlowProps)
     const textToCopy =
       reviewDraft || `Excellent service and experience at ${business.name}!`;
 
-    const targetUrl =
+    let targetUrl =
       business.slug === "demo"
         ? "https://www.google.com/maps"
         : (business.google_review_link || "https://www.google.com/maps");
+
+    // If Google Review link is search.google.com/local/writereview?placeid=...,
+    // append rating parameter so compatible browsers/clients can pre-fill 5 stars
+    if (targetUrl.includes("search.google.com/local/writereview?placeid=") && !targetUrl.includes(",")) {
+      targetUrl = `${targetUrl},${rating || 5}`;
+    }
 
     // 1. Copy review text to clipboard FIRST while document has active focus and user activation
     copyTextToClipboard(textToCopy);
@@ -295,6 +301,14 @@ export default function ReviewFlow({ business, initialSource }: ReviewFlowProps)
 
     // 3. Mark as completed in UI immediately without intermediate questioning screens
     setIsConfirmedPosted(true);
+
+    // Clear session storage so subsequent scans/visits from this device start fresh and never overwrite this review
+    try {
+      const bizKey = business.id;
+      sessionStorage.removeItem(`rx_scanned_${bizKey}`);
+      sessionStorage.removeItem(`rx_log_${bizKey}`);
+      localStorage.removeItem(`rx_log_${bizKey}`);
+    } catch {}
 
     // 4. Log review as posted to Google asynchronously in background (keepalive ensures delivery)
     try {
@@ -347,6 +361,13 @@ export default function ReviewFlow({ business, initialSource }: ReviewFlowProps)
       const data = await res.json();
       if (data?.success) {
         setIsComplaintSubmitted(true);
+        // Clear session storage so subsequent visits from this device start fresh and never overwrite this complaint
+        try {
+          const bizKey = business.id;
+          sessionStorage.removeItem(`rx_scanned_${bizKey}`);
+          sessionStorage.removeItem(`rx_log_${bizKey}`);
+          localStorage.removeItem(`rx_log_${bizKey}`);
+        } catch {}
       } else {
         setComplaintError(data?.message || "Could not submit feedback. Please try again.");
       }
@@ -683,7 +704,7 @@ export default function ReviewFlow({ business, initialSource }: ReviewFlowProps)
                       <div className="bg-amber-50 rounded-xl p-2.5 border border-amber-100/80 text-[11px] text-amber-900 text-center flex items-center justify-center gap-1.5">
                         <span className="font-semibold">💡 Tip:</span>
                         <span>
-                          Copies your review & opens Google Maps. Simply paste and tap 'Post'!
+                          Copies your review & opens Google Maps. Tap 5 ⭐, paste and tap 'Post'!
                         </span>
                       </div>
                     </>

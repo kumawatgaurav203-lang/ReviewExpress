@@ -138,6 +138,7 @@ export async function POST(req: NextRequest) {
               source: safeSource,
             })
             .eq('id', targetDbLogId)
+            .or('rating.is.null,rating.eq.0')
             .select('id')
             .maybeSingle();
 
@@ -175,6 +176,7 @@ export async function POST(req: NextRequest) {
                   source: safeSource,
                 })
                 .eq('id', recentScan.id)
+                .or('rating.is.null,rating.eq.0')
                 .select('id')
                 .maybeSingle();
 

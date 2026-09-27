@@ -256,6 +256,15 @@ export function updateRuntimeLog(
   const currentLogs = readReviewsFromFile();
   const index = currentLogs.findIndex((l) => l.id === logId);
   if (index !== -1) {
+    const existing = currentLogs[index];
+    // Strictly prevent overwriting an existing complaint (rating 1-2) with a positive review
+    if (existing.rating && existing.rating > 0 && existing.rating <= 2 && updates.rating && updates.rating >= 3) {
+      return null;
+    }
+    // Strictly prevent overwriting an already posted Google review
+    if (existing.posted_to_google && updates.posted_to_google) {
+      return null;
+    }
     currentLogs[index] = {
       ...currentLogs[index],
       ...updates,
