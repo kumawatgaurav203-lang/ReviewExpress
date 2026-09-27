@@ -124,6 +124,7 @@ export default function ReviewFlow({ business, initialSource }: ReviewFlowProps)
   const [draftLogId, setDraftLogId] = useState<string>("");
   const [isPostingVerification, setIsPostingVerification] = useState<boolean>(false);
   const [isCustomTyping, setIsCustomTyping] = useState<boolean>(false);
+  const reviewTextareaRef = useRef<HTMLTextAreaElement>(null);
 
   // 1-2 star private feedback form state
   const [complaintText, setComplaintText] = useState<string>("");
@@ -198,55 +199,71 @@ export default function ReviewFlow({ business, initialSource }: ReviewFlowProps)
   const copyTextToClipboard = (text: string): boolean => {
     let copied = false;
 
-    // Method A: Synchronous execCommand copy (executes while document is focused and within user gesture)
-    try {
-      const el = document.createElement("textarea");
-      el.value = text;
-      el.setAttribute("readonly", "");
-      el.style.position = "fixed";
-      el.style.top = "0";
-      el.style.left = "-9999px";
-      el.style.opacity = "0";
-      el.style.fontSize = "16px"; // Prevent iOS zoom
-      document.body.appendChild(el);
-
-      if (navigator.userAgent.match(/ipad|ipod|iphone/i)) {
-        const editable = el.contentEditable;
-        const readOnly = el.readOnly;
-        el.contentEditable = "true";
-        el.readOnly = false;
-        const range = document.createRange();
-        range.selectNodeContents(el);
-        const sel = window.getSelection();
-        if (sel) {
-          sel.removeAllRanges();
-          sel.addRange(range);
-        }
-        el.setSelectionRange(0, 999999);
-        el.contentEditable = editable;
-        el.readOnly = readOnly;
-      } else {
-        el.select();
-        el.setSelectionRange(0, 999999);
+    // Method 1: If visible textarea exists in DOM, select & copy directly from it (most reliable on mobile Chrome/Safari)
+    if (reviewTextareaRef.current) {
+      try {
+        reviewTextareaRef.current.focus();
+        reviewTextareaRef.current.select();
+        reviewTextareaRef.current.setSelectionRange(0, 99999);
+        copied = document.execCommand("copy");
+      } catch (e) {
+        console.warn("Direct textarea execCommand error:", e);
       }
-
-      copied = document.execCommand("copy");
-      document.body.removeChild(el);
-    } catch (e) {
-      console.warn("execCommand copy error:", e);
     }
 
-    // Method B: Modern Clipboard API (also invoked synchronously while gesture & focus are active)
+    // Method 2: Modern Clipboard API
     try {
       if (navigator.clipboard && typeof navigator.clipboard.writeText === "function") {
         navigator.clipboard.writeText(text).then(() => {
           copied = true;
-        }).catch((err) => {
-          console.warn("navigator.clipboard.writeText error:", err);
-        });
+        }).catch(() => {});
       }
-    } catch (e) {
-      console.warn("Clipboard API call error:", e);
+    } catch (e) {}
+
+    // Method 3: In-DOM textarea fallback (rendered inside viewport with 1px size, not offscreen)
+    if (!copied) {
+      try {
+        const el = document.createElement("textarea");
+        el.value = text;
+        el.setAttribute("readonly", "");
+        el.style.position = "fixed";
+        el.style.top = "0";
+        el.style.left = "0";
+        el.style.width = "2em";
+        el.style.height = "2em";
+        el.style.padding = "0";
+        el.style.border = "none";
+        el.style.outline = "none";
+        el.style.boxShadow = "none";
+        el.style.background = "transparent";
+        el.style.fontSize = "16px"; // Prevent iOS zoom
+        document.body.appendChild(el);
+
+        if (navigator.userAgent.match(/ipad|ipod|iphone/i)) {
+          const editable = el.contentEditable;
+          const readOnly = el.readOnly;
+          el.contentEditable = "true";
+          el.readOnly = false;
+          const range = document.createRange();
+          range.selectNodeContents(el);
+          const sel = window.getSelection();
+          if (sel) {
+            sel.removeAllRanges();
+            sel.addRange(range);
+          }
+          el.setSelectionRange(0, 999999);
+          el.contentEditable = editable;
+          el.readOnly = readOnly;
+        } else {
+          el.select();
+          el.setSelectionRange(0, 999999);
+        }
+
+        copied = document.execCommand("copy");
+        document.body.removeChild(el);
+      } catch (e) {
+        console.warn("execCommand fallback copy error:", e);
+      }
     }
 
     return copied;
@@ -624,6 +641,7 @@ export default function ReviewFlow({ business, initialSource }: ReviewFlowProps)
                     /* Step 4A: Normal Draft screen with Copy & Open Google button */
                     <>
                       <textarea
+                        ref={reviewTextareaRef}
                         rows={3}
                         value={reviewDraft}
                         onChange={(e) => setReviewDraft(e.target.value)}
