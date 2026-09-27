@@ -448,10 +448,18 @@ export default function OwnerDashboardPage() {
   const handleDeleteSingleComplaint = async (complaintId: string) => {
     setDeletingComplaintId(complaintId);
     try {
+      const headers: Record<string, string> = { 'Content-Type': 'application/json' };
+      if (ownerSession?.token) {
+        headers['Authorization'] = `Bearer ${ownerSession.token}`;
+      }
+      const activeSlug = ownerSession?.businessSlug;
+      const activeBiz = activeSlug ? DEMO_BUSINESSES[activeSlug] : null;
+      const bizId = activeBiz?.id || (activeSlug ? 'b-' + activeSlug : undefined);
+
       const res = await fetch('/api/dashboard', {
         method: 'DELETE',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ complaintId }),
+        headers,
+        body: JSON.stringify({ complaintId, businessId: bizId }),
       });
       const data = await res.json();
       if (data.success) {
@@ -552,11 +560,19 @@ export default function OwnerDashboardPage() {
   // Toggle complaint status
   const handleToggleComplaint = async (complaintId: string) => {
     try {
+      const headers: Record<string, string> = { 'Content-Type': 'application/json' };
+      if (ownerSession?.token) {
+        headers['Authorization'] = `Bearer ${ownerSession.token}`;
+      }
+      const activeSlug = ownerSession?.businessSlug;
+      const activeBiz = activeSlug ? DEMO_BUSINESSES[activeSlug] : null;
+      const bizId = activeBiz?.id || (activeSlug ? 'b-' + activeSlug : undefined);
+
       const res = await fetch('/api/dashboard', {
         method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
+        headers,
         signal: AbortSignal.timeout(6000),
-        body: JSON.stringify({ complaintId }),
+        body: JSON.stringify({ complaintId, businessId: bizId }),
       });
       const data = await res.json();
       if (data?.success) {

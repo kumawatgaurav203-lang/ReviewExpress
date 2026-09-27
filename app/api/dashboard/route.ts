@@ -492,18 +492,32 @@ export async function PATCH(req: NextRequest) {
       }
     }
 
-    const newStatus = toggleComplaintStatus(complaintId);
+    // 1. Toggle in local storage if present
+    const localNewStatus = toggleComplaintStatus(complaintId);
+    let finalStatus = localNewStatus;
 
-    // Also persist complaint resolved status to Supabase review_logs table
+    // 2. Toggle in Supabase review_logs
     if (isSupabaseConfigured()) {
       try {
-        const resolvedTag = newStatus ? `RESOLVED:${new Date().toISOString()}` : '';
-        await supabase
+        const { data: dbLog } = await supabase
           .from('review_logs')
-          .update({ review_text: resolvedTag })
-          .eq('id', complaintId);
+          .select('id, review_text')
+          .eq('id', complaintId)
+          .maybeSingle();
+
+        if (dbLog) {
+          const isCurrentlyResolved = Boolean(
+            typeof dbLog.review_text === 'string' && dbLog.review_text.startsWith('RESOLVED:')
+          );
+          finalStatus = !isCurrentlyResolved;
+          const resolvedTag = finalStatus ? `RESOLVED:${new Date().toISOString()}` : '';
+          await supabase
+            .from('review_logs')
+            .update({ review_text: resolvedTag })
+            .eq('id', complaintId);
+        }
       } catch (err) {
-        console.warn('Supabase complaint resolution sync notice:', err);
+        console.warn('Supabase fetch complaint status notice:', err);
       }
     }
 
@@ -516,8 +530,8 @@ export async function PATCH(req: NextRequest) {
     return NextResponse.json({
       success: true,
       complaintId,
-      isResolved: newStatus,
-      message: 'Complaint marked as ' + (newStatus ? 'Resolved' : 'Pending'),
+      isResolved: finalStatus,
+      message: 'Complaint marked as ' + (finalStatus ? 'Resolved' : 'Pending'),
     });
   } catch (error: any) {
     console.error('Error updating complaint status:', error);
@@ -554,8 +568,21 @@ export async function DELETE(req: NextRequest) {
     }
 
     if (complaintId) {
-      const deleted = deleteComplaintLog(complaintId);
-      if (deleted) {
+      const localDeleted = deleteComplaintLog(complaintId);
+      let dbDeleted = false;
+
+      if (isSupabaseConfigured()) {
+        try {
+          const { error } = await supabase.from('review_logs').delete().eq('id', complaintId);
+          if (!error) {
+            dbDeleted = true;
+          }
+        } catch (err) {
+          console.error('Supabase delete complaint error:', err);
+        }
+      }
+
+      if (localDeleted || dbDeleted) {
         if (businessId) {
           redisCache.delPattern(`dashboard:${businessId}:*`).catch(() => {});
         }
@@ -566,6 +593,7 @@ export async function DELETE(req: NextRequest) {
           message: 'Complaint permanently removed from database.',
         });
       }
+
       return NextResponse.json(
         { success: false, message: 'Complaint not found.' },
         { status: 404 }
