@@ -889,13 +889,18 @@ export default function OwnerDashboardPage() {
                 <ShieldAlert className="w-4 h-4" />
               </div>
             </div>
-            <div className="mt-2.5 sm:mt-3 flex items-baseline gap-2">
+            <div className="mt-2.5 sm:mt-3 flex flex-wrap items-baseline gap-2">
               <span className="text-2xl sm:text-3xl font-black text-rose-400">
                 {isLoading ? '...' : dashboardData?.metrics.interceptedComplaints ?? 0}
               </span>
               {pendingComplaintsCount > 0 && (
                 <span className="text-xs font-bold text-amber-400 bg-amber-400/10 border border-amber-400/20 px-2 py-0.5 rounded-full">
                   {pendingComplaintsCount} Pending
+                </span>
+              )}
+              {resolvedComplaintsCount > 0 && (
+                <span className="text-xs font-bold text-emerald-400 bg-emerald-400/10 border border-emerald-400/20 px-2 py-0.5 rounded-full">
+                  ✓ {resolvedComplaintsCount} Resolved
                 </span>
               )}
             </div>
