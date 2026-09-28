@@ -1,4 +1,37 @@
+export const MASTER_HIGHLIGHT_POOL: string[] = [
+  'Fast & Friendly Service',
+  'Clean & Welcoming Ambience',
+  'Polite Staff',
+  'Great Value for Money',
+  'Highly Recommended',
+  'Quick Response',
+  'Cooperative Staff',
+  'Best in Town',
+  'Pocket Friendly Rates',
+  'Superb Quality',
+  'Clean & Hygienic Space',
+  'On-Time Service',
+  'Trustworthy & Reliable',
+  'Great Overall Experience',
+  'Professional Behavior',
+  'Worth Every Penny',
+  'Courteous & Polite',
+  'Fast Turnaround Time',
+  'Genuine & Honest Advice',
+  'Excellent Customer Support',
+  'Transparent Pricing',
+  'High Attention to Detail',
+  'Skilled Professionals',
+  'Hassle-Free Process',
+  'Always Exceeds Expectations',
+  'Punctual & Dedicated',
+  'Safe & Dependable Service',
+];
+
+export const DEFAULT_STORE_HIGHLIGHTS: string[] = MASTER_HIGHLIGHT_POOL.slice(0, 5);
+
 export const CATEGORY_TAGS: Record<string, string[]> = {
+  general: DEFAULT_STORE_HIGHLIGHTS,
   coaching: [
     'Concept Clarity',
     'Expert Faculty',
@@ -134,18 +167,6 @@ export const CATEGORY_TAGS: Record<string, string[]> = {
     'Clear Health Guidance',
     'Clean & Sanitized Ambience',
     'Highly Trusted Clinic',
-  ],
-  general: [
-    'Super Fast Service',
-    'Friendly & Polite Staff',
-    'Clean & Welcoming Ambience',
-    'Top-Notch Quality',
-    'Great Value for Money',
-    'Highly Recommended',
-    'Honest & Transparent',
-    'Quick Response',
-    'Hassle-Free Experience',
-    '100% Reliable',
   ],
 };
 

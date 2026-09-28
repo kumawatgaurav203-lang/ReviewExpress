@@ -3,7 +3,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { registerNewBusiness } from '@/lib/demo-data';
 import { saveOwnerAccount, getAllOwnerAccounts, updateOwnerAccount, syncAccountsFromCloud } from '@/lib/accounts-store';
 import { supabase, isSupabaseConfigured } from '@/lib/supabase';
-import { getShuffledCategoryTags } from '@/lib/tags-data';
+import { getShuffledCategoryTags, DEFAULT_STORE_HIGHLIGHTS } from '@/lib/tags-data';
 import { Business } from '@/lib/types';
 import { otpStore } from '@/lib/otp-store';
 import { generateUniqueSlug } from '@/lib/slug';
@@ -219,14 +219,7 @@ export async function POST(req: NextRequest) {
       cleanReviewLink = cleanReviewLink + '/review';
     }
 
-    const defaultTags = [
-      'Fast & Friendly Service',
-      'High Quality Experience',
-      'Clean & Welcoming Ambience',
-      'Polite Staff',
-      'Great Value for Money',
-      'Highly Recommended',
-    ];
+    const defaultTags = [...DEFAULT_STORE_HIGHLIGHTS];
 
     const newBusiness: Business = {
       id: businessId,
