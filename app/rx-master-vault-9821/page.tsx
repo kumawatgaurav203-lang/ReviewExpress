@@ -2197,80 +2197,89 @@ export default function CreateAccountAdminPage() {
                           className="p-4 rounded-2xl bg-slate-900/60 border border-slate-800/90 hover:border-slate-700 transition-all flex flex-col justify-between gap-3 shadow-lg group"
                         >
                           <div className="space-y-3">
-                            {/* Top Bar: Store Name, Category Pill, Active & Delete */}
-                            <div className="flex items-start justify-between gap-2">
-                              <div className="min-w-0 flex-1">
-                                <h4
-                                  className="text-sm font-bold text-white tracking-tight truncate group-hover:text-indigo-300 transition-colors"
-                                  title={store.name}
-                                >
-                                  {store.name}
-                                </h4>
-                                <div className="flex items-center gap-1.5 flex-wrap mt-1">
-                                  <span className="inline-flex items-center gap-1 text-[10px] font-semibold text-indigo-300 bg-indigo-500/10 border border-indigo-500/20 px-2 py-0.5 rounded-md">
-                                    <span>{meta.icon}</span>
-                                    <span>{meta.label}</span>
-                                  </span>
-                                  {store.category && store.category.toLowerCase().trim() !== catKey && (
-                                    <span
-                                      className="text-[10px] text-slate-400 truncate max-w-[160px]"
-                                      title={store.category}
-                                    >
-                                      • {store.category}
-                                    </span>
-                                  )}
-                                </div>
-                              </div>
-                              <div className="flex items-center gap-1.5 shrink-0">
+                            {/* Top Bar: Store Name & Status Badge */}
+                            <div className="flex items-center justify-between gap-2">
+                              <h4
+                                className="text-sm font-bold text-white tracking-tight truncate group-hover:text-indigo-300 transition-colors flex-1 min-w-0"
+                                title={store.name}
+                              >
+                                {store.name}
+                              </h4>
+
+                              {/* Status Badge in Top Right */}
+                              <div className="shrink-0">
                                 {store.is_active === false || store.status === 'deactivated' ? (
-                                  <>
-                                    <span className="inline-flex items-center gap-1 text-[9px] font-semibold text-rose-400 bg-rose-500/10 border border-rose-500/20 px-2 py-0.5 rounded-full">
-                                      <span className="w-1.5 h-1.5 rounded-full bg-rose-400 animate-pulse" />
-                                      Deactivated
-                                    </span>
-                                    <button
-                                      type="button"
-                                      onClick={() => openActivateModal(store)}
-                                      title="Reactivate store account"
-                                      className="inline-flex items-center gap-1 text-[9px] font-semibold text-emerald-400 hover:text-emerald-200 bg-emerald-500/10 hover:bg-emerald-500/25 border border-emerald-500/25 px-2 py-0.5 rounded-full transition-colors cursor-pointer"
-                                    >
-                                      <PlayCircle className="w-2.5 h-2.5" />
-                                      <span>Activate</span>
-                                    </button>
-                                  </>
+                                  <span className="inline-flex items-center gap-1 text-[9px] font-semibold text-rose-400 bg-rose-500/10 border border-rose-500/25 px-2 py-0.5 rounded-full">
+                                    <span className="w-1.5 h-1.5 rounded-full bg-rose-400 animate-pulse" />
+                                    Deactivated
+                                  </span>
                                 ) : (
-                                  <>
-                                    <span className="inline-flex items-center gap-1 text-[9px] font-semibold text-emerald-400 bg-emerald-500/10 border border-emerald-500/20 px-2 py-0.5 rounded-full">
-                                      <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
-                                      Active
-                                    </span>
-                                    <button
-                                      type="button"
-                                      onClick={() => openDeactivateModal(store)}
-                                      title="Deactivate store account"
-                                      className="inline-flex items-center gap-1 text-[9px] font-semibold text-amber-400 hover:text-amber-200 bg-amber-500/10 hover:bg-amber-500/25 border border-amber-500/25 px-2 py-0.5 rounded-full transition-colors cursor-pointer"
-                                    >
-                                      <PauseCircle className="w-2.5 h-2.5" />
-                                      <span>Pause</span>
-                                    </button>
-                                  </>
+                                  <span className="inline-flex items-center gap-1 text-[9px] font-semibold text-emerald-400 bg-emerald-500/10 border border-emerald-500/25 px-2 py-0.5 rounded-full">
+                                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
+                                    Active
+                                  </span>
                                 )}
+                              </div>
+                            </div>
+
+                            {/* Sub-bar: Category Badge (Left) & Actions Toolbar (Right) */}
+                            <div className="flex items-center justify-between gap-2 pt-0.5">
+                              <div className="flex items-center gap-1.5 min-w-0 flex-1">
+                                <span className="inline-flex items-center gap-1 text-[10px] font-semibold text-indigo-300 bg-indigo-500/10 border border-indigo-500/20 px-2 py-0.5 rounded-md shrink-0 whitespace-nowrap">
+                                  <span>{meta.icon}</span>
+                                  <span>{meta.label}</span>
+                                </span>
+                                {store.category && store.category.toLowerCase().trim() !== catKey && (
+                                  <span
+                                    className="text-[10px] text-slate-400 truncate max-w-[120px]"
+                                    title={store.category}
+                                  >
+                                    • {store.category}
+                                  </span>
+                                )}
+                              </div>
+
+                              {/* Action Buttons Toolbar */}
+                              <div className="flex items-center gap-1 shrink-0">
+                                {store.is_active === false || store.status === 'deactivated' ? (
+                                  <button
+                                    type="button"
+                                    onClick={() => openActivateModal(store)}
+                                    title="Reactivate store account"
+                                    className="inline-flex items-center gap-1 text-[9px] font-semibold text-emerald-300 hover:text-white bg-emerald-500/15 hover:bg-emerald-500/30 border border-emerald-500/30 px-2 py-0.5 rounded-md transition-colors cursor-pointer"
+                                  >
+                                    <PlayCircle className="w-2.5 h-2.5 text-emerald-400" />
+                                    <span>Activate</span>
+                                  </button>
+                                ) : (
+                                  <button
+                                    type="button"
+                                    onClick={() => openDeactivateModal(store)}
+                                    title="Deactivate store account"
+                                    className="inline-flex items-center gap-1 text-[9px] font-semibold text-amber-300 hover:text-white bg-amber-500/15 hover:bg-amber-500/30 border border-amber-500/30 px-2 py-0.5 rounded-md transition-colors cursor-pointer"
+                                  >
+                                    <PauseCircle className="w-2.5 h-2.5 text-amber-400" />
+                                    <span>Pause</span>
+                                  </button>
+                                )}
+
                                 <button
                                   type="button"
                                   onClick={() => openEditModal(store)}
                                   title="Edit Store Category & Review Link"
-                                  className="inline-flex items-center gap-1 text-[9px] font-semibold text-slate-300 hover:text-white bg-slate-800 hover:bg-slate-700 border border-slate-700 px-2 py-0.5 rounded-full transition-colors cursor-pointer"
+                                  className="inline-flex items-center gap-1 text-[9px] font-semibold text-slate-300 hover:text-white bg-slate-800/90 hover:bg-slate-700 border border-slate-700 px-2 py-0.5 rounded-md transition-colors cursor-pointer"
                                 >
-                                  <Pencil className="w-2.5 h-2.5" />
+                                  <Pencil className="w-2.5 h-2.5 text-slate-400" />
                                   <span>Edit</span>
                                 </button>
+
                                 <button
                                   type="button"
                                   onClick={() => openDeleteModal(store)}
                                   title="Delete store account"
-                                  className="inline-flex items-center gap-1 text-[9px] font-semibold text-rose-400 hover:text-rose-200 bg-rose-500/10 hover:bg-rose-500/25 border border-rose-500/25 px-2 py-0.5 rounded-full transition-colors cursor-pointer"
+                                  className="inline-flex items-center gap-1 text-[9px] font-semibold text-rose-300 hover:text-white bg-rose-500/15 hover:bg-rose-500/30 border border-rose-500/30 px-2 py-0.5 rounded-md transition-colors cursor-pointer"
                                 >
-                                  <Trash2 className="w-2.5 h-2.5" />
+                                  <Trash2 className="w-2.5 h-2.5 text-rose-400" />
                                   <span>Delete</span>
                                 </button>
                               </div>
