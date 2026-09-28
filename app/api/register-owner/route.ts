@@ -43,6 +43,7 @@ export async function GET(req: NextRequest) {
             if (b.slug.startsWith('sys-') || b.slug === 'demo') continue;
             // Lookup matching account credentials
             const acc = accounts.find((a) => a.businessSlug.toLowerCase() === b.slug.toLowerCase() || a.id === b.id);
+            const isStoreActive = b.is_active !== false && acc?.is_active !== false;
             storesMap.set(b.slug, {
               id: b.id,
               name: b.name,
@@ -51,7 +52,11 @@ export async function GET(req: NextRequest) {
               password: acc?.password || '••••••••',
               category: acc?.category || 'general',
               googleReviewLink: b.google_review_link || acc?.googleReviewLink || '',
-              status: b.is_active ? 'active' : 'inactive',
+              is_active: isStoreActive,
+              status: isStoreActive ? 'active' : 'deactivated',
+              deactivationReason: acc?.deactivationReason || '',
+              deactivationNote: acc?.deactivationNote || '',
+              deactivatedAt: acc?.deactivatedAt || '',
               createdAt: b.created_at || acc?.createdAt,
             });
           }
@@ -63,6 +68,7 @@ export async function GET(req: NextRequest) {
       // Local dev offline fallback only when Supabase is not configured
       for (const acc of accounts) {
         if (!acc.businessSlug || acc.businessSlug.startsWith('sys-') || acc.businessSlug === 'demo') continue;
+        const isStoreActive = acc.is_active !== false;
         storesMap.set(acc.businessSlug, {
           id: acc.id,
           name: acc.businessName,
@@ -71,7 +77,11 @@ export async function GET(req: NextRequest) {
           password: acc.password,
           category: acc.category || 'general',
           googleReviewLink: acc.googleReviewLink || '',
-          status: 'active',
+          is_active: isStoreActive,
+          status: isStoreActive ? 'active' : 'deactivated',
+          deactivationReason: acc.deactivationReason || '',
+          deactivationNote: acc.deactivationNote || '',
+          deactivatedAt: acc.deactivatedAt || '',
           createdAt: acc.createdAt,
         });
       }

@@ -17,6 +17,7 @@ import {
 } from 'lucide-react';
 import TermsModal from '@/components/TermsModal';
 import HumanVerification from '@/components/HumanVerification';
+import StoreSuspendedCard from '@/components/StoreSuspendedCard';
 
 export default function OwnerLoginPage() {
   const router = useRouter();
@@ -30,6 +31,15 @@ export default function OwnerLoginPage() {
 
   // Human Verification State
   const [isHumanVerified, setIsHumanVerified] = useState(false);
+
+  // Deactivated Account Suspension Screen State
+  const [deactivatedAccountInfo, setDeactivatedAccountInfo] = useState<{
+    storeName: string;
+    storeSlug: string;
+    reason: string;
+    note?: string;
+    deactivatedAt?: string;
+  } | null>(null);
 
   // UI state
   const [showPassword, setShowPassword] = useState(false);
@@ -100,6 +110,18 @@ export default function OwnerLoginPage() {
       });
 
       const data = await res.json();
+
+      if (data.isDeactivated) {
+        setDeactivatedAccountInfo({
+          storeName: data.storeName || 'Store Account',
+          storeSlug: data.storeSlug || '',
+          reason: data.reason || 'Subscription / Renewal Due',
+          note: data.note || '',
+          deactivatedAt: data.deactivatedAt || '',
+        });
+        setIsLoading(false);
+        return;
+      }
 
       if (!data.success) {
         setErrorMsg(data.message || 'Invalid email or password.');
@@ -290,6 +312,28 @@ export default function OwnerLoginPage() {
       }
     }
   };
+
+  if (deactivatedAccountInfo) {
+    return (
+      <div className="min-h-screen bg-[#07090e] flex flex-col justify-center items-center p-4 relative overflow-hidden selection:bg-rose-500 selection:text-white">
+        <div className="absolute top-1/4 left-1/2 -translate-x-1/2 -translate-y-1/2 w-96 h-96 bg-rose-600/10 rounded-full blur-3xl pointer-events-none" />
+        <div className="relative z-10 w-full max-w-lg">
+          <StoreSuspendedCard
+            storeName={deactivatedAccountInfo.storeName}
+            storeSlug={deactivatedAccountInfo.storeSlug}
+            reason={deactivatedAccountInfo.reason}
+            note={deactivatedAccountInfo.note}
+            deactivatedAt={deactivatedAccountInfo.deactivatedAt}
+            onBackToLogin={() => {
+              setDeactivatedAccountInfo(null);
+              setPassword('');
+              setErrorMsg('');
+            }}
+          />
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-slate-950 text-white flex flex-col justify-center items-center px-4 py-8 selection:bg-indigo-500 selection:text-white relative overflow-hidden">

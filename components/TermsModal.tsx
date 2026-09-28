@@ -147,13 +147,14 @@ export default function TermsModal({ isOpen, onClose }: TermsModalProps) {
     },
     {
       num: 9,
-      title: 'ACCOUNT DELETION & TERMINATION',
+      title: 'ACCOUNT DEACTIVATION, SUSPENSION & TERMINATION',
       icon: Trash2,
       color: 'text-rose-400 bg-rose-500/10 border-rose-500/20',
       paragraphs: [
-        'Complete account deletion may not be available directly from the customer dashboard. If the customer wants the account permanently deleted, they must contact the person/team that created or manages the account and request deletion.',
-        'If the customer fails to pay the applicable service or maintenance fee, the provider may suspend or terminate the account after applicable notice.',
-        'After termination, data may be deleted subject to applicable legal, accounting, security, or retention requirements. Customers should not assume that deleted data can be recovered.',
+        'ADMINISTRATIVE DEACTIVATION & SUSPENSION: The Master Administrator reserves the exclusive authority to temporarily deactivate or suspend merchant store accounts, owner dashboard access, and public NFC/QR review redirection upon non-payment of subscription fees, failure to remit scheduled maintenance charges, violation of platform policies, or administrative review.',
+        'REACTIVATION PROCEDURE: Deactivated accounts can only be reactivated through the Master Administrator once all pending dues, renewal charges, or administrative verifications are fully settled. Merchants cannot independently reactivate a suspended account from the merchant panel.',
+        'ZERO DATA LOSS DURING DEACTIVATION: During administrative deactivation, all historical review counts, visit logs, customer complaints, and store highlight configurations remain safely preserved in the database and are not deleted.',
+        'ACCOUNT DELETION: Complete permanent account deletion is managed strictly by the Master Administrator upon formal merchant request. If a customer fails to resolve suspension notices within the applicable retention period, the account may be permanently terminated.',
       ],
     },
     {

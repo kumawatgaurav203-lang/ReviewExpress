@@ -37,6 +37,7 @@ import { DEMO_BUSINESSES } from '@/lib/demo-data';
 import { detectCategory, CATEGORY_TAGS, MASTER_HIGHLIGHT_POOL, DEFAULT_STORE_HIGHLIGHTS } from '@/lib/tags-data';
 import TermsModal from '@/components/TermsModal';
 import SocialContactBar from '@/components/SocialContactBar';
+import StoreSuspendedCard from '@/components/StoreSuspendedCard';
 
 interface ComplaintItem {
   id: string;
@@ -138,6 +139,13 @@ export default function OwnerDashboardPage() {
     authorizedBusinessIds?: string[];
   } | null>(null);
   const [accessDeniedError, setAccessDeniedError] = useState<string | null>(null);
+  const [deactivatedAccountInfo, setDeactivatedAccountInfo] = useState<{
+    storeName: string;
+    storeSlug: string;
+    reason: string;
+    note?: string;
+    deactivatedAt?: string;
+  } | null>(null);
   const [showTermsModal, setShowTermsModal] = useState(false);
   const currentSlug = ownerSession?.businessSlug || '';
   const [timePeriod, setTimePeriod] = useState<'day' | 'week' | 'month' | 'year' | 'all'>('day');
@@ -427,6 +435,17 @@ export default function OwnerDashboardPage() {
         { headers, signal: AbortSignal.timeout(7000) }
       );
       const data = await res.json();
+      if (data?.isDeactivated) {
+        setDeactivatedAccountInfo({
+          storeName: data.storeName || ownerSession.businessName || 'Store Account',
+          storeSlug: data.storeSlug || ownerSession.businessSlug || '',
+          reason: data.reason || 'Subscription / Renewal Due',
+          note: data.note || '',
+          deactivatedAt: data.deactivatedAt || '',
+        });
+        setIsLoading(false);
+        return;
+      }
       if (res.status === 403 || (data && !data.success && data.message?.includes('Access Denied'))) {
         setAccessDeniedError(data?.message || 'Access Denied: You are not authorized to view this shop.');
         setIsLoading(false);
@@ -511,6 +530,33 @@ export default function OwnerDashboardPage() {
 
   const pendingComplaintsCount = (dashboardData?.complaints || []).filter((c) => !c.isResolved).length;
   const resolvedComplaintsCount = (dashboardData?.complaints || []).filter((c) => c.isResolved).length;
+
+  if (deactivatedAccountInfo) {
+    return (
+      <div className="min-h-screen bg-[#07090e] flex flex-col justify-center items-center p-4 relative overflow-hidden selection:bg-rose-500 selection:text-white">
+        <div className="absolute top-1/4 left-1/2 -translate-x-1/2 -translate-y-1/2 w-96 h-96 bg-rose-600/10 rounded-full blur-3xl pointer-events-none" />
+        <div className="relative z-10 w-full max-w-lg">
+          <StoreSuspendedCard
+            storeName={deactivatedAccountInfo.storeName}
+            storeSlug={deactivatedAccountInfo.storeSlug}
+            reason={deactivatedAccountInfo.reason}
+            note={deactivatedAccountInfo.note}
+            deactivatedAt={deactivatedAccountInfo.deactivatedAt}
+            onBackToLogin={() => {
+              if (typeof window !== 'undefined') {
+                localStorage.removeItem('reviewxpress_owner_session');
+              }
+              router.push('/dashboard/login');
+            }}
+            onRefresh={() => {
+              setDeactivatedAccountInfo(null);
+              fetchDashboardData(false);
+            }}
+          />
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-slate-950 text-slate-100 flex flex-col">

@@ -81,8 +81,55 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // 3. Resolve session and authorized businesses
+    // 3. Resolve session user
     const sessionUser = await getSessionUserByEmail(cleanEmail);
+
+    // 4. Check if store account has been deactivated by administrator
+    const storeSlug = localAccount?.businessSlug || sessionUser?.businessSlug || '';
+    const storeName = sessionUser?.businessName || localAccount?.businessName || 'Store';
+
+    let isStoreDeactivated = localAccount?.is_active === false || localAccount?.status === 'deactivated';
+    let deactivationReason = localAccount?.deactivationReason || 'Subscription / Renewal Due';
+    let deactivationNote = localAccount?.deactivationNote || '';
+    let deactivatedAt = localAccount?.deactivatedAt || '';
+
+    if (isSupabaseConfigured() && storeSlug && storeSlug !== 'demo') {
+      try {
+        const { data: dbBiz } = await supabase
+          .from('businesses')
+          .select('is_active')
+          .eq('slug', storeSlug)
+          .maybeSingle();
+
+        if (dbBiz && dbBiz.is_active === false) {
+          isStoreDeactivated = true;
+        }
+      } catch {}
+    }
+
+    if (isStoreDeactivated) {
+      await logAuditEvent('LOGIN_BLOCKED_DEACTIVATED', {
+        userId: sessionUser?.userId || userId,
+        details: { email: cleanEmail, slug: storeSlug, reason: deactivationReason },
+        req,
+      });
+
+      return NextResponse.json(
+        {
+          success: false,
+          isDeactivated: true,
+          storeName,
+          storeSlug,
+          reason: deactivationReason,
+          note: deactivationNote,
+          deactivatedAt,
+          message: 'Account Suspended: This store account has been temporarily deactivated by the administrator.',
+        },
+        { status: 403 }
+      );
+    }
+
+    // 5. Create session token and authorized businesses
     const sessionToken = createSessionToken({
       userId: userId || sessionUser?.userId || ('u-' + Date.now()),
       email: cleanEmail,

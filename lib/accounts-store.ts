@@ -13,6 +13,11 @@ export interface OwnerAccount {
   tags?: string[];
   googleReviewLink: string;
   createdAt: string;
+  is_active?: boolean;
+  status?: 'active' | 'deactivated';
+  deactivationReason?: string;
+  deactivationNote?: string;
+  deactivatedAt?: string;
 }
 
 const dataFilePath = path.join(process.cwd(), 'data', 'accounts.json');
@@ -302,3 +307,35 @@ export function updateOwnerAccount(
   }
   return null;
 }
+
+export function toggleStoreActiveStatus(
+  slugOrEmail: string,
+  isActive: boolean,
+  reason?: string,
+  note?: string
+): OwnerAccount | null {
+  accountsCache = readAccountsFromFile();
+  const cleanTarget = slugOrEmail.toLowerCase().trim();
+  const existingIdx = accountsCache.findIndex(
+    (a) => a.businessSlug.toLowerCase() === cleanTarget || a.email.toLowerCase() === cleanTarget
+  );
+
+  if (existingIdx >= 0) {
+    accountsCache[existingIdx].is_active = isActive;
+    accountsCache[existingIdx].status = isActive ? 'active' : 'deactivated';
+    if (!isActive) {
+      accountsCache[existingIdx].deactivationReason = reason || 'Subscription / Renewal Due';
+      accountsCache[existingIdx].deactivationNote = note || '';
+      accountsCache[existingIdx].deactivatedAt = new Date().toISOString();
+    } else {
+      delete accountsCache[existingIdx].deactivationReason;
+      delete accountsCache[existingIdx].deactivationNote;
+      delete accountsCache[existingIdx].deactivatedAt;
+    }
+    writeAccountsToFile(accountsCache);
+    persistAccountsToCloud(accountsCache).catch(() => {});
+    return accountsCache[existingIdx];
+  }
+  return null;
+}
+

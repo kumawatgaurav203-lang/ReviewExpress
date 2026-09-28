@@ -47,7 +47,7 @@ async function getBusinessBySlug(slug: string): Promise<Business | null> {
           category: acc.category,
           google_review_link: acc.googleReviewLink,
           tags: getShuffledCategoryTags(acc.businessName, acc.category),
-          is_active: true,
+          is_active: acc.is_active !== false,
         };
       }
     } catch (err) {
@@ -61,10 +61,10 @@ async function getBusinessBySlug(slug: string): Promise<Business | null> {
           .from('businesses')
           .select('*')
           .eq('slug', cleanSlug)
-          .eq('is_active', true)
           .single();
 
         if (!error && data) {
+          const acc = getAccountBySlug(cleanSlug);
           return {
             id: data.id,
             name: data.name,
@@ -72,7 +72,7 @@ async function getBusinessBySlug(slug: string): Promise<Business | null> {
             category: data.category,
             google_review_link: data.google_review_link,
             tags: data.tags || getShuffledCategoryTags(data.name),
-            is_active: data.is_active,
+            is_active: data.is_active !== false && acc?.is_active !== false,
           };
         }
       } catch (err) {
@@ -125,6 +125,28 @@ export default async function QRStandeePage({ params }: PageProps) {
     });
   } catch (qrErr) {
     console.error('Error generating QR code in /qr/[slug]:', qrErr);
+  }
+
+  if (!business.is_active) {
+    const initials = business.name.slice(0, 2).toUpperCase();
+    return (
+      <div className="min-h-screen bg-slate-950 text-white flex flex-col items-center justify-center p-4 sm:p-6 pb-12">
+        <div className="w-full max-w-md bg-slate-900 border border-slate-800 rounded-3xl p-6 sm:p-8 text-center shadow-2xl space-y-4">
+          <div className="mx-auto w-16 h-16 rounded-2xl bg-gradient-to-tr from-slate-700 via-slate-800 to-slate-700 text-slate-300 flex items-center justify-center font-black text-2xl shadow-lg border border-slate-700">
+            <span>{initials}</span>
+          </div>
+          <h1 className="text-xl sm:text-2xl font-bold text-white">{business.name}</h1>
+          <div className="p-4 rounded-2xl bg-slate-950 border border-slate-800 space-y-2">
+            <span className="inline-block px-3 py-1 rounded-full bg-amber-500/10 border border-amber-500/20 text-amber-400 text-xs font-semibold">
+              ● QR Standee Inactive
+            </span>
+            <p className="text-xs text-slate-400">
+              This review standee is currently paused by store administration. Please contact staff for assistance.
+            </p>
+          </div>
+        </div>
+      </div>
+    );
   }
 
   return (

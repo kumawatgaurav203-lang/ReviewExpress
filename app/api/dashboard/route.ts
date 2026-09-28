@@ -101,6 +101,44 @@ export async function GET(req: NextRequest) {
     }
 
     // --------------------------------------------------------------------------
+    // 1b. Deactivation Enforcement
+    // --------------------------------------------------------------------------
+    if (!isDemoQuery && businessId && businessId !== 'all') {
+      const cleanSlug = businessId.replace(/^b-/, '');
+      const acc = getAccountBySlug(cleanSlug);
+      let isDeactivated = acc?.is_active === false || acc?.status === 'deactivated';
+      let deactivationReason = acc?.deactivationReason || 'Subscription / Renewal Due';
+
+      if (isSupabaseConfigured() && !isDeactivated) {
+        try {
+          const { data: dbBiz } = await supabase
+            .from('businesses')
+            .select('is_active')
+            .eq('slug', cleanSlug)
+            .maybeSingle();
+
+          if (dbBiz && dbBiz.is_active === false) {
+            isDeactivated = true;
+          }
+        } catch {}
+      }
+
+      if (isDeactivated) {
+        return NextResponse.json(
+          {
+            success: false,
+            isDeactivated: true,
+            storeName: acc?.businessName || cleanSlug,
+            storeSlug: cleanSlug,
+            reason: deactivationReason,
+            message: 'This store account has been temporarily deactivated by the administrator.',
+          },
+          { status: 403 }
+        );
+      }
+    }
+
+    // --------------------------------------------------------------------------
     // 2. Redis Cache Layer: Check for warm cache (sub-millisecond response)
     // --------------------------------------------------------------------------
     const cacheKey = `dashboard:${businessId}:${period}:${channel}:${filter}`;

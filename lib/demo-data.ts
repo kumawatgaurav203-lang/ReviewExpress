@@ -42,3 +42,13 @@ export function deleteBusiness(slug: string): boolean {
   }
   return false;
 }
+
+export function updateBusinessStatus(slug: string, isActive: boolean): boolean {
+  if (DEMO_BUSINESSES[slug]) {
+    DEMO_BUSINESSES[slug].is_active = isActive;
+    DEMO_BUSINESSES[slug].status = isActive ? 'active' : 'suspended';
+    return true;
+  }
+  return false;
+}
+

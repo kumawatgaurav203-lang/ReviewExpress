@@ -35,6 +35,9 @@ import {
   Clock,
   Pencil,
   X,
+  PauseCircle,
+  PlayCircle,
+  ShieldAlert,
 } from 'lucide-react';
 import QRCode from 'qrcode';
 import { detectCategory } from '@/lib/tags-data';
@@ -49,6 +52,11 @@ interface StoreItem {
   category?: string;
   googleReviewLink?: string;
   createdAt?: string;
+  is_active?: boolean;
+  status?: 'active' | 'deactivated';
+  deactivationReason?: string;
+  deactivationNote?: string;
+  deactivatedAt?: string;
 }
 
 const CATEGORY_META: Record<string, { label: string; icon: string }> = {
@@ -373,6 +381,172 @@ export default function CreateAccountAdminPage() {
       );
     } finally {
       setIsSavingEdit(false);
+    }
+  };
+
+  // Deactivate Store Modal State
+  const [deactivateModal, setDeactivateModal] = useState<{
+    isOpen: boolean;
+    store: StoreItem | null;
+    reason: string;
+    customNote: string;
+    isSubmitting: boolean;
+    errorMsg: string;
+  }>({
+    isOpen: false,
+    store: null,
+    reason: 'Subscription / Renewal Due',
+    customNote: '',
+    isSubmitting: false,
+    errorMsg: '',
+  });
+
+  // Quick Reactivate Confirmation Modal State
+  const [activateModal, setActivateModal] = useState<{
+    isOpen: boolean;
+    store: StoreItem | null;
+    isSubmitting: boolean;
+    errorMsg: string;
+  }>({
+    isOpen: false,
+    store: null,
+    isSubmitting: false,
+    errorMsg: '',
+  });
+
+  const openDeactivateModal = (store: StoreItem) => {
+    setDeactivateModal({
+      isOpen: true,
+      store,
+      reason: store.deactivationReason || 'Subscription / Renewal Due',
+      customNote: store.deactivationNote || '',
+      isSubmitting: false,
+      errorMsg: '',
+    });
+  };
+
+  const closeDeactivateModal = () => {
+    if (deactivateModal.isSubmitting) return;
+    setDeactivateModal({
+      isOpen: false,
+      store: null,
+      reason: 'Subscription / Renewal Due',
+      customNote: '',
+      isSubmitting: false,
+      errorMsg: '',
+    });
+  };
+
+  const openActivateModal = (store: StoreItem) => {
+    setActivateModal({
+      isOpen: true,
+      store,
+      isSubmitting: false,
+      errorMsg: '',
+    });
+  };
+
+  const closeActivateModal = () => {
+    if (activateModal.isSubmitting) return;
+    setActivateModal({
+      isOpen: false,
+      store: null,
+      isSubmitting: false,
+      errorMsg: '',
+    });
+  };
+
+  const handleConfirmDeactivate = async () => {
+    if (!deactivateModal.store) return;
+    setDeactivateModal((prev) => ({ ...prev, isSubmitting: true, errorMsg: '' }));
+    try {
+      const res = await fetch('/api/store-status', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          slug: deactivateModal.store.slug,
+          email: deactivateModal.store.email,
+          isActive: false,
+          reason: deactivateModal.reason,
+          note: deactivateModal.customNote.trim(),
+        }),
+      });
+      const data = await res.json();
+      if (!res.ok || !data.success) {
+        setDeactivateModal((prev) => ({
+          ...prev,
+          isSubmitting: false,
+          errorMsg: data.message || 'Failed to deactivate store.',
+        }));
+        return;
+      }
+      setActiveStores((prev) =>
+        prev.map((s) =>
+          s.slug === deactivateModal.store?.slug || s.email === deactivateModal.store?.email
+            ? {
+                ...s,
+                is_active: false,
+                status: 'deactivated',
+                deactivationReason: deactivateModal.reason,
+                deactivationNote: deactivateModal.customNote.trim(),
+                deactivatedAt: new Date().toISOString(),
+              }
+            : s
+        )
+      );
+      closeDeactivateModal();
+    } catch (err: any) {
+      setDeactivateModal((prev) => ({
+        ...prev,
+        isSubmitting: false,
+        errorMsg: 'Network error while deactivating store.',
+      }));
+    }
+  };
+
+  const handleConfirmActivate = async () => {
+    if (!activateModal.store) return;
+    setActivateModal((prev) => ({ ...prev, isSubmitting: true, errorMsg: '' }));
+    try {
+      const res = await fetch('/api/store-status', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          slug: activateModal.store.slug,
+          email: activateModal.store.email,
+          isActive: true,
+        }),
+      });
+      const data = await res.json();
+      if (!res.ok || !data.success) {
+        setActivateModal((prev) => ({
+          ...prev,
+          isSubmitting: false,
+          errorMsg: data.message || 'Failed to reactivate store.',
+        }));
+        return;
+      }
+      setActiveStores((prev) =>
+        prev.map((s) =>
+          s.slug === activateModal.store?.slug || s.email === activateModal.store?.email
+            ? {
+                ...s,
+                is_active: true,
+                status: 'active',
+                deactivationReason: undefined,
+                deactivationNote: undefined,
+                deactivatedAt: undefined,
+              }
+            : s
+        )
+      );
+      closeActivateModal();
+    } catch (err: any) {
+      setActivateModal((prev) => ({
+        ...prev,
+        isSubmitting: false,
+        errorMsg: 'Network error while reactivating store.',
+      }));
     }
   };
 
@@ -2048,15 +2222,44 @@ export default function CreateAccountAdminPage() {
                                 </div>
                               </div>
                               <div className="flex items-center gap-1.5 shrink-0">
-                                <span className="inline-flex items-center gap-1 text-[9px] font-semibold text-emerald-400 bg-emerald-500/10 border border-emerald-500/20 px-2 py-0.5 rounded-full">
-                                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
-                                  Active
-                                </span>
+                                {store.is_active === false || store.status === 'deactivated' ? (
+                                  <>
+                                    <span className="inline-flex items-center gap-1 text-[9px] font-semibold text-rose-400 bg-rose-500/10 border border-rose-500/20 px-2 py-0.5 rounded-full">
+                                      <span className="w-1.5 h-1.5 rounded-full bg-rose-400 animate-pulse" />
+                                      Deactivated
+                                    </span>
+                                    <button
+                                      type="button"
+                                      onClick={() => openActivateModal(store)}
+                                      title="Reactivate store account"
+                                      className="inline-flex items-center gap-1 text-[9px] font-semibold text-emerald-400 hover:text-emerald-200 bg-emerald-500/10 hover:bg-emerald-500/25 border border-emerald-500/25 px-2 py-0.5 rounded-full transition-colors cursor-pointer"
+                                    >
+                                      <PlayCircle className="w-2.5 h-2.5" />
+                                      <span>Activate</span>
+                                    </button>
+                                  </>
+                                ) : (
+                                  <>
+                                    <span className="inline-flex items-center gap-1 text-[9px] font-semibold text-emerald-400 bg-emerald-500/10 border border-emerald-500/20 px-2 py-0.5 rounded-full">
+                                      <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
+                                      Active
+                                    </span>
+                                    <button
+                                      type="button"
+                                      onClick={() => openDeactivateModal(store)}
+                                      title="Deactivate store account"
+                                      className="inline-flex items-center gap-1 text-[9px] font-semibold text-amber-400 hover:text-amber-200 bg-amber-500/10 hover:bg-amber-500/25 border border-amber-500/25 px-2 py-0.5 rounded-full transition-colors cursor-pointer"
+                                    >
+                                      <PauseCircle className="w-2.5 h-2.5" />
+                                      <span>Pause</span>
+                                    </button>
+                                  </>
+                                )}
                                 <button
                                   type="button"
                                   onClick={() => openEditModal(store)}
                                   title="Edit Store Category & Review Link"
-                                  className="inline-flex items-center gap-1 text-[9px] font-semibold text-amber-400 hover:text-amber-200 bg-amber-500/10 hover:bg-amber-500/25 border border-amber-500/25 px-2 py-0.5 rounded-full transition-colors cursor-pointer"
+                                  className="inline-flex items-center gap-1 text-[9px] font-semibold text-slate-300 hover:text-white bg-slate-800 hover:bg-slate-700 border border-slate-700 px-2 py-0.5 rounded-full transition-colors cursor-pointer"
                                 >
                                   <Pencil className="w-2.5 h-2.5" />
                                   <span>Edit</span>
@@ -2072,6 +2275,21 @@ export default function CreateAccountAdminPage() {
                                 </button>
                               </div>
                             </div>
+
+                            {/* Optional Deactivated Banner */}
+                            {store.is_active === false && (
+                              <div className="p-2 rounded-xl bg-rose-950/40 border border-rose-800/40 text-[11px] text-rose-300 flex items-center justify-between gap-2">
+                                <div className="flex items-center gap-1.5 min-w-0">
+                                  <PauseCircle className="w-3.5 h-3.5 text-rose-400 shrink-0" />
+                                  <span className="truncate font-medium">Paused: {store.deactivationReason || 'Subscription / Review'}</span>
+                                </div>
+                                {store.deactivationNote && (
+                                  <span className="text-[10px] text-slate-400 truncate max-w-[120px]" title={store.deactivationNote}>
+                                    ({store.deactivationNote})
+                                  </span>
+                                )}
+                              </div>
+                            )}
 
                             {/* Real-Time Synced ID & Current Password Box */}
                             <div className="p-2.5 rounded-xl bg-slate-950/70 border border-slate-800/80 space-y-2 text-xs">
@@ -2804,6 +3022,210 @@ export default function CreateAccountAdminPage() {
                   </button>
                 </div>
               </form>
+            </div>
+          </div>
+        )}
+
+        {/* ----------------------------------------------------------------- */}
+        {/* DEACTIVATE STORE MODAL                                            */}
+        {/* ----------------------------------------------------------------- */}
+        {deactivateModal.isOpen && deactivateModal.store && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-fade-in">
+            <div className="w-full max-w-md bg-slate-900 border border-slate-800 rounded-3xl p-6 shadow-2xl relative space-y-4">
+              {/* Header */}
+              <div className="flex items-center justify-between pb-3 border-b border-slate-800">
+                <div className="flex items-center gap-2">
+                  <div className="p-2 rounded-xl bg-amber-500/10 text-amber-400 border border-amber-500/20">
+                    <PauseCircle className="w-4 h-4" />
+                  </div>
+                  <div>
+                    <h3 className="text-sm font-bold text-white">Deactivate Store Account</h3>
+                    <p className="text-[11px] text-slate-400">Temporarily pause live counters and owner portal</p>
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  onClick={closeDeactivateModal}
+                  disabled={deactivateModal.isSubmitting}
+                  className="p-1 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800 transition-colors"
+                >
+                  <X className="w-4 h-4" />
+                </button>
+              </div>
+
+              {deactivateModal.errorMsg && (
+                <div className="p-3 rounded-xl bg-rose-500/10 border border-rose-500/30 text-rose-300 text-xs">
+                  {deactivateModal.errorMsg}
+                </div>
+              )}
+
+              {/* Store Identity Summary */}
+              <div className="p-3 rounded-xl bg-slate-950/70 border border-slate-800/80 space-y-1">
+                <div className="text-xs font-bold text-white">{deactivateModal.store.name}</div>
+                <div className="text-[11px] text-slate-400 font-mono truncate">{deactivateModal.store.email}</div>
+                <div className="text-[10px] text-indigo-400 font-mono">Slug: {deactivateModal.store.slug}</div>
+              </div>
+
+              {/* Deactivation Reason Dropdown */}
+              <div className="space-y-1.5">
+                <label className="text-xs font-semibold text-slate-300">
+                  Deactivation Reason
+                </label>
+                <select
+                  value={deactivateModal.reason}
+                  onChange={(e) => setDeactivateModal((prev) => ({ ...prev, reason: e.target.value }))}
+                  className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3.5 py-2.5 text-xs text-white focus:outline-none focus:border-amber-500"
+                >
+                  <option value="Subscription / Renewal Due">Subscription / Renewal Due</option>
+                  <option value="Client Requested Temporary Pause">Client Requested Temporary Pause</option>
+                  <option value="Billing / Payment Pending">Billing / Payment Pending</option>
+                  <option value="Policy / Compliance Review">Policy / Compliance Review</option>
+                  <option value="Security / Suspicious Activity Check">Security / Suspicious Activity Check</option>
+                  <option value="Technical Maintenance Hold">Technical Maintenance Hold</option>
+                  <option value="Other / Administrative Hold">Other / Administrative Hold</option>
+                </select>
+              </div>
+
+              {/* Optional Admin Note */}
+              <div className="space-y-1.5">
+                <label className="text-xs font-semibold text-slate-300">
+                  Administrative Note <span className="text-slate-500 font-normal">(Optional)</span>
+                </label>
+                <input
+                  type="text"
+                  value={deactivateModal.customNote}
+                  onChange={(e) => setDeactivateModal((prev) => ({ ...prev, customNote: e.target.value }))}
+                  placeholder="e.g. Plan expired on 28th. Client notified via WhatsApp."
+                  className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3.5 py-2.5 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-amber-500"
+                />
+              </div>
+
+              {/* Guarantees Box */}
+              <div className="p-3 rounded-xl bg-slate-950/60 border border-slate-800 text-[11px] text-slate-300 space-y-1">
+                <div className="flex items-center gap-1.5 text-emerald-400 font-semibold">
+                  <CheckCircle2 className="w-3.5 h-3.5" />
+                  <span>Zero Data Loss Protection</span>
+                </div>
+                <p className="text-slate-400 leading-relaxed text-[10.5px]">
+                  All historical reviews, complaints, and NFC/QR URLs are safely preserved. Client will see the dedicated reactivation screen with your direct WhatsApp contact.
+                </p>
+              </div>
+
+              {/* Action Buttons */}
+              <div className="grid grid-cols-2 gap-3 pt-2">
+                <button
+                  type="button"
+                  onClick={closeDeactivateModal}
+                  disabled={deactivateModal.isSubmitting}
+                  className="py-2.5 px-4 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 font-bold text-xs transition-colors cursor-pointer disabled:opacity-50"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="button"
+                  onClick={handleConfirmDeactivate}
+                  disabled={deactivateModal.isSubmitting}
+                  className="py-2.5 px-4 rounded-xl bg-amber-600 hover:bg-amber-500 disabled:opacity-50 text-white font-bold text-xs shadow-md shadow-amber-600/20 transition-all flex items-center justify-center gap-1.5 cursor-pointer"
+                >
+                  {deactivateModal.isSubmitting ? (
+                    <>
+                      <RefreshCw className="w-3.5 h-3.5 animate-spin" />
+                      <span>Pausing...</span>
+                    </>
+                  ) : (
+                    <>
+                      <PauseCircle className="w-3.5 h-3.5" />
+                      <span>Confirm Deactivate</span>
+                    </>
+                  )}
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* ----------------------------------------------------------------- */}
+        {/* ACTIVATE STORE MODAL                                              */}
+        {/* ----------------------------------------------------------------- */}
+        {activateModal.isOpen && activateModal.store && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-fade-in">
+            <div className="w-full max-w-md bg-slate-900 border border-slate-800 rounded-3xl p-6 shadow-2xl relative space-y-4">
+              {/* Header */}
+              <div className="flex items-center justify-between pb-3 border-b border-slate-800">
+                <div className="flex items-center gap-2">
+                  <div className="p-2 rounded-xl bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
+                    <PlayCircle className="w-4 h-4" />
+                  </div>
+                  <div>
+                    <h3 className="text-sm font-bold text-white">Reactivate Store Account</h3>
+                    <p className="text-[11px] text-slate-400">Restore live counter and dashboard access</p>
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  onClick={closeActivateModal}
+                  disabled={activateModal.isSubmitting}
+                  className="p-1 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800 transition-colors"
+                >
+                  <X className="w-4 h-4" />
+                </button>
+              </div>
+
+              {activateModal.errorMsg && (
+                <div className="p-3 rounded-xl bg-rose-500/10 border border-rose-500/30 text-rose-300 text-xs">
+                  {activateModal.errorMsg}
+                </div>
+              )}
+
+              {/* Store Identity Summary */}
+              <div className="p-3 rounded-xl bg-slate-950/70 border border-slate-800/80 space-y-1">
+                <div className="text-xs font-bold text-white">{activateModal.store.name}</div>
+                <div className="text-[11px] text-slate-400 font-mono truncate">{activateModal.store.email}</div>
+                <div className="text-[10px] text-emerald-400 font-mono">Slug: {activateModal.store.slug}</div>
+              </div>
+
+              {/* Instant Restoration Bullets */}
+              <div className="p-3.5 rounded-xl bg-emerald-950/30 border border-emerald-500/20 text-xs text-slate-300 space-y-2">
+                <div className="text-emerald-300 font-semibold flex items-center gap-1.5">
+                  <CheckCircle2 className="w-4 h-4" />
+                  <span>Immediate 1-Click Reactivation</span>
+                </div>
+                <ul className="space-y-1 text-[11px] text-slate-300 pl-1">
+                  <li>• Instantly restores the live 5-star customer review flow on all existing NFC cards & QR codes.</li>
+                  <li>• Instantly unblocks store owner login and metrics dashboard.</li>
+                  <li>• NFC/QR URLs remain identical with zero configuration needed.</li>
+                </ul>
+              </div>
+
+              {/* Action Buttons */}
+              <div className="grid grid-cols-2 gap-3 pt-2">
+                <button
+                  type="button"
+                  onClick={closeActivateModal}
+                  disabled={activateModal.isSubmitting}
+                  className="py-2.5 px-4 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 font-bold text-xs transition-colors cursor-pointer disabled:opacity-50"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="button"
+                  onClick={handleConfirmActivate}
+                  disabled={activateModal.isSubmitting}
+                  className="py-2.5 px-4 rounded-xl bg-emerald-600 hover:bg-emerald-500 disabled:opacity-50 text-white font-bold text-xs shadow-md shadow-emerald-600/20 transition-all flex items-center justify-center gap-1.5 cursor-pointer"
+                >
+                  {activateModal.isSubmitting ? (
+                    <>
+                      <RefreshCw className="w-3.5 h-3.5 animate-spin" />
+                      <span>Reactivating...</span>
+                    </>
+                  ) : (
+                    <>
+                      <PlayCircle className="w-3.5 h-3.5" />
+                      <span>Yes, Reactivate Store</span>
+                    </>
+                  )}
+                </button>
+              </div>
             </div>
           </div>
         )}
