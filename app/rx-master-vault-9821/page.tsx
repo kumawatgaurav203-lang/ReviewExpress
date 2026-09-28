@@ -38,6 +38,7 @@ import {
   PauseCircle,
   PlayCircle,
   ShieldAlert,
+  MoreVertical,
 } from 'lucide-react';
 import QRCode from 'qrcode';
 import { detectCategory } from '@/lib/tags-data';
@@ -153,6 +154,9 @@ export default function CreateAccountAdminPage() {
 
   // Toggle password visibility on store cards
   const [visiblePasswords, setVisiblePasswords] = useState<Record<string, boolean>>({});
+
+  // 3-Dots Action Menu state per store card
+  const [openMenuStoreKey, setOpenMenuStoreKey] = useState<string | null>(null);
 
   // 4-Step Delete Modal State (including permanent delete confirmation screen)
   const [deleteModal, setDeleteModal] = useState<{
@@ -2190,14 +2194,15 @@ export default function CreateAccountAdminPage() {
                     {displayedStores.map((store, idx) => {
                       const catKey = normalizeCategory(store.category, store.name);
                       const meta = getCategoryDisplay(catKey);
+                      const storeKey = store.slug || store.email || String(idx);
 
                       return (
                         <div
-                          key={store.email || store.slug || idx}
-                          className="p-4 rounded-2xl bg-slate-900/60 border border-slate-800/90 hover:border-slate-700 transition-all flex flex-col justify-between gap-3 shadow-lg group"
+                          key={storeKey}
+                          className="p-4 rounded-2xl bg-slate-900/60 border border-slate-800/90 hover:border-slate-700 transition-all flex flex-col justify-between gap-3 shadow-lg group relative"
                         >
                           <div className="space-y-3">
-                            {/* Top Bar: Store Name & Status Badge */}
+                            {/* Top Bar: Store Name (Left) & [Status Badge + 3-Dots Menu] (Right) */}
                             <div className="flex items-center justify-between gap-2">
                               <h4
                                 className="text-sm font-bold text-white tracking-tight truncate group-hover:text-indigo-300 transition-colors flex-1 min-w-0"
@@ -2206,8 +2211,8 @@ export default function CreateAccountAdminPage() {
                                 {store.name}
                               </h4>
 
-                              {/* Status Badge in Top Right */}
-                              <div className="shrink-0">
+                              <div className="flex items-center gap-1.5 shrink-0">
+                                {/* Status Badge */}
                                 {store.is_active === false || store.status === 'deactivated' ? (
                                   <span className="inline-flex items-center gap-1 text-[9px] font-semibold text-rose-400 bg-rose-500/10 border border-rose-500/25 px-2 py-0.5 rounded-full">
                                     <span className="w-1.5 h-1.5 rounded-full bg-rose-400 animate-pulse" />
@@ -2219,70 +2224,109 @@ export default function CreateAccountAdminPage() {
                                     Active
                                   </span>
                                 )}
+
+                                {/* 3-Dots Action Button & Dropdown Menu */}
+                                <div className="relative">
+                                  <button
+                                    type="button"
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      setOpenMenuStoreKey(openMenuStoreKey === storeKey ? null : storeKey);
+                                    }}
+                                    className="p-1.5 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800 transition-colors cursor-pointer border border-transparent hover:border-slate-700"
+                                    title="Store options"
+                                    aria-label="Store options"
+                                  >
+                                    <MoreVertical className="w-4 h-4" />
+                                  </button>
+
+                                  {/* Dropdown Menu Popover */}
+                                  {openMenuStoreKey === storeKey && (
+                                    <>
+                                      <div
+                                        className="fixed inset-0 z-40"
+                                        onClick={(e) => {
+                                          e.stopPropagation();
+                                          setOpenMenuStoreKey(null);
+                                        }}
+                                      />
+                                      <div className="absolute right-0 mt-1 w-44 rounded-xl bg-slate-900 border border-slate-700 shadow-2xl z-50 p-1.5 space-y-1 animate-in fade-in zoom-in-95 duration-100">
+                                        {store.is_active === false || store.status === 'deactivated' ? (
+                                          <button
+                                            type="button"
+                                            onClick={(e) => {
+                                              e.stopPropagation();
+                                              setOpenMenuStoreKey(null);
+                                              openActivateModal(store);
+                                            }}
+                                            className="w-full px-2.5 py-1.5 rounded-lg text-left text-xs font-semibold text-emerald-300 hover:text-white hover:bg-emerald-600/20 flex items-center gap-2 transition-colors cursor-pointer"
+                                          >
+                                            <PlayCircle className="w-3.5 h-3.5 text-emerald-400" />
+                                            <span>Activate Store</span>
+                                          </button>
+                                        ) : (
+                                          <button
+                                            type="button"
+                                            onClick={(e) => {
+                                              e.stopPropagation();
+                                              setOpenMenuStoreKey(null);
+                                              openDeactivateModal(store);
+                                            }}
+                                            className="w-full px-2.5 py-1.5 rounded-lg text-left text-xs font-semibold text-amber-300 hover:text-white hover:bg-amber-600/20 flex items-center gap-2 transition-colors cursor-pointer"
+                                          >
+                                            <PauseCircle className="w-3.5 h-3.5 text-amber-400" />
+                                            <span>Pause Store</span>
+                                          </button>
+                                        )}
+
+                                        <button
+                                          type="button"
+                                          onClick={(e) => {
+                                            e.stopPropagation();
+                                            setOpenMenuStoreKey(null);
+                                            openEditModal(store);
+                                          }}
+                                          className="w-full px-2.5 py-1.5 rounded-lg text-left text-xs font-semibold text-slate-200 hover:text-white hover:bg-slate-800 flex items-center gap-2 transition-colors cursor-pointer"
+                                        >
+                                          <Pencil className="w-3.5 h-3.5 text-slate-400" />
+                                          <span>Edit Details</span>
+                                        </button>
+
+                                        <div className="border-t border-slate-800 my-1" />
+
+                                        <button
+                                          type="button"
+                                          onClick={(e) => {
+                                            e.stopPropagation();
+                                            setOpenMenuStoreKey(null);
+                                            openDeleteModal(store);
+                                          }}
+                                          className="w-full px-2.5 py-1.5 rounded-lg text-left text-xs font-semibold text-rose-400 hover:text-rose-200 hover:bg-rose-500/15 flex items-center gap-2 transition-colors cursor-pointer"
+                                        >
+                                          <Trash2 className="w-3.5 h-3.5 text-rose-400" />
+                                          <span>Delete Account</span>
+                                        </button>
+                                      </div>
+                                    </>
+                                  )}
+                                </div>
                               </div>
                             </div>
 
-                            {/* Sub-bar: Category Badge (Left) & Actions Toolbar (Right) */}
-                            <div className="flex items-center justify-between gap-2 pt-0.5">
-                              <div className="flex items-center gap-1.5 min-w-0 flex-1">
-                                <span className="inline-flex items-center gap-1 text-[10px] font-semibold text-indigo-300 bg-indigo-500/10 border border-indigo-500/20 px-2 py-0.5 rounded-md shrink-0 whitespace-nowrap">
-                                  <span>{meta.icon}</span>
-                                  <span>{meta.label}</span>
+                            {/* Row 2: Category Pill (Uncluttered, full width available!) */}
+                            <div className="flex items-center gap-1.5 flex-wrap">
+                              <span className="inline-flex items-center gap-1 text-[10px] font-semibold text-indigo-300 bg-indigo-500/10 border border-indigo-500/20 px-2.5 py-0.5 rounded-md">
+                                <span>{meta.icon}</span>
+                                <span>{meta.label}</span>
+                              </span>
+                              {store.category && store.category.toLowerCase().trim() !== catKey && (
+                                <span
+                                  className="text-[10px] text-slate-400 truncate max-w-[200px]"
+                                  title={store.category}
+                                >
+                                  • {store.category}
                                 </span>
-                                {store.category && store.category.toLowerCase().trim() !== catKey && (
-                                  <span
-                                    className="text-[10px] text-slate-400 truncate max-w-[120px]"
-                                    title={store.category}
-                                  >
-                                    • {store.category}
-                                  </span>
-                                )}
-                              </div>
-
-                              {/* Action Buttons Toolbar */}
-                              <div className="flex items-center gap-1 shrink-0">
-                                {store.is_active === false || store.status === 'deactivated' ? (
-                                  <button
-                                    type="button"
-                                    onClick={() => openActivateModal(store)}
-                                    title="Reactivate store account"
-                                    className="inline-flex items-center gap-1 text-[9px] font-semibold text-emerald-300 hover:text-white bg-emerald-500/15 hover:bg-emerald-500/30 border border-emerald-500/30 px-2 py-0.5 rounded-md transition-colors cursor-pointer"
-                                  >
-                                    <PlayCircle className="w-2.5 h-2.5 text-emerald-400" />
-                                    <span>Activate</span>
-                                  </button>
-                                ) : (
-                                  <button
-                                    type="button"
-                                    onClick={() => openDeactivateModal(store)}
-                                    title="Deactivate store account"
-                                    className="inline-flex items-center gap-1 text-[9px] font-semibold text-amber-300 hover:text-white bg-amber-500/15 hover:bg-amber-500/30 border border-amber-500/30 px-2 py-0.5 rounded-md transition-colors cursor-pointer"
-                                  >
-                                    <PauseCircle className="w-2.5 h-2.5 text-amber-400" />
-                                    <span>Pause</span>
-                                  </button>
-                                )}
-
-                                <button
-                                  type="button"
-                                  onClick={() => openEditModal(store)}
-                                  title="Edit Store Category & Review Link"
-                                  className="inline-flex items-center gap-1 text-[9px] font-semibold text-slate-300 hover:text-white bg-slate-800/90 hover:bg-slate-700 border border-slate-700 px-2 py-0.5 rounded-md transition-colors cursor-pointer"
-                                >
-                                  <Pencil className="w-2.5 h-2.5 text-slate-400" />
-                                  <span>Edit</span>
-                                </button>
-
-                                <button
-                                  type="button"
-                                  onClick={() => openDeleteModal(store)}
-                                  title="Delete store account"
-                                  className="inline-flex items-center gap-1 text-[9px] font-semibold text-rose-300 hover:text-white bg-rose-500/15 hover:bg-rose-500/30 border border-rose-500/30 px-2 py-0.5 rounded-md transition-colors cursor-pointer"
-                                >
-                                  <Trash2 className="w-2.5 h-2.5 text-rose-400" />
-                                  <span>Delete</span>
-                                </button>
-                              </div>
+                              )}
                             </div>
 
                             {/* Optional Deactivated Banner */}
