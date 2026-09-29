@@ -1751,7 +1751,7 @@ export default function CreateAccountAdminPage() {
             </div>
 
             {/* ------------------------------------------------------------- */}
-            {/* 🔗 PERMANENT NFC REVIEW LINK & HIGH-RES QR STANDEE HUB        */}
+            {/* 🔗 PERMANENT NFC REVIEW LINK & HIGH-RES QR CARD HUB           */}
             {/* ------------------------------------------------------------- */}
             <div className="p-4 sm:p-5 rounded-2xl bg-gradient-to-r from-indigo-950/60 via-slate-900 to-indigo-950/40 border border-indigo-500/30 space-y-4 shadow-xl relative overflow-hidden">
               {/* Header: Title + Hub Badge */}
@@ -1765,7 +1765,7 @@ export default function CreateAccountAdminPage() {
                       Permanent Review Links & QR
                     </h3>
                     <p className="text-[11px] text-slate-400 truncate">
-                      NFC Chip & Standee for <span className="text-indigo-300 font-semibold">{createdBusiness.name}</span>
+                      NFC Chip & Card for <span className="text-indigo-300 font-semibold">{createdBusiness.name}</span>
                     </p>
                   </div>
                 </div>
@@ -1797,7 +1797,7 @@ export default function CreateAccountAdminPage() {
                     className="w-full py-2.5 px-3 rounded-xl bg-indigo-600 hover:bg-indigo-500 active:scale-95 text-white text-[11px] font-bold flex items-center justify-center gap-1.5 transition-all shadow-md cursor-pointer"
                   >
                     <Download className="w-3.5 h-3.5" />
-                    <span>Download QR Standee (PNG)</span>
+                    <span>Download QR Card (PNG)</span>
                   </button>
                 </div>
 
@@ -1808,7 +1808,7 @@ export default function CreateAccountAdminPage() {
                     <div className="flex items-center justify-between gap-2">
                       <span className="text-xs font-bold text-indigo-300 flex items-center gap-1.5 min-w-0">
                         <QrCode className="w-4 h-4 text-indigo-400 shrink-0" />
-                        <span className="truncate">QR Review URL (Standee Print)</span>
+                        <span className="truncate">QR Review URL (Card Print)</span>
                       </span>
                       <a
                         href={`${liveOrigin}/r/${createdBusiness.slug}?source=qr`}
@@ -1906,11 +1906,11 @@ export default function CreateAccountAdminPage() {
             {/* Generated Links Grid */}
             <div className="space-y-4">
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              {/* Standee Link Box */}
+              {/* Card Link Box */}
               <div className="p-4 rounded-2xl bg-slate-950/80 border border-slate-800 space-y-2 flex flex-col justify-between">
                 <div>
                   <div className="flex items-center justify-between">
-                    <span className="text-xs font-semibold text-slate-400">Printable QR Standee</span>
+                    <span className="text-xs font-semibold text-slate-400">Printable QR Card</span>
                     <Printer className="w-4 h-4 text-teal-400" />
                   </div>
                   <p className="text-xs text-slate-300 mt-1">
@@ -1923,7 +1923,7 @@ export default function CreateAccountAdminPage() {
                   className="w-full py-2.5 px-3 rounded-xl bg-gradient-to-r from-teal-600 to-emerald-600 hover:from-teal-700 hover:to-emerald-700 text-white font-bold text-xs flex items-center justify-center gap-1.5 transition-all shadow-md mt-2"
                 >
                   <Printer className="w-3.5 h-3.5" />
-                  <span>Open & Print QR Standee</span>
+                  <span>Open & Print QR Card</span>
                   <ExternalLink className="w-3 h-3" />
                 </Link>
               </div>
@@ -2741,7 +2741,7 @@ export default function CreateAccountAdminPage() {
                       Warning: This action is permanent and cannot be undone!
                     </p>
                     <p className="text-[11px] text-slate-400 mt-2 leading-relaxed">
-                      All review data, private complaints, QR standees, and database credentials for <strong className="text-white">{deleteModal.store.name}</strong> will be permanently erased.
+                      All review data, private complaints, QR cards, and database credentials for <strong className="text-white">{deleteModal.store.name}</strong> will be permanently erased.
                     </p>
                   </div>
 
@@ -2790,7 +2790,7 @@ export default function CreateAccountAdminPage() {
                       Permanently Deleted!
                     </h3>
                     <p className="text-xs text-slate-300 mt-2 leading-relaxed">
-                      Store account <strong className="text-white">"{deleteModal.deletedStoreName}"</strong> and all associated database records, QR standees, review flows, and credentials have been permanently removed.
+                      Store account <strong className="text-white">"{deleteModal.deletedStoreName}"</strong> and all associated database records, QR cards, review flows, and credentials have been permanently removed.
                     </p>
                   </div>
 

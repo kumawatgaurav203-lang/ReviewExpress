@@ -15,8 +15,8 @@
 - In any future integration, redeploy, or update, NEVER reset or overwrite merchant credentials or scan analytics.
 
 ## 3. NFC & QR Link Integrity Guarantee
-- Customer review URLs (`/r/[slug]`, `/r/[slug]?source=qr`, `/r/[slug]?source=nfc`) and printable QR standee URLs (`/qr/[slug]`) must ALWAYS remain active, responsive, and properly routed.
-- If a customer taps the NFC card or scans the QR standee at a counter, it must always resolve to the correct business profile and redirect 4/5-star reviews to their Google Maps review URL without fail.
+- Customer review URLs (`/r/[slug]`, `/r/[slug]?source=qr`, `/r/[slug]?source=nfc`) and printable QR card URLs (`/qr/[slug]`) must ALWAYS remain active, responsive, and properly routed.
+- If a customer taps the NFC card or scans the QR card at a counter, it must always resolve to the correct business profile and redirect 4/5-star reviews to their Google Maps review URL without fail.
 - All scan logging (`/api/log-scan`) and analytics must remain active for both `source=qr` and `source=nfc`.
 
 ## 4. Host Downtime & Container Restart Resilience

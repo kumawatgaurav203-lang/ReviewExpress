@@ -98,12 +98,12 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
     return { title: 'Store Not Found | ReviewXpress' };
   }
   return {
-    title: `QR Standee | ${business.name}`,
-    description: `Printable QR Standee for ${business.name} to collect 5-star Google reviews.`,
+    title: `QR Card | ${business.name}`,
+    description: `Printable QR Card for ${business.name} to collect 5-star Google reviews.`,
   };
 }
 
-export default async function QRStandeePage({ params }: PageProps) {
+export default async function QRCardPage({ params }: PageProps) {
   const business = await getBusinessBySlug(params.slug);
 
   if (!business) {
@@ -138,10 +138,10 @@ export default async function QRStandeePage({ params }: PageProps) {
           <h1 className="text-xl sm:text-2xl font-bold text-white">{business.name}</h1>
           <div className="p-4 rounded-2xl bg-slate-950 border border-slate-800 space-y-2">
             <span className="inline-block px-3 py-1 rounded-full bg-amber-500/10 border border-amber-500/20 text-amber-400 text-xs font-semibold">
-              ● QR Standee Inactive
+              ● QR Card Inactive
             </span>
             <p className="text-xs text-slate-400">
-              This review standee is currently paused by store administration. Please contact staff for assistance.
+              This review card is currently paused by store administration. Please contact staff for assistance.
             </p>
           </div>
         </div>
@@ -159,9 +159,9 @@ export default async function QRStandeePage({ params }: PageProps) {
         </span>
       </div>
 
-      {/* Printable Counter Standee Card */}
+      {/* Printable Counter Card */}
       <div className="w-full max-w-md bg-white text-slate-900 rounded-3xl shadow-2xl p-6 sm:p-8 flex flex-col items-center text-center border-4 border-slate-100">
-        {/* Standee Header */}
+        {/* Card Header */}
         <div className="w-16 h-16 rounded-2xl bg-gradient-to-tr from-blue-600 via-indigo-600 to-violet-600 text-white flex items-center justify-center font-black text-2xl shadow-lg mb-3">
           <span>{business.name.slice(0, 2).toUpperCase()}</span>
         </div>

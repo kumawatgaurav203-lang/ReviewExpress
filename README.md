@@ -1,6 +1,6 @@
-﻿# ReviewExpress - AI-Powered NFC & QR Google Review SaaS Platform
+# ReviewExpress - AI-Powered NFC & QR Google Review SaaS Platform
 
-ReviewExpress is a full-stack, mobile-first SaaS platform designed for local businesses to convert in-store foot traffic into authentic 5-star Google Reviews using NFC tap cards and QR code counter standees.
+ReviewExpress is a full-stack, mobile-first SaaS platform designed for local businesses to convert in-store foot traffic into authentic 5-star Google Reviews using NFC tap cards and QR code counter cards.
 
 ## Key Features
 
@@ -8,7 +8,7 @@ ReviewExpress is a full-stack, mobile-first SaaS platform designed for local bus
   - **⭐⭐⭐⭐⭐ (3 to 5 Stars)**: Routes directly to Google Reviews. Customers get authentic 2-sentence AI-generated reviews tailored to business highlights with 1-tap clipboard copying and direct write-review modal launch.
   - **⭐⭐ (1 to 2 Stars)**: Intercepts dissatisfied customers with a private feedback form capturing their complaint and phone number directly for internal management resolution without exposing public Google Maps.
 - **AI Review Generator**: Integrated with Google Gemini 1.5 Flash API to generate diverse, natural, and authentic customer testimonials based on custom store tags.
-- **Instant Standee Generator**: Built-in high-resolution QR code counter standee page (/qr/[slug]) ready for printing in restaurants, studios, auto garages, and retail shops.
+- **Instant Card Generator**: Built-in high-resolution QR code counter card page (/qr/[slug]) ready for printing in restaurants, studios, auto garages, and retail shops.
 - **Full-Stack Architecture**: Next.js 14 (App Router), TypeScript, Tailwind CSS, Lucide Icons, and Supabase PostgreSQL with Row Level Security (RLS).
 - **Pre-Configured Jaipur Businesses**:
   1. **Photify Studios** (/r/photify-studios)
@@ -66,9 +66,9 @@ Open [http://localhost:3000](http://localhost:3000) in your browser.
 
 | Route | Purpose |
 |---|---|
-| / | Landing directory showcasing active business links and QR standees |
+| / | Landing directory showcasing active business links and QR cards |
 | /r/[slug] | Mobile customer NFC / QR review flow |
-| /qr/[slug] | Printable tabletop counter standee with high-res QR code |
+| /qr/[slug] | Printable tabletop counter card with high-res QR code |
 | /api/generate-review | Gemini AI route for generating tailored 2-sentence reviews |
 | /api/submit-feedback | Supabase logging route for analytics & private complaints |
 

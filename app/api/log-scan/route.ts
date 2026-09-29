@@ -61,7 +61,7 @@ export async function POST(req: NextRequest) {
               business_id: canonicalBusinessId,
               rating: 0,
               posted_to_google: false,
-              review_text: channel === 'nfc' ? 'NFC Chip Tapped' : 'QR Standee Scanned',
+              review_text: channel === 'nfc' ? 'NFC Chip Tapped' : 'QR Card Scanned',
               source: channel,
             },
           ])
@@ -82,7 +82,7 @@ export async function POST(req: NextRequest) {
       rating: 0,
       posted_to_google: false,
       is_scan: true,
-      review_text: channel === 'nfc' ? 'NFC Chip Tapped' : 'QR Standee Scanned',
+      review_text: channel === 'nfc' ? 'NFC Chip Tapped' : 'QR Card Scanned',
       source: channel,
     });
 

@@ -39,7 +39,7 @@ export default function NfcCopyCard({ nfcUrl, qrUrl, slug }: NfcCopyCardProps) {
 
   return (
     <div className="w-full max-w-md mt-6 space-y-4 print:hidden">
-      {/* NFC Standee Setup Card */}
+      {/* NFC Card Setup */}
       <div className="bg-slate-900 border border-violet-500/30 rounded-3xl p-5 shadow-xl space-y-3">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
@@ -54,7 +54,7 @@ export default function NfcCopyCard({ nfcUrl, qrUrl, slug }: NfcCopyCardProps) {
                 </span>
               </h3>
               <p className="text-[11px] text-slate-400">
-                Write this URL to your counter standee's NFC chip using the NFC Tools app
+                Write this URL to your counter card's NFC chip using the NFC Tools app
               </p>
             </div>
           </div>

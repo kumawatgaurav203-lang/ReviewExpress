@@ -596,8 +596,8 @@ export default function OwnerDashboardPage() {
               className="text-[11px] sm:text-xs font-semibold bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 px-2.5 sm:px-3.5 py-1.5 sm:py-2 rounded-xl flex items-center gap-1.5 transition-colors shrink-0"
             >
               <QrCode className="w-3.5 h-3.5 text-indigo-400" />
-              <span className="hidden sm:inline">Store QR Standee</span>
-              <span className="sm:hidden">Standee</span>
+              <span className="hidden sm:inline">Store QR Card</span>
+              <span className="sm:hidden">QR Card</span>
             </Link>
 
             {/* Settings Dropdown Button (Replaces bare logout) */}
@@ -731,7 +731,7 @@ export default function OwnerDashboardPage() {
             <span className="p-1 rounded-lg bg-violet-500/15 text-violet-400 text-xs">📱/📷</span>
             <span className="text-xs font-bold text-white">Source Channel:</span>
             <span className="text-[11px] text-slate-400 hidden sm:inline">
-              (Filter between counter QR standee & NFC tap chip traffic)
+              (Filter between counter QR card & NFC tap chip traffic)
             </span>
           </div>
 
@@ -861,10 +861,10 @@ export default function OwnerDashboardPage() {
               </div>
               <div>
                 <h2 className="text-base sm:text-lg font-bold text-white flex items-center gap-2">
-                  <span>Channel Analytics: 📱 NFC Tap vs 📷 QR Standee</span>
+                  <span>Channel Analytics: 📱 NFC Tap vs 📷 QR Card</span>
                 </h2>
                 <p className="text-xs text-slate-400">
-                  Real-time comparison between NFC chip taps and QR standee scans
+                  Real-time comparison between NFC chip taps and QR card scans
                 </p>
               </div>
             </div>
@@ -927,8 +927,8 @@ export default function OwnerDashboardPage() {
                     📷
                   </span>
                   <div>
-                    <h3 className="text-sm font-black text-white">QR Standee Scans</h3>
-                    <p className="text-[11px] text-slate-400">Customers who scanned counter QR standee</p>
+                    <h3 className="text-sm font-black text-white">QR Card Scans</h3>
+                    <p className="text-[11px] text-slate-400">Customers who scanned counter QR card</p>
                   </div>
                 </div>
               </div>
@@ -1017,7 +1017,7 @@ export default function OwnerDashboardPage() {
               <div className="space-y-3">
                 <div className="p-3 rounded-2xl bg-slate-800/60 border border-slate-700/50">
                   <div className="text-[11px] font-bold text-indigo-300 uppercase">1. Scan & Star Tap</div>
-                  <p className="text-xs text-slate-300 mt-0.5">Customers tap NFC tag or scan counter standee</p>
+                  <p className="text-xs text-slate-300 mt-0.5">Customers tap NFC tag or scan counter card</p>
                 </div>
 
                 <div className="p-3 rounded-2xl bg-emerald-500/10 border border-emerald-500/20">

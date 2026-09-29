@@ -48,7 +48,7 @@ export default function HomePage() {
       color: 'text-violet-400 bg-violet-400/10 border-violet-400/20',
       title: '1-Tap NFC & Dynamic QR',
       description:
-        'Customers tap counter standees or scan high-res QR codes without typing long links.',
+        'Customers tap counter cards or scan high-res QR codes without typing long links.',
     },
     {
       icon: Smartphone,
@@ -151,7 +151,7 @@ export default function HomePage() {
           </h1>
 
           <p className="text-slate-300 text-base sm:text-lg leading-relaxed max-w-2xl mx-auto">
-            Customers tap NFC standee or scan QR. Positive feedback (3-5⭐) gets instant 2-sentence AI reviews & direct Google Maps review box. Negative feedback (1-2⭐) is shielded privately for store owners!
+            Customers tap NFC card or scan QR. Positive feedback (3-5⭐) gets instant 2-sentence AI reviews & direct Google Maps review box. Negative feedback (1-2⭐) is shielded privately for store owners!
           </p>
 
           <div className="flex justify-center pt-2">
