@@ -41,7 +41,7 @@ export default function HomePage() {
       color: 'text-rose-400 bg-rose-400/10 border-rose-400/20',
       title: 'Negative Review Shield',
       description:
-        '1-3 star ratings are intercepted privately, keeping bad feedback completely off Google Maps.',
+        '1-2 star ratings are intercepted privately, keeping bad feedback completely off Google Maps.',
     },
     {
       icon: QrCode,
@@ -79,11 +79,11 @@ export default function HomePage() {
         'Resolve unhappy customer issues directly with safe 10-day retention after resolution.',
     },
     {
-      icon: Award,
-      color: 'text-orange-400 bg-orange-400/10 border-orange-400/20',
-      title: 'Instant WhatsApp Sharing',
+      icon: Star,
+      color: 'text-amber-400 bg-amber-400/10 border-amber-400/20',
+      title: '1-Click Google Review Redirect',
       description:
-        'One-click WhatsApp summaries of account credentials, review links, and scan performance.',
+        'Auto-copies the tailored review and redirects positive customers straight to your Google Maps review dialog.',
     },
     {
       icon: ShieldCheck,

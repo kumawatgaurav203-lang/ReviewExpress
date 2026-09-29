@@ -57,7 +57,7 @@ export default function TermsModal({ isOpen, onClose }: TermsModalProps) {
       color: 'text-indigo-400 bg-indigo-500/10 border-indigo-500/20',
       paragraphs: [
         'This SaaS is a review-management and review-assistance platform designed to help businesses collect customer feedback, facilitate Google review activity, and analyse review-related data through the dashboard.',
-        'The service does not guarantee increased sales, customers, revenue, Google ranking, rating, or business growth.',
+        'The service does not guarantee increased sales, customers, revenue, or business growth.',
       ],
     },
     {
@@ -90,7 +90,7 @@ export default function TermsModal({ isOpen, onClose }: TermsModalProps) {
       paragraphs: [
         'The SaaS is an independent service and is not owned, operated, or endorsed by Google unless expressly stated otherwise.',
         'Google may change its policies, systems, algorithms, or review decisions at any time. The provider is not responsible for Google removing, rejecting, filtering, or restricting reviews or accounts.',
-        'The SaaS may also depend on third-party services such as Supabase, Resend, Cloudflare, hosting, and domain providers. Their outages or policy changes may affect service availability.',
+        'The SaaS may depend on third-party cloud infrastructure, database, email, security, hosting, and domain providers. Upstream provider outages, maintenance, or policy updates may occasionally affect service availability.',
       ],
     },
     {
@@ -250,7 +250,7 @@ export default function TermsModal({ isOpen, onClose }: TermsModalProps) {
       icon: ShieldCheck,
       color: 'text-rose-400 bg-rose-500/10 border-rose-500/20',
       paragraphs: [
-        'Intercepted private customer complaints (1–3 star ratings) submitted through the NFC/QR card remain securely stored in the merchant dashboard until actively marked as resolved.',
+        'Intercepted private customer complaints (1–2 star ratings) submitted through the NFC/QR card remain securely stored in the merchant dashboard until actively marked as resolved.',
         'Unresolved complaints are never automatically deleted and will remain visible indefinitely for merchant review and customer follow-up.',
         'Once a complaint is actively marked as resolved by the business owner, it is retained for strictly 10 calendar days for verification and audit purposes, after which it is automatically and permanently purged from the database to optimize system performance and data privacy.',
       ],
