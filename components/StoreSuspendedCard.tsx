@@ -3,14 +3,12 @@
 import React from 'react';
 import {
   ShieldAlert,
-  PhoneCall,
   Mail,
   RefreshCw,
   ArrowLeft,
   CheckCircle2,
   Lock,
   ExternalLink,
-  MessageCircle,
 } from 'lucide-react';
 
 interface StoreSuspendedCardProps {
@@ -40,16 +38,10 @@ export default function StoreSuspendedCard({
       })
     : null;
 
-  const whatsappMessage = encodeURIComponent(
-    `Hello ReviewExpress Admin,\n\nMy store account is currently deactivated and I would like to reactivate it.\n\n• Store Name: ${storeName}\n• Store ID: ${storeSlug || 'N/A'}\n• Notice: ${reason}\n\nPlease help me reactivate my service.`
-  );
-
-  const whatsappUrl = `https://wa.me/917976938921?text=${whatsappMessage}`;
-  const phoneUrl = 'tel:+917976938921';
-  const emailUrl = `mailto:support@reviewexpress.in?subject=${encodeURIComponent(
-    `Reactivation Request - ${storeName} (${storeSlug})`
+  const emailUrl = `mailto:reviewxpressindia@gmail.com?subject=${encodeURIComponent(
+    `Reactivation Request - ${storeName} (${storeSlug || 'ID'})`
   )}&body=${encodeURIComponent(
-    `Store: ${storeName}\nStore ID: ${storeSlug}\nReason: ${reason}\n\nPlease reactivate my ReviewExpress account.`
+    `Hello ReviewExpress Support Team,\n\nI would like to request reactivation for my store account:\n\n• Store Name: ${storeName}\n• Store ID: ${storeSlug || 'N/A'}\n• Hold Notice: ${reason}\n\nPlease help me reactivate my service.`
   )}`;
 
   return (
@@ -142,36 +134,25 @@ export default function StoreSuspendedCard({
           </div>
         </div>
 
-        {/* Primary Action Buttons */}
-        <div className="space-y-2.5 mb-6">
+        {/* Primary Action Button: Email Support */}
+        <div className="mb-6 space-y-2">
           <a
-            href={whatsappUrl}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="w-full inline-flex items-center justify-center gap-2.5 px-5 py-3.5 rounded-xl text-sm font-semibold text-white bg-emerald-600 hover:bg-emerald-500 active:scale-[0.99] transition shadow-lg shadow-emerald-900/30"
+            href={emailUrl}
+            className="w-full inline-flex items-center justify-center gap-2.5 px-5 py-3.5 rounded-xl text-sm font-semibold text-white bg-indigo-600 hover:bg-indigo-500 active:scale-[0.99] transition shadow-lg shadow-indigo-600/30 cursor-pointer"
           >
-            <MessageCircle className="w-5 h-5 fill-current" />
-            <span>Chat with Admin on WhatsApp to Reactivate</span>
+            <Mail className="w-4 h-4 text-indigo-200" />
+            <span>Email Support to Reactivate</span>
             <ExternalLink className="w-3.5 h-3.5 opacity-70" />
           </a>
-
-          <div className="grid grid-cols-2 gap-2.5">
-            <a
-              href={phoneUrl}
-              className="inline-flex items-center justify-center gap-2 px-4 py-3 rounded-xl text-xs font-semibold text-slate-200 bg-slate-800/90 hover:bg-slate-700 border border-slate-700 transition"
-            >
-              <PhoneCall className="w-3.5 h-3.5 text-indigo-400" />
-              <span>Call Support</span>
-            </a>
-
+          <p className="text-[11px] text-center text-slate-400">
+            Official Support:{' '}
             <a
               href={emailUrl}
-              className="inline-flex items-center justify-center gap-2 px-4 py-3 rounded-xl text-xs font-semibold text-slate-200 bg-slate-800/90 hover:bg-slate-700 border border-slate-700 transition"
+              className="font-mono text-indigo-300 hover:underline"
             >
-              <Mail className="w-3.5 h-3.5 text-indigo-400" />
-              <span>Email Support</span>
+              reviewxpressindia@gmail.com
             </a>
-          </div>
+          </p>
         </div>
 
         {/* Footer Navigation */}
