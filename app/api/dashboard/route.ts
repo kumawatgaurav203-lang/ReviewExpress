@@ -319,17 +319,9 @@ export async function GET(req: NextRequest) {
       return l.source === 'nfc' ? 'nfc' : 'qr';
     };
 
-    // Intercepted complaints (ratings 1-3 shielded from Google Maps)
-    // NOTE: The Complaints Hub must show all complaints recorded for this store,
-    // so owners never miss an unsatisfied customer even if the visit traffic filter is set to 'day' (Today).
-    let complaintLogsSource = allLogs;
-    if (channel === 'nfc') {
-      complaintLogsSource = allLogs.filter((l) => l.source === 'nfc');
-    } else if (channel === 'qr') {
-      complaintLogsSource = allLogs.filter((l) => l.source !== 'nfc');
-    }
-
-    const complaints = complaintLogsSource
+    // Intercepted complaints (ratings 1-2 shielded from Google Maps)
+    // Filtered strictly by selected time period and source channel
+    const complaints = filteredLogs
       .filter((l) => l.rating > 0 && l.rating <= 2)
       .map((l) => {
         const feedbackText =
@@ -350,11 +342,6 @@ export async function GET(req: NextRequest) {
         };
       })
       .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
-
-    // Ensure interceptedComplaints metric reflects store complaints if period filtered to 0
-    if (period === 'day' && metrics.interceptedComplaints === 0 && complaints.length > 0) {
-      metrics.interceptedComplaints = complaints.length;
-    }
 
     // Positive Google reviews stream (ratings 3-5 confirmed posted to Google)
     const recentGoogleReviews = filteredLogs

@@ -2433,18 +2433,71 @@ export default function CreateAccountAdminPage() {
                                     <QrCode className="w-3 h-3 text-indigo-400" />
                                     <span>QR Review URL:</span>
                                   </span>
-                                  <Link
-                                    href={`/r/${store.slug}?source=qr`}
-                                    target="_blank"
-                                    className="text-[10px] text-slate-400 hover:text-indigo-300 flex items-center gap-0.5 transition-colors"
-                                    title="Test QR Flow"
-                                  >
-                                    <span>Test QR</span>
-                                    <ExternalLink className="w-2.5 h-2.5" />
-                                  </Link>
+                                  <div className="flex items-center gap-2">
+                                    <button
+                                      type="button"
+                                      onClick={() =>
+                                        handleCopy(
+                                          `${liveOrigin}/r/${store.slug}?source=qr`,
+                                          `qr-${store.slug}`
+                                        )
+                                      }
+                                      className="text-[10px] text-slate-400 hover:text-indigo-300 flex items-center gap-1 transition-colors cursor-pointer"
+                                      title="Copy QR Review URL"
+                                    >
+                                      {copiedField === `qr-${store.slug}` ? (
+                                        <>
+                                          <Check className="w-2.5 h-2.5 text-emerald-400" />
+                                          <span className="text-emerald-400 font-semibold">Copied!</span>
+                                        </>
+                                      ) : (
+                                        <>
+                                          <Copy className="w-2.5 h-2.5" />
+                                          <span>Copy</span>
+                                        </>
+                                      )}
+                                    </button>
+                                    <span className="text-slate-600">•</span>
+                                    <Link
+                                      href={`/r/${store.slug}?source=qr`}
+                                      target="_blank"
+                                      className="text-[10px] text-slate-400 hover:text-indigo-300 flex items-center gap-0.5 transition-colors"
+                                      title="Test QR Flow"
+                                    >
+                                      <span>Test QR</span>
+                                      <ExternalLink className="w-2.5 h-2.5" />
+                                    </Link>
+                                  </div>
                                 </div>
-                                <div className="bg-slate-900/90 border border-slate-800 rounded-lg px-2 py-1 text-[10.5px] font-mono text-indigo-300 truncate select-all">
-                                  {`${liveOrigin}/r/${store.slug}?source=qr`}
+                                <div
+                                  onClick={() =>
+                                    handleCopy(
+                                      `${liveOrigin}/r/${store.slug}?source=qr`,
+                                      `qr-${store.slug}`
+                                    )
+                                  }
+                                  className="bg-slate-900/90 hover:bg-slate-900 border border-slate-800 hover:border-indigo-500/50 rounded-lg px-2 py-1 text-[10.5px] font-mono text-indigo-300 flex items-center justify-between gap-1.5 cursor-pointer group transition-colors"
+                                  title="Click to copy QR Review URL"
+                                >
+                                  <span className="truncate select-all">{`${liveOrigin}/r/${store.slug}?source=qr`}</span>
+                                  <button
+                                    type="button"
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      handleCopy(
+                                        `${liveOrigin}/r/${store.slug}?source=qr`,
+                                        `qr-${store.slug}`
+                                      );
+                                    }}
+                                    className="p-0.5 rounded text-slate-500 group-hover:text-indigo-300 transition-colors shrink-0"
+                                    title="Copy QR URL"
+                                  >
+                                    {copiedField === `qr-${store.slug}` ? (
+                                      <Check className="w-3 h-3 text-emerald-400" />
+                                    ) : (
+                                      <Copy className="w-3 h-3" />
+                                    )}
+                                  </button>
                                 </div>
 
                                 {/* NFC Tag URL */}
@@ -2453,18 +2506,71 @@ export default function CreateAccountAdminPage() {
                                     <Smartphone className="w-3 h-3 text-amber-400" />
                                     <span>NFC Tag URL:</span>
                                   </span>
-                                  <Link
-                                    href={`/r/${store.slug}?source=nfc`}
-                                    target="_blank"
-                                    className="text-[10px] text-slate-400 hover:text-amber-300 flex items-center gap-0.5 transition-colors"
-                                    title="Test NFC Flow"
-                                  >
-                                    <span>Test NFC</span>
-                                    <ExternalLink className="w-2.5 h-2.5" />
-                                  </Link>
+                                  <div className="flex items-center gap-2">
+                                    <button
+                                      type="button"
+                                      onClick={() =>
+                                        handleCopy(
+                                          `${liveOrigin}/r/${store.slug}?source=nfc`,
+                                          `nfc-${store.slug}`
+                                        )
+                                      }
+                                      className="text-[10px] text-slate-400 hover:text-amber-300 flex items-center gap-1 transition-colors cursor-pointer"
+                                      title="Copy NFC Tag URL"
+                                    >
+                                      {copiedField === `nfc-${store.slug}` ? (
+                                        <>
+                                          <Check className="w-2.5 h-2.5 text-emerald-400" />
+                                          <span className="text-emerald-400 font-semibold">Copied!</span>
+                                        </>
+                                      ) : (
+                                        <>
+                                          <Copy className="w-2.5 h-2.5" />
+                                          <span>Copy</span>
+                                        </>
+                                      )}
+                                    </button>
+                                    <span className="text-slate-600">•</span>
+                                    <Link
+                                      href={`/r/${store.slug}?source=nfc`}
+                                      target="_blank"
+                                      className="text-[10px] text-slate-400 hover:text-amber-300 flex items-center gap-0.5 transition-colors"
+                                      title="Test NFC Flow"
+                                    >
+                                      <span>Test NFC</span>
+                                      <ExternalLink className="w-2.5 h-2.5" />
+                                    </Link>
+                                  </div>
                                 </div>
-                                <div className="bg-slate-900/90 border border-slate-800 rounded-lg px-2 py-1 text-[10.5px] font-mono text-amber-300 truncate select-all">
-                                  {`${liveOrigin}/r/${store.slug}?source=nfc`}
+                                <div
+                                  onClick={() =>
+                                    handleCopy(
+                                      `${liveOrigin}/r/${store.slug}?source=nfc`,
+                                      `nfc-${store.slug}`
+                                    )
+                                  }
+                                  className="bg-slate-900/90 hover:bg-slate-900 border border-slate-800 hover:border-amber-500/50 rounded-lg px-2 py-1 text-[10.5px] font-mono text-amber-300 flex items-center justify-between gap-1.5 cursor-pointer group transition-colors"
+                                  title="Click to copy NFC Tag URL"
+                                >
+                                  <span className="truncate select-all">{`${liveOrigin}/r/${store.slug}?source=nfc`}</span>
+                                  <button
+                                    type="button"
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      handleCopy(
+                                        `${liveOrigin}/r/${store.slug}?source=nfc`,
+                                        `nfc-${store.slug}`
+                                      );
+                                    }}
+                                    className="p-0.5 rounded text-slate-500 group-hover:text-amber-300 transition-colors shrink-0"
+                                    title="Copy NFC URL"
+                                  >
+                                    {copiedField === `nfc-${store.slug}` ? (
+                                      <Check className="w-3 h-3 text-emerald-400" />
+                                    ) : (
+                                      <Copy className="w-3 h-3" />
+                                    )}
+                                  </button>
                                 </div>
                               </div>
                             </div>
