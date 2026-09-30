@@ -330,11 +330,14 @@ export default function ReviewFlow({ business, initialSource }: ReviewFlowProps)
     }
   };
 
+  const isSubmittingRef = useRef(false);
+
   // Handle private feedback submission for 1-2 stars
   const handlePrivateFeedbackSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!complaintText.trim()) return;
+    if (isSubmittingRef.current || !complaintText.trim()) return;
 
+    isSubmittingRef.current = true;
     setComplaintError("");
     setIsSubmitting(true);
     try {
@@ -370,6 +373,7 @@ export default function ReviewFlow({ business, initialSource }: ReviewFlowProps)
       setComplaintError("Network timeout. Please tap Submit Private Feedback again.");
     } finally {
       setIsSubmitting(false);
+      isSubmittingRef.current = false;
     }
   };
 

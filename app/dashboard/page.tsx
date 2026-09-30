@@ -201,10 +201,20 @@ export default function OwnerDashboardPage() {
     }
   }, [dashboardData?.businessInfo?.tags]);
 
-  // Exactly 27 Master Highlight Sentences Pool: available suggestions are 27 minus active tags
-  const availableSuggestions = MASTER_HIGHLIGHT_POOL.filter(
-    (s) => !customTags.some((c) => c.toLowerCase() === s.toLowerCase())
-  );
+  const [deletedSuggestions, setDeletedSuggestions] = useState<string[]>([]);
+
+  // Exactly 27 Master Highlight Sentences Pool: suggestions are 27 minus active minus deleted
+  const availableSuggestions = MASTER_HIGHLIGHT_POOL
+    .filter((s) => !deletedSuggestions.some((d) => d.toLowerCase() === s.toLowerCase()))
+    .filter((s) => !customTags.some((c) => c.toLowerCase() === s.toLowerCase()));
+
+  const totalPoolCount = customTags.length + availableSuggestions.length;
+  const isTotalPoolLimitReached = totalPoolCount >= 27;
+
+  const handleDeleteSuggestion = (presetToDelete: string) => {
+    setDeletedSuggestions((prev) => [...prev, presetToDelete]);
+    setTagsMessage({ type: 'success', text: `Deleted "${presetToDelete}" from suggestions. You can now add a new custom sentence.` });
+  };
 
   const newTagWords = newTagInput.trim() ? newTagInput.trim().split(/\s+/).filter(Boolean) : [];
   const isTagWordLimitExceeded = newTagWords.length > 6;
@@ -216,6 +226,12 @@ export default function OwnerDashboardPage() {
 
     if (customTags.length >= 24) {
       setTagsMessage({ type: 'error', text: 'Maximum 24 active highlights limit reached. Remove one first.' });
+      return;
+    }
+
+    // Total highlights across active and suggestions cannot exceed 27
+    if (tagToAdd === undefined && isTotalPoolLimitReached) {
+      setTagsMessage({ type: 'error', text: 'Total limit of 27 highlights reached. Edit an active highlight or delete a suggestion below to add a new one.' });
       return;
     }
 
@@ -285,19 +301,22 @@ export default function OwnerDashboardPage() {
   const handleRemoveTag = (indexToRemove: number) => {
     const removedTag = customTags[indexToRemove];
     setCustomTags((prev) => prev.filter((_, idx) => idx !== indexToRemove));
+    if (removedTag) {
+      setDeletedSuggestions((prev) => [...prev, removedTag]);
+    }
     if (editingTagIndex === indexToRemove) {
       setEditingTagIndex(null);
       setEditingTagText('');
     }
     if (removedTag) {
-      setTagsMessage({ type: 'success', text: `Moved "${removedTag}" down to Quick Suggestions below.` });
+      setTagsMessage({ type: 'success', text: `Deleted "${removedTag}". A slot is now open in the 27 highlights pool.` });
     }
   };
 
   const handleClearAllTags = () => {
     if (customTags.length === 0) return;
     setCustomTags([]);
-    setTagsMessage({ type: 'success', text: 'All active highlights moved to Quick Suggestions below.' });
+    setTagsMessage({ type: 'success', text: 'All active highlights cleared.' });
   };
 
   const handleResetToDefaultTags = () => {
@@ -305,9 +324,10 @@ export default function OwnerDashboardPage() {
     const cat = detectCategory(bizName);
     const pool = (CATEGORY_TAGS[cat] && CATEGORY_TAGS[cat].length > 0) ? CATEGORY_TAGS[cat] : DEFAULT_STORE_HIGHLIGHTS;
     setCustomTags([...pool]);
+    setDeletedSuggestions([]);
     setEditingTagIndex(null);
     setEditingTagText('');
-    setTagsMessage({ type: 'success', text: `Restored store defaults (${pool.length} active highlights).` });
+    setTagsMessage({ type: 'success', text: `Restored store defaults (${pool.length} active highlights, 27 total pool).` });
   };
 
   const handleSaveTags = async () => {
@@ -470,13 +490,26 @@ export default function OwnerDashboardPage() {
   useEffect(() => {
     fetchDashboardData(false);
 
-    // Dynamic sync polling (60 seconds when tab active to conserve server bandwidth & memory)
+    // Dynamic fast sync polling (8 seconds when tab is active for instant update of reviews and complaints)
     const interval = setInterval(() => {
       if (typeof document !== 'undefined' && document.hidden) return;
       fetchDashboardData(true);
-    }, 60000);
+    }, 8000);
 
-    return () => clearInterval(interval);
+    const handleSyncOnActive = () => {
+      if (typeof document !== 'undefined' && !document.hidden) {
+        fetchDashboardData(true);
+      }
+    };
+
+    window.addEventListener('focus', handleSyncOnActive);
+    document.addEventListener('visibilitychange', handleSyncOnActive);
+
+    return () => {
+      clearInterval(interval);
+      window.removeEventListener('focus', handleSyncOnActive);
+      document.removeEventListener('visibilitychange', handleSyncOnActive);
+    };
   }, [timePeriod, channelFilter, ownerSession]);
 
   // Toggle complaint status
@@ -1263,12 +1296,12 @@ export default function OwnerDashboardPage() {
                     <h3 className="text-base sm:text-lg font-bold text-white">
                       Customize Review Highlights
                     </h3>
-                    <span className="text-[11px] font-bold px-2 py-0.5 rounded-full bg-indigo-500/20 text-indigo-300 border border-indigo-500/30">
-                      {customTags.length} / 24 Active
+                    <span className="text-[11px] font-bold px-2.5 py-0.5 rounded-full bg-indigo-500/20 text-indigo-300 border border-indigo-500/30">
+                      {customTags.length} / 24 Active • {totalPoolCount} / 27 Total Pool
                     </span>
                   </div>
                   <p className="text-xs text-slate-400 mt-0.5">
-                    Maximum 24 highlight sentences, up to 6 words each. Your customers can tap these when giving a review.
+                    Activate up to 24 highlight sentences from your pool of 27. Your customers can tap these when giving a review.
                   </p>
                 </div>
               </div>
@@ -1323,9 +1356,15 @@ export default function OwnerDashboardPage() {
                           handleAddTag();
                         }
                       }}
-                      placeholder="e.g. Quick Service, Best Quality in Town..."
+                      placeholder={
+                        isTotalPoolLimitReached
+                          ? 'Total 27 highlights reached. Delete or edit an existing one.'
+                          : customTags.length >= 24
+                          ? 'Max 24 active highlights reached.'
+                          : 'e.g. Quick Service, Best Quality in Town...'
+                      }
                       maxLength={45}
-                      disabled={customTags.length >= 24}
+                      disabled={customTags.length >= 24 || isTotalPoolLimitReached}
                       className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3.5 py-2.5 text-xs text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 disabled:opacity-50"
                     />
                   </div>
@@ -1336,7 +1375,8 @@ export default function OwnerDashboardPage() {
                       !newTagInput.trim() ||
                       isTagWordLimitExceeded ||
                       isTagCharLimitExceeded ||
-                      customTags.length >= 24
+                      customTags.length >= 24 ||
+                      isTotalPoolLimitReached
                     }
                     className="px-4 py-2.5 text-xs font-bold rounded-xl bg-indigo-600 hover:bg-indigo-500 disabled:bg-slate-800 text-white disabled:text-slate-500 flex items-center gap-1.5 transition-all shrink-0 cursor-pointer disabled:cursor-not-allowed"
                   >
@@ -1344,6 +1384,14 @@ export default function OwnerDashboardPage() {
                     <span>Add</span>
                   </button>
                 </div>
+
+                {/* Pool Limit Notice */}
+                {isTotalPoolLimitReached && (
+                  <div className="p-2.5 rounded-xl bg-amber-500/10 border border-amber-500/30 text-amber-300 text-xs flex items-center gap-2">
+                    <AlertTriangle className="w-4 h-4 shrink-0 text-amber-400" />
+                    <span>Total 27 highlights pool is full ({totalPoolCount}/27). Pehle se available kisi highlight ko Edit karein, ya Delete karke naya add karein.</span>
+                  </div>
+                )}
 
                 {/* Counters and limits helper */}
                 <div className="flex items-center justify-between text-[11px] text-slate-400 px-1">
@@ -1457,10 +1505,10 @@ export default function OwnerDashboardPage() {
                               type="button"
                               onClick={() => handleRemoveTag(idx)}
                               className="px-2 py-1 rounded-lg bg-slate-800 hover:bg-rose-500/20 text-slate-300 hover:text-rose-300 border border-slate-700 hover:border-rose-500/40 text-[11px] font-semibold flex items-center gap-1 cursor-pointer transition-colors"
-                              title="Remove this highlight"
+                              title="Delete this highlight"
                             >
                               <Trash2 className="w-3 h-3 text-rose-400" />
-                              <span>Remove</span>
+                              <span>Delete</span>
                             </button>
                           </div>
                         </div>
@@ -1486,10 +1534,10 @@ export default function OwnerDashboardPage() {
                 {availableSuggestions.length === 0 ? (
                   <div className="p-3.5 rounded-xl bg-slate-950/40 border border-slate-800/60 text-center space-y-1">
                     <p className="text-xs text-slate-400 font-medium">
-                      All pool suggestions are active in your highlights list.
+                      All pool suggestions are active in your highlights list or deleted.
                     </p>
                     <p className="text-[11px] text-slate-500">
-                      Click <span className="text-rose-300 font-semibold">Remove</span> on any active highlight above to drop it back down here.
+                      Click <span className="text-rose-300 font-semibold">Delete</span> on any active highlight above, or click <span className="text-indigo-400 font-semibold">Reset to Store Defaults</span> to restore defaults.
                     </p>
                   </div>
                 ) : (
@@ -1508,6 +1556,14 @@ export default function OwnerDashboardPage() {
                         >
                           <Plus className="w-3 h-3 text-indigo-400 opacity-70 group-hover:opacity-100" />
                           <span>{preset}</span>
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => handleDeleteSuggestion(preset)}
+                          className="px-1.5 py-1 text-slate-400 hover:text-rose-400 hover:bg-rose-500/10 border-l border-slate-700/60 transition-colors cursor-pointer"
+                          title={`Delete "${preset}" from pool`}
+                        >
+                          <X className="w-3 h-3" />
                         </button>
                       </div>
                     ))}

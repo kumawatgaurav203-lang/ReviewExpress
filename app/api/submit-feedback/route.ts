@@ -188,8 +188,39 @@ export async function POST(req: NextRequest) {
           } catch {}
         }
 
-        // 2. If no existing scan log was updated, insert as new entry
+        // 2. If no existing scan log was updated, check for duplicate complaint within 3 minutes before inserting
         if (!updatedDb) {
+          if (rating <= 2 && safeCustomerFeedback) {
+            try {
+              const threeMinutesAgo = new Date(Date.now() - 3 * 60 * 1000).toISOString();
+              const { data: existingDuplicate } = await supabase
+                .from('review_logs')
+                .select('id')
+                .eq('business_id', canonicalBusinessId)
+                .lte('rating', 2)
+                .gte('rating', 1)
+                .eq('customer_feedback', safeCustomerFeedback)
+                .gte('created_at', threeMinutesAgo)
+                .order('created_at', { ascending: false })
+                .limit(1)
+                .maybeSingle();
+
+              if (existingDuplicate?.id) {
+                // Invalidate cache so dashboard sees fresh state immediately
+                redisCache.delPattern(`dashboard:${safeBusinessId}:*`).catch(() => {});
+                redisCache.delPattern(`dashboard:${canonicalBusinessId}:*`).catch(() => {});
+                redisCache.delPattern('dashboard:all:*').catch(() => {});
+
+                // Return existing complaint without inserting duplicate
+                return NextResponse.json<SubmitFeedbackResponse>({
+                  success: true,
+                  message: 'Feedback received (deduplicated)',
+                  logId: existingDuplicate.id,
+                });
+              }
+            } catch {}
+          }
+
           const { data, error } = await supabase
             .from('review_logs')
             .insert([

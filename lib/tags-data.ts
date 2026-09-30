@@ -28,7 +28,7 @@ export const MASTER_HIGHLIGHT_POOL: string[] = [
   'Safe & Dependable Service',
 ];
 
-export const DEFAULT_STORE_HIGHLIGHTS: string[] = MASTER_HIGHLIGHT_POOL.slice(0, 5);
+export const DEFAULT_STORE_HIGHLIGHTS: string[] = MASTER_HIGHLIGHT_POOL.slice(0, 20);
 
 export const CATEGORY_TAGS: Record<string, string[]> = {
   general: DEFAULT_STORE_HIGHLIGHTS,

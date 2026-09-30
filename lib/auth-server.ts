@@ -361,6 +361,8 @@ export async function logAuditEvent(
   }
 }
 
+const businessUuidCache = new Map<string, { uuid: string; expiresAt: number }>();
+
 /**
  * Resolve any business identifier (slug or UUID) to its canonical UUID
  */
@@ -375,6 +377,11 @@ export async function resolveBusinessUuid(idOrSlug: string): Promise<string> {
     return 'b0000000-0000-4000-8000-000000000000';
   }
 
+  const cached = businessUuidCache.get(rawSlug);
+  if (cached && Date.now() < cached.expiresAt) {
+    return cached.uuid;
+  }
+
   if (isSupabaseConfigured()) {
     try {
       const { data } = await supabase
@@ -382,7 +389,10 @@ export async function resolveBusinessUuid(idOrSlug: string): Promise<string> {
         .select('id')
         .eq('slug', rawSlug)
         .single();
-      if (data?.id) return data.id;
+      if (data?.id) {
+        businessUuidCache.set(rawSlug, { uuid: data.id, expiresAt: Date.now() + 10 * 60 * 1000 });
+        return data.id;
+      }
     } catch (e) {}
   }
 

@@ -14,6 +14,8 @@ import { supabase, isSupabaseConfigured } from '@/lib/supabase';
 import { sanitizeBusinessId, isValidBusinessId } from '@/lib/api-guard';
 import { redisCache } from '@/lib/redis';
 
+const businessProfileCache = new Map<string, { data: any; expiresAt: number }>();
+
 function resolveBusinessName(businessId: string): string {
   const b = Object.values(DEMO_BUSINESSES).find((biz) => biz.id === businessId);
   if (b) return b.name;
@@ -266,6 +268,8 @@ export async function GET(req: NextRequest) {
     }
 
     const cleanLogs: typeof allLogs = [];
+    const seenComplaintMap = new Map<string, number>();
+
     for (let i = 0; i < sortedLogs.length; i++) {
       const current = sortedLogs[i];
       const currentTime = new Date(current.created_at || 0).getTime();
@@ -290,6 +294,20 @@ export async function GET(req: NextRequest) {
         if (isDuplicateScan) {
           continue;
         }
+      }
+
+      // Deduplicate identical complaints (ratings 1-2 with same feedback/phone within 5 minutes)
+      const isComplaint = current.rating && current.rating > 0 && current.rating <= 2;
+      if (isComplaint) {
+        const fb = (current.customer_feedback || current.review_text || '').trim().toLowerCase();
+        const phone = (current.customer_phone || '').trim();
+        const dedupeKey = `${current.business_id}_${current.rating}_${fb}_${phone}_${current.source}`;
+        const lastSeenTime = seenComplaintMap.get(dedupeKey);
+        if (lastSeenTime && Math.abs(currentTime - lastSeenTime) < 5 * 60 * 1000) {
+          // Skip duplicate complaint submission
+          continue;
+        }
+        seenComplaintMap.set(dedupeKey, currentTime);
       }
 
       cleanLogs.push(current);
@@ -412,24 +430,35 @@ export async function GET(req: NextRequest) {
     let googleReviewLink = 'https://g.page/r/CYa03-0ngD2lEAE/review';
     let businessTags: string[] = [];
 
-    // 1. Resolve from Supabase businesses table
+    // 1. Resolve from Supabase businesses table (with in-memory cache for speed)
     if (isSupabaseConfigured() && businessId !== 'all') {
-      try {
-        // Both businessId and businessSlug are already sanitized above
-        const { data: dbBiz } = await supabase
-          .from('businesses')
-          .select('id, name, slug, google_review_link, tags')
-          .or(`id.eq.${businessId},slug.eq.${businessSlug}`)
-          .single();
-        if (dbBiz) {
-          businessName = dbBiz.name;
-          businessSlug = dbBiz.slug;
-          googleReviewLink = dbBiz.google_review_link;
-          if (Array.isArray(dbBiz.tags) && dbBiz.tags.length > 0) {
-            businessTags = dbBiz.tags;
-          }
+      const cacheTarget = businessSlug || businessId;
+      const cached = businessProfileCache.get(cacheTarget);
+      if (cached && Date.now() < cached.expiresAt) {
+        businessName = cached.data.name || businessName;
+        businessSlug = cached.data.slug || businessSlug;
+        googleReviewLink = cached.data.google_review_link || googleReviewLink;
+        if (Array.isArray(cached.data.tags) && cached.data.tags.length > 0) {
+          businessTags = cached.data.tags;
         }
-      } catch (e) {}
+      } else {
+        try {
+          const { data: dbBiz } = await supabase
+            .from('businesses')
+            .select('id, name, slug, google_review_link, tags')
+            .or(`id.eq.${businessId},slug.eq.${businessSlug}`)
+            .single();
+          if (dbBiz) {
+            businessName = dbBiz.name;
+            businessSlug = dbBiz.slug;
+            googleReviewLink = dbBiz.google_review_link;
+            if (Array.isArray(dbBiz.tags) && dbBiz.tags.length > 0) {
+              businessTags = dbBiz.tags;
+            }
+            businessProfileCache.set(cacheTarget, { data: dbBiz, expiresAt: Date.now() + 5 * 60 * 1000 });
+          }
+        } catch (e) {}
+      }
     }
 
     // 2. Resolve from local accounts store
