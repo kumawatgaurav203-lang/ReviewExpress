@@ -28,7 +28,7 @@ export const MASTER_HIGHLIGHT_POOL: string[] = [
   'Safe & Dependable Service',
 ];
 
-export const DEFAULT_STORE_HIGHLIGHTS: string[] = MASTER_HIGHLIGHT_POOL.slice(0, 20);
+export const DEFAULT_STORE_HIGHLIGHTS: string[] = MASTER_HIGHLIGHT_POOL.slice(0, 16);
 
 export const CATEGORY_TAGS: Record<string, string[]> = {
   general: DEFAULT_STORE_HIGHLIGHTS,
@@ -229,3 +229,48 @@ export function getShuffledCategoryTags(name: string, explicitCategory?: string)
   // Return top 6 distinct shuffled highlights
   return shuffled.slice(0, 6);
 }
+
+/**
+ * Picks an optimal slice of highlights (4, 5, or 6 items) based on sentence length,
+ * keeping pinned selected tags visible and rotating fresh tags on shuffle.
+ */
+export function getOptimalHighlightSlice(
+  allTags: string[],
+  selected: string[] = [],
+  exclude: string[] = []
+): string[] {
+  if (!allTags || allTags.length === 0) return [];
+  if (allTags.length <= 4) return allTags;
+
+  // Measure average character length of candidate sentences
+  const avgLen = allTags.reduce((sum, t) => sum + t.length, 0) / allTags.length;
+
+  // 4 for long (> 22 chars), 5 for medium (16-22 chars), 6 for short (< 16 chars)
+  const targetCount = avgLen > 22 ? 4 : (avgLen >= 16 ? 5 : 6);
+
+  // Keep any currently selected tags visible
+  const pinnedSelected = selected.filter((t) => allTags.includes(t));
+
+  // Exclude already shown unselected tags if shuffling
+  const unselectedExclude = exclude.filter((t) => !pinnedSelected.includes(t));
+  let availableCandidates = allTags.filter((t) => !pinnedSelected.includes(t) && !unselectedExclude.includes(t));
+
+  // If not enough fresh unseen candidates to fill targetCount, fallback to all unselected candidates
+  if (availableCandidates.length < (targetCount - pinnedSelected.length)) {
+    availableCandidates = allTags.filter((t) => !pinnedSelected.includes(t));
+  }
+
+  // Shuffle available candidates
+  const shuffled = [...availableCandidates].sort(() => Math.random() - 0.5);
+
+  const result: string[] = [...pinnedSelected];
+  for (const t of shuffled) {
+    if (!result.includes(t)) {
+      result.push(t);
+    }
+    if (result.length >= targetCount) break;
+  }
+
+  return result;
+}
+

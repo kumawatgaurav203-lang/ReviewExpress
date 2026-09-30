@@ -1,8 +1,14 @@
 "use client";
 
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect, useRef, useMemo } from "react";
 import { Business, GenerateReviewResponse } from "@/lib/types";
-import { getShuffledCategoryTags } from "@/lib/tags-data";
+import {
+  getShuffledCategoryTags,
+  getOptimalHighlightSlice,
+  detectCategory,
+  CATEGORY_TAGS,
+  DEFAULT_STORE_HIGHLIGHTS,
+} from "@/lib/tags-data";
 import {
   Star,
   Sparkles,
@@ -88,31 +94,25 @@ export default function ReviewFlow({ business, initialSource }: ReviewFlowProps)
 
   const [rating, setRating] = useState<number>(0);
   const [hoveredRating, setHoveredRating] = useState<number>(0);
-  const hasCustomTags = Array.isArray(business.tags) && business.tags.length > 0;
+  const storePool = useMemo(() => {
+    if (Array.isArray(business.tags) && business.tags.length > 0) {
+      return business.tags;
+    }
+    const cat = detectCategory(business.name);
+    return CATEGORY_TAGS[cat] || DEFAULT_STORE_HIGHLIGHTS;
+  }, [business.tags, business.name]);
 
   const [displayTags, setDisplayTags] = useState<string[]>(() => {
-    if (hasCustomTags) return business.tags;
-    return getShuffledCategoryTags(business.name, business.category);
+    return getOptimalHighlightSlice(storePool);
   });
   const [selectedTags, setSelectedTags] = useState<string[]>([]);
 
   useEffect(() => {
-    if (Array.isArray(business.tags) && business.tags.length > 0) {
-      setDisplayTags(business.tags);
-    }
-  }, [business.tags]);
+    setDisplayTags((prev) => getOptimalHighlightSlice(storePool, selectedTags, prev));
+  }, [storePool]);
 
   const handleShuffleTags = () => {
-    if (hasCustomTags) {
-      const shuffled = [...business.tags].sort(() => Math.random() - 0.5);
-      setDisplayTags(shuffled);
-      return;
-    }
-    const fresh = getShuffledCategoryTags(
-      business.name,
-      business.category,
-    );
-    setDisplayTags(fresh);
+    setDisplayTags((prev) => getOptimalHighlightSlice(storePool, selectedTags, prev));
   };
   const [isGenerating, setIsGenerating] = useState<boolean>(false);
   const [reviewDraft, setReviewDraft] = useState<string>("");
@@ -478,7 +478,7 @@ export default function ReviewFlow({ business, initialSource }: ReviewFlowProps)
                   <label className="text-xs font-semibold uppercase tracking-wider text-slate-600">
                     What did you like the most?
                   </label>
-                  {displayTags.length > 3 && (
+                  {storePool.length > 4 && (
                     <button
                       type="button"
                       onClick={handleShuffleTags}

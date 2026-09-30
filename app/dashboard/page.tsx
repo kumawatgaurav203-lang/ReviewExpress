@@ -320,9 +320,7 @@ export default function OwnerDashboardPage() {
   };
 
   const handleResetToDefaultTags = () => {
-    const bizName = dashboardData?.businessInfo?.name || ownerSession?.businessName || '';
-    const cat = detectCategory(bizName);
-    const pool = (CATEGORY_TAGS[cat] && CATEGORY_TAGS[cat].length > 0) ? CATEGORY_TAGS[cat] : DEFAULT_STORE_HIGHLIGHTS;
+    const pool = DEFAULT_STORE_HIGHLIGHTS;
     setCustomTags([...pool]);
     setDeletedSuggestions([]);
     setEditingTagIndex(null);
