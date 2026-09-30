@@ -274,3 +274,18 @@ export function getOptimalHighlightSlice(
   return result;
 }
 
+/**
+ * Normalizes tags so that if an account has the old default 20 tags,
+ * it is migrated to the new default 16 tags (leaving 11 in suggestions pool).
+ */
+export function normalizeDefaultTags(tags?: string[]): string[] {
+  if (!Array.isArray(tags) || tags.length === 0) {
+    return [...DEFAULT_STORE_HIGHLIGHTS];
+  }
+  // If tags are exactly the old 20 default items, migrate them to 16
+  if (tags.length === 20 && tags.every((t, i) => t.toLowerCase() === MASTER_HIGHLIGHT_POOL[i]?.toLowerCase())) {
+    return [...DEFAULT_STORE_HIGHLIGHTS];
+  }
+  return tags;
+}
+

@@ -13,6 +13,7 @@ import { getSessionUser, authorizeBusinessAccess, logAuditEvent, resolveBusiness
 import { supabase, isSupabaseConfigured } from '@/lib/supabase';
 import { sanitizeBusinessId, isValidBusinessId } from '@/lib/api-guard';
 import { redisCache } from '@/lib/redis';
+import { normalizeDefaultTags } from '@/lib/tags-data';
 
 const businessProfileCache = new Map<string, { data: any; expiresAt: number }>();
 
@@ -489,7 +490,7 @@ export async function GET(req: NextRequest) {
       name: businessName,
       slug: businessSlug,
       googleReviewLink,
-      tags: businessTags,
+      tags: normalizeDefaultTags(businessTags),
     };
 
     const responsePayload = {

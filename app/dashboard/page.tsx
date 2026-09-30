@@ -34,7 +34,7 @@ import {
   RefreshCw,
 } from 'lucide-react';
 import { DEMO_BUSINESSES } from '@/lib/demo-data';
-import { detectCategory, CATEGORY_TAGS, MASTER_HIGHLIGHT_POOL, DEFAULT_STORE_HIGHLIGHTS } from '@/lib/tags-data';
+import { detectCategory, CATEGORY_TAGS, MASTER_HIGHLIGHT_POOL, DEFAULT_STORE_HIGHLIGHTS, normalizeDefaultTags } from '@/lib/tags-data';
 import TermsModal from '@/components/TermsModal';
 import SocialContactBar from '@/components/SocialContactBar';
 import StoreSuspendedCard from '@/components/StoreSuspendedCard';
@@ -196,7 +196,7 @@ export default function OwnerDashboardPage() {
   useEffect(() => {
     if (isTagsInitializedRef.current) return;
     if (dashboardData?.businessInfo?.tags && dashboardData.businessInfo.tags.length > 0) {
-      setCustomTags([...dashboardData.businessInfo.tags]);
+      setCustomTags(normalizeDefaultTags(dashboardData.businessInfo.tags));
       isTagsInitializedRef.current = true;
     }
   }, [dashboardData?.businessInfo?.tags]);
@@ -473,7 +473,7 @@ export default function OwnerDashboardPage() {
         setAccessDeniedError(null);
         setDashboardData(data);
         if (!isTagsInitializedRef.current && Array.isArray(data.businessInfo?.tags) && data.businessInfo.tags.length > 0) {
-          setCustomTags([...data.businessInfo.tags]);
+          setCustomTags(normalizeDefaultTags(data.businessInfo.tags));
           isTagsInitializedRef.current = true;
         }
       }
@@ -668,7 +668,7 @@ export default function OwnerDashboardPage() {
                       onClick={() => {
                         setIsSettingsMenuOpen(false);
                         if (dashboardData?.businessInfo?.tags) {
-                          setCustomTags([...dashboardData.businessInfo.tags]);
+                          setCustomTags(normalizeDefaultTags(dashboardData.businessInfo.tags));
                         }
                         setIsTagsModalOpen(true);
                       }}
@@ -1387,7 +1387,7 @@ export default function OwnerDashboardPage() {
                 {isTotalPoolLimitReached && (
                   <div className="p-2.5 rounded-xl bg-amber-500/10 border border-amber-500/30 text-amber-300 text-xs flex items-center gap-2">
                     <AlertTriangle className="w-4 h-4 shrink-0 text-amber-400" />
-                    <span>Total 27 highlights pool is full ({totalPoolCount}/27). Pehle se available kisi highlight ko Edit karein, ya Delete karke naya add karein.</span>
+                    <span>Total 27 highlights pool is full ({totalPoolCount}/27). Edit an existing highlight above, or delete one to add a new sentence.</span>
                   </div>
                 )}
 
