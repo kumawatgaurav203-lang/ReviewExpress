@@ -29,6 +29,7 @@ export const MASTER_HIGHLIGHT_POOL: string[] = [
 ];
 
 export const DEFAULT_STORE_HIGHLIGHTS: string[] = MASTER_HIGHLIGHT_POOL.slice(0, 16);
+export const DEFAULT_SUGGESTION_TAGS: string[] = MASTER_HIGHLIGHT_POOL.slice(16, 20);
 
 export const CATEGORY_TAGS: Record<string, string[]> = {
   general: DEFAULT_STORE_HIGHLIGHTS,

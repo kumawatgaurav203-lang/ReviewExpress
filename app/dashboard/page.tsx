@@ -34,7 +34,7 @@ import {
   RefreshCw,
 } from 'lucide-react';
 import { DEMO_BUSINESSES } from '@/lib/demo-data';
-import { detectCategory, CATEGORY_TAGS, MASTER_HIGHLIGHT_POOL, DEFAULT_STORE_HIGHLIGHTS, normalizeDefaultTags } from '@/lib/tags-data';
+import { detectCategory, CATEGORY_TAGS, MASTER_HIGHLIGHT_POOL, DEFAULT_STORE_HIGHLIGHTS, DEFAULT_SUGGESTION_TAGS, normalizeDefaultTags } from '@/lib/tags-data';
 import TermsModal from '@/components/TermsModal';
 import SocialContactBar from '@/components/SocialContactBar';
 import StoreSuspendedCard from '@/components/StoreSuspendedCard';
@@ -201,18 +201,17 @@ export default function OwnerDashboardPage() {
     }
   }, [dashboardData?.businessInfo?.tags]);
 
-  const [deletedSuggestions, setDeletedSuggestions] = useState<string[]>([]);
+  const [suggestionPool, setSuggestionPool] = useState<string[]>(DEFAULT_SUGGESTION_TAGS);
 
-  // Exactly 27 Master Highlight Sentences Pool: suggestions are 27 minus active minus deleted
-  const availableSuggestions = MASTER_HIGHLIGHT_POOL
-    .filter((s) => !deletedSuggestions.some((d) => d.toLowerCase() === s.toLowerCase()))
+  // Available suggestions from initial 4 presets (or custom additions) minus active tags
+  const availableSuggestions = suggestionPool
     .filter((s) => !customTags.some((c) => c.toLowerCase() === s.toLowerCase()));
 
   const totalPoolCount = customTags.length + availableSuggestions.length;
   const isTotalPoolLimitReached = totalPoolCount >= 27;
 
   const handleDeleteSuggestion = (presetToDelete: string) => {
-    setDeletedSuggestions((prev) => [...prev, presetToDelete]);
+    setSuggestionPool((prev) => prev.filter((s) => s.toLowerCase() !== presetToDelete.toLowerCase()));
     setTagsMessage({ type: 'success', text: `Deleted "${presetToDelete}" from suggestions. You can now add a new custom sentence.` });
   };
 
@@ -302,7 +301,7 @@ export default function OwnerDashboardPage() {
     const removedTag = customTags[indexToRemove];
     setCustomTags((prev) => prev.filter((_, idx) => idx !== indexToRemove));
     if (removedTag) {
-      setDeletedSuggestions((prev) => [...prev, removedTag]);
+      setSuggestionPool((prev) => prev.filter((s) => s.toLowerCase() !== removedTag.toLowerCase()));
     }
     if (editingTagIndex === indexToRemove) {
       setEditingTagIndex(null);
@@ -322,10 +321,10 @@ export default function OwnerDashboardPage() {
   const handleResetToDefaultTags = () => {
     const pool = DEFAULT_STORE_HIGHLIGHTS;
     setCustomTags([...pool]);
-    setDeletedSuggestions([]);
+    setSuggestionPool([...DEFAULT_SUGGESTION_TAGS]);
     setEditingTagIndex(null);
     setEditingTagText('');
-    setTagsMessage({ type: 'success', text: `Restored store defaults (${pool.length} active highlights, 27 total pool).` });
+    setTagsMessage({ type: 'success', text: `Restored store defaults (${pool.length} active highlights, 20 total pool).` });
   };
 
   const handleSaveTags = async () => {
