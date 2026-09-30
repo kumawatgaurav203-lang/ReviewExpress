@@ -1377,19 +1377,6 @@ export default function OwnerDashboardPage() {
                       <Sparkles className="w-3 h-3" />
                       <span>Reset to Store Defaults</span>
                     </button>
-                    {customTags.length > 0 && (
-                      <>
-                        <span className="text-slate-700">•</span>
-                        <button
-                          type="button"
-                          onClick={handleClearAllTags}
-                          className="text-[11px] text-rose-400 hover:text-rose-300 cursor-pointer"
-                          title="Move all active highlights to Quick Suggestions below"
-                        >
-                          Clear All
-                        </button>
-                      </>
-                    )}
                   </div>
                 </div>
 

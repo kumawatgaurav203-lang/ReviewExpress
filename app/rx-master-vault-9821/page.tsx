@@ -2575,57 +2575,6 @@ export default function CreateAccountAdminPage() {
                               </div>
                             </div>
                           </div>
-
-                          {/* Dual Action Copy Buttons: QR & NFC */}
-                          <div className="grid grid-cols-2 gap-2 pt-2 border-t border-slate-800/60">
-                            <button
-                              type="button"
-                              onClick={() =>
-                                handleCopy(
-                                  `${liveOrigin}/r/${store.slug}?source=qr`,
-                                  `qr-${store.slug}`
-                                )
-                              }
-                              className="py-2 px-2 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-[11px] flex items-center justify-center gap-1 transition-colors cursor-pointer shadow active:scale-[0.98]"
-                              title="Copy Permanent QR URL"
-                            >
-                              {copiedField === `qr-${store.slug}` ? (
-                                <>
-                                  <Check className="w-3.5 h-3.5 text-emerald-300" />
-                                  <span className="text-emerald-300">Copied!</span>
-                                </>
-                              ) : (
-                                <>
-                                  <QrCode className="w-3.5 h-3.5" />
-                                  <span>Copy QR Link</span>
-                                </>
-                              )}
-                            </button>
-
-                            <button
-                              type="button"
-                              onClick={() =>
-                                handleCopy(
-                                  `${liveOrigin}/r/${store.slug}?source=nfc`,
-                                  `nfc-${store.slug}`
-                                )
-                              }
-                              className="py-2 px-2 rounded-xl bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-600 hover:to-amber-700 text-slate-950 font-black text-[11px] flex items-center justify-center gap-1 transition-colors cursor-pointer shadow active:scale-[0.98]"
-                              title="Copy Permanent NFC Tag URL"
-                            >
-                              {copiedField === `nfc-${store.slug}` ? (
-                                <>
-                                  <Check className="w-3.5 h-3.5 text-slate-950" />
-                                  <span>Copied!</span>
-                                </>
-                              ) : (
-                                <>
-                                  <Smartphone className="w-3.5 h-3.5" />
-                                  <span>Copy NFC Link</span>
-                                </>
-                              )}
-                            </button>
-                          </div>
                         </div>
                       );
                     })}
